@@ -626,6 +626,34 @@ FRONTEND_PORT=5173
 - Create backend Dockerfile with multi-stage build
 - Configure Prisma client generation in Docker build
 
+### Session 5: Backend Dockerfile
+
+**Date**: 2025-12-22
+**Developer**: Claude
+**Session**: 5
+
+#### What was completed:
+- Created multi-stage Dockerfile for backend
+- Base stage with Node 20 Alpine and wget (for health checks)
+- Dependencies stage with npm ci for clean installs
+- Development stage with hot reload support
+- Build stage that compiles TypeScript and generates Prisma client
+- Production stage with minimal dependencies and compiled code
+
+#### Decisions made:
+- Used Alpine Linux for smaller image size
+- Multi-stage build separates development and production targets
+- Prisma client generated during Docker build
+- Production image only includes production dependencies and dist folder
+- Added wget to base image for Docker health checks
+
+#### Issues encountered:
+- None
+
+#### Next steps:
+- Initialize frontend React project with Vite and TypeScript
+- Configure Material-UI
+
 ---
 
 ## Sign-off
