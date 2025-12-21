@@ -568,6 +568,39 @@ FRONTEND_PORT=5173
 - Set up Winston logger
 - Create middleware for error handling and request logging
 
+### Session 3: Express App and Health Check Endpoint
+
+**Date**: 2025-12-22
+**Developer**: Claude
+**Session**: 3
+
+#### What was completed:
+- Created Winston logger utility with file and console transports
+- Created error handler middleware with custom AppError class, Zod error handling, and 404 handler
+- Created request logging middleware with response time tracking
+- Created health check controller with database connection test
+- Created health check routes mounted at `/api/health` and `/api/v1/health`
+- Created TypeScript types for API responses (SuccessResponse, ErrorResponse, PaginatedResponse, HealthCheckResponse)
+- Created Express app configuration with security middleware (Helmet, CORS, rate limiting)
+- Created server entry point with graceful shutdown handling
+- Created logs directory with .gitkeep
+
+#### Decisions made:
+- Winston logger configured with separate files for errors, combined logs, exceptions, and rejections
+- Error handler returns standardized JSON error responses
+- Request logger tracks response time and logs based on status code severity
+- Health check tests database connectivity using Prisma
+- Rate limiting set to 100 requests per 15 minutes per IP
+- Graceful shutdown handles SIGTERM, SIGINT with 10-second timeout
+- API versioning supported through environment variable (default: v1)
+
+#### Issues encountered:
+- None
+
+#### Next steps:
+- Initialize Prisma with PostgreSQL schema
+- Create basic User model for future authentication
+
 ---
 
 ## Sign-off
