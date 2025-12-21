@@ -1,0 +1,101 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  database:
+    image: postgres:16-alpine
+    container_name: budget-tracker-db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-budget_tracker}
+      POSTGRES_USER: ${POSTGRES_USER:-budget_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-budget_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    networks:
+      - budget-tracker-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-budget_user} -d ${POSTGRES_DB:-budget_tracker}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: development
+    container_name: budget-tracker-api
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-budget_user}:${POSTGRES_PASSWORD:-budget_password}@database:5432/${POSTGRES_DB:-budget_tracker}
+      PORT: 3000
+      NODE_ENV: development
+      CORS_ORIGIN: http://localhost:${FRONTEND_PORT:-5173}
+      API_VERSION: v1
+    depends_on:
+      database:
+        condition: service_healthy
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+    networks:
+      - budget-tracker-network
+    restart: unless-stopped
+    volumes:
+      # Mount source code for hot reload
+      - ./backend/src:/app/src
+      - ./backend/prisma:/app/prisma
+      # Use named volumes for node_modules to improve performance
+      - backend_node_modules:/app/node_modules
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend App
+  app:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: budget-tracker-app
+    environment:
+      VITE_API_URL: http://localhost:${BACKEND_PORT:-3000}/api
+    depends_on:
+      - api
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    networks:
+      - budget-tracker-network
+    restart: unless-stopped
+    volumes:
+      # Mount source code for hot reload
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
+      # Use named volumes for node_modules to improve performance
+      - frontend_node_modules:/app/node_modules
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5173"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# Named volumes for persistent data
+volumes:
+  postgres_data:
+    driver: local
+  backend_node_modules:
+    driver: local
+  frontend_node_modules:
+    driver: local
+
+# Network for inter-container communication
+networks:
+  budget-tracker-network:
+    driver: bridge
