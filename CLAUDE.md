@@ -1,37 +1,733 @@
-# Budget Tracker Web Application
+# Claude Code Context - Budget Tracker
 
 ## Project Overview
-A budget tracker web application that runs on Docker and can be accessed from mobile devices via local WiFi.
 
-## Tech Stack
+**Budget Tracker** - A self-hosted web-based budget tracking application that helps users monitor expenses, forecast future cash flow, and ensure sufficient funds are always available through expense estimation, trend analysis, and comprehensive financial visibility across multiple accounts.
+
+### Key Goals
+- Track expenses and income across multiple accounts
+- Estimate and forecast future financial positions
+- Identify spending patterns and trends
+- Alert users to potential cash flow issues
+- Provide comprehensive financial visualization
+
+### Project Type
+Full-Stack Web Application (Self-Hosted)
+
+## Current Status
+
+- **Branch**: feature/docker-project-scaffolding (ready for merge to main)
+- **Phase**: Milestone 1 - Foundation & Core Setup
+- **Last Feature Completed**: Docker & Project Scaffolding ✓
+- **Next Feature**: User authentication system
+- **Current Focus**: Complete foundation infrastructure with Docker, backend API, and frontend app
+- **Tests**: Not yet implemented (testing infrastructure planned for later milestone)
+
+## Technology Stack
 
 ### Frontend
-- React with TypeScript - Modern, well-supported, great mobile responsiveness
-- Tailwind CSS - Utility-first styling, mobile-friendly
-- React Query/TanStack Query - API state management
+- **Framework**: React 18+ with TypeScript
+- **UI Library**: Material-UI (MUI)
+- **State Management**: React Context API + React Query for server state
+- **Charts**: Recharts for data visualization
+- **Calendar**: FullCalendar for calendar view
+- **Form Handling**: React Hook Form with Zod validation
+- **HTTP Client**: Axios
+- **Build Tool**: Vite
+- **Routing**: React Router v6
 
 ### Backend
-- Node.js with Express.js and TypeScript - Fast development, JavaScript everywhere
-- PostgreSQL - Reliable database for financial data
-- Prisma ORM - Type-safe database operations
+- **Runtime**: Node.js 20 LTS
+- **Framework**: Express.js
+- **Language**: TypeScript
+- **Database ORM**: Prisma
+- **Authentication**: JWT tokens with bcrypt (12 rounds minimum)
+- **Validation**: Zod for request validation
+- **API Documentation**: OpenAPI/Swagger
 
-### Infrastructure
-- Docker Compose - Multi-container orchestration
-- Nginx - Reverse proxy and static file serving
-- Redis (optional) - Session storage and caching
+### Database
+- **Primary Database**: PostgreSQL 16
+- **Migration Tool**: Prisma Migrate
+- **Abstraction**: Prisma ORM (supports switching to MySQL, SQLite, SQL Server, MongoDB)
 
-### Additional Tools
-- JWT authentication for security
-- Input validation with Zod
-- ESLint + Prettier for code quality
+### Deployment
+- **Containerization**: Docker
+- **Orchestration**: Docker Compose
+- **Reverse Proxy**: Nginx (for production)
 
-## Deployment Goals
-- Local development with Docker
-- Eventually deploy to server for remote access
-- Mobile-responsive design for phone usage via WiFi
+## Development Environment
 
-## Development Notes
-- Full TypeScript support across frontend/backend
-- Easy Docker deployment
-- Scalable from local to server deployment
-- Strong ecosystem and community support
+- **OS**: Linux (WSL2 - Windows Subsystem for Linux)
+- **Kernel**: 6.6.87.2-microsoft-standard-WSL2
+- **IDE**: [To be determined - VS Code recommended]
+- **Path Conventions**: WSL paths (e.g., `/mnt/c/vso/Other/budget-tracker`)
+- **Repository Location**: `/mnt/c/vso/Other/budget-tracker`
+- **Special Setup**: Requires Docker and Docker Compose
+
+## Project Structure
+
+```
+budget-tracker/
+├── backend/                 # Backend API (Node.js + Express + Prisma)
+│   ├── src/
+│   │   ├── controllers/    # Request handlers
+│   │   ├── services/       # Business logic layer
+│   │   ├── middlewares/    # Express middlewares (auth, validation, etc.)
+│   │   ├── routes/         # API route definitions
+│   │   ├── utils/          # Utility functions
+│   │   ├── types/          # TypeScript type definitions
+│   │   └── app.ts          # Express app setup
+│   ├── prisma/
+│   │   ├── schema.prisma   # Database schema
+│   │   ├── migrations/     # Database migrations
+│   │   └── seed.ts         # Seed data (default categories)
+│   ├── tests/              # Backend tests
+│   ├── Dockerfile
+│   ├── package.json
+│   └── tsconfig.json
+├── frontend/               # Frontend app (React + TypeScript)
+│   ├── src/
+│   │   ├── components/     # React components
+│   │   │   ├── common/     # Reusable UI components
+│   │   │   ├── layout/     # Layout components
+│   │   │   ├── transactions/
+│   │   │   ├── accounts/
+│   │   │   ├── categories/
+│   │   │   ├── budgets/
+│   │   │   ├── recurring/
+│   │   │   ├── analytics/
+│   │   │   └── notifications/
+│   │   ├── pages/          # Page components
+│   │   ├── hooks/          # Custom React hooks
+│   │   ├── services/       # API service layer
+│   │   ├── contexts/       # React contexts
+│   │   ├── utils/          # Utility functions
+│   │   ├── types/          # TypeScript type definitions
+│   │   ├── App.tsx
+│   │   └── main.tsx
+│   ├── public/
+│   ├── tests/              # Frontend tests
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── vite.config.ts
+│   └── tsconfig.json
+├── docs/                   # Project documentation
+│   ├── budget-tracker-solution-design.md
+│   └── feature-plans/      # Individual feature planning docs (to be created)
+├── docker-compose.yml      # Docker orchestration
+├── .env.example            # Environment variable template
+├── ROADMAP.md              # Development roadmap
+├── README.md               # Project README
+└── .gitignore
+```
+
+## Architecture & Design Principles
+
+### Architecture Pattern
+- **Three-Tier Architecture**: Presentation (React SPA) → Business Logic (Express API) → Data (PostgreSQL)
+- **Containerized Deployment**: Each tier runs in its own Docker container
+- **Service Layer Pattern**: Business logic separated from controllers
+- **Repository Pattern**: Data access abstraction through Prisma
+
+### Design Principles
+- **SOLID Principles**: Especially Single Responsibility and Dependency Inversion
+- **DRY (Don't Repeat Yourself)**: Reusable components and utilities
+- **KISS (Keep It Simple, Stupid)**: Avoid over-engineering
+- **Separation of Concerns**: Clear boundaries between layers
+- **Type Safety**: TypeScript across the entire stack
+
+### Key Patterns
+- **Repository Pattern**: Prisma provides database abstraction
+- **Service Layer**: Business logic encapsulation
+- **Middleware Pattern**: Express middlewares for cross-cutting concerns
+- **Context API**: React state management
+- **Server State Caching**: React Query for API data
+
+### Code Organization
+- **Frontend**: Component-based architecture with feature folders
+- **Backend**: Controller → Service → Repository layering
+- **Shared Types**: TypeScript interfaces shared between layers
+- **User Isolation**: All queries filtered by userId for multi-tenant support
+
+## Testing Strategy
+
+**Current Project Approach:** Test After Implementation with Target Coverage
+
+### Test Requirements
+- **Backend**: Minimum 80% code coverage
+  - Unit tests for service layer (Jest)
+  - Integration tests for API endpoints (Supertest)
+  - In-memory SQLite for fast testing
+- **Frontend**: Minimum 70% code coverage
+  - Unit tests for utilities and hooks (Vitest)
+  - Component tests (React Testing Library)
+  - E2E tests (Playwright - future enhancement)
+- **Manual Testing**: Required for all user-facing features before merge
+- **Edge Cases**: Must be identified and tested
+
+### Testing Priorities
+1. Business logic in service layer (critical)
+2. API endpoint functionality (high)
+3. Form validation and error handling (high)
+4. UI components (medium)
+5. Utility functions (medium)
+
+## Development Workflow
+
+### For Each Feature/Task
+
+**This workflow is MANDATORY for all development work on this project.**
+
+1. **Create Feature Branch**
+   ```bash
+   git checkout -b feature/feature-name
+   # or: git checkout -b bugfix/bug-name
+   # or: git checkout -b refactor/refactor-name
+   ```
+
+2. **Create or Review Feature Plan**
+   - Location: `/docs/feature-plans/`
+   - Document should include:
+     - Feature description and requirements
+     - Implementation approach
+     - Database schema changes (if applicable)
+     - API endpoints (if applicable)
+     - UI components (if applicable)
+     - Acceptance criteria
+     - Notes section for implementation progress
+
+3. **Implement Feature Using Incremental Commits**
+
+   **CRITICAL: Do NOT wait until the entire feature is complete to commit!**
+
+   After completing each logical stage/step:
+
+   **a. Update Documentation**
+   - Update the feature plan with:
+     - What was just completed
+     - Any decisions made
+     - Any deviations from original plan
+     - Discoveries or learnings
+     - Next steps
+   - Keep a running history of progress
+
+   **b. Commit Code + Documentation Together**
+   - Each commit should include:
+     - The code changes for that logical unit
+     - Updated documentation reflecting those changes
+   - Write clear, descriptive commit messages
+
+   **c. Ensure Commit is Complete**
+   - Code compiles/builds successfully (backend and frontend)
+   - Tests pass (if tests exist)
+   - No broken functionality
+   - Represents a complete unit of work
+
+   **Examples of Good Commit Points:**
+   - After creating Prisma schema model
+   - After implementing a service method with tests
+   - After creating an API endpoint with validation
+   - After implementing a React component
+   - After adding a custom hook
+   - After integrating frontend with backend API
+   - After adding error handling to a feature
+   - After completing a database migration
+
+   **What Makes a Good Incremental Commit:**
+   - ✅ Builds successfully (both backend and frontend if touched)
+   - ✅ Tests pass (if tests exist)
+   - ✅ Represents one logical change
+   - ✅ Has descriptive commit message with type prefix
+   - ✅ Includes updated documentation
+   - ✅ Could be code reviewed independently
+   - ✅ Doesn't break existing functionality
+
+   **What is TOO SMALL for a commit:**
+   - ❌ Changing a single variable name (unless it's a dedicated refactoring)
+   - ❌ Adding a single import statement
+   - ❌ Fixing a typo in a comment
+
+   **What is TOO LARGE for a commit:**
+   - ❌ "Implemented entire feature"
+   - ❌ Multiple unrelated changes
+   - ❌ Changes spanning frontend, backend, and database without logical grouping
+   - ❌ More than 500 lines changed (usually a sign it should be broken up)
+
+4. **Before Creating Pull Request**
+   - Review all Quality Gates (see below)
+   - Ensure feature plan is marked complete
+   - Update ROADMAP.md checklist if applicable
+   - Run final build and test suite
+   - Check for any warnings or linting issues
+   - Test manually in Docker containers
+
+5. **Create Pull Request**
+   - Title: Clear, descriptive summary with type prefix
+   - Description: Link to feature plan, describe changes, note any special considerations
+   - Include screenshots for UI changes
+   - List any breaking changes
+   - Request review from appropriate team members (if applicable)
+
+6. **Address Review Feedback**
+   - Make requested changes
+   - Continue incremental commit pattern for review fixes
+   - Update PR with responses to comments
+
+7. **Merge After Approval**
+   - Ensure all checks pass
+   - Merge to main branch
+   - Delete feature branch
+   - Update project status in this claude.md file
+
+### Commit Message Guidelines
+
+**Format:**
+```
+[Type] Brief description
+
+Optional detailed description if needed.
+Includes information about database changes, API changes, or breaking changes.
+```
+
+**Types:**
+- `[Feature]` - New functionality
+- `[Fix]` - Bug fixes
+- `[Test]` - Adding or updating tests
+- `[Refactor]` - Code improvements without functionality change
+- `[Docs]` - Documentation updates
+- `[Setup]` - Project configuration changes
+- `[Style]` - Formatting, UI/UX changes
+- `[Migration]` - Database migration changes
+- `[Security]` - Security-related changes
+
+**Examples:**
+```
+[Feature] Add transaction CRUD API endpoints
+
+Implemented POST, GET, PUT, DELETE endpoints for transactions.
+Added Zod validation schemas for request bodies.
+Includes JWT authentication middleware.
+Tests pending for next commit.
+
+[Migration] Create transactions and accounts tables
+
+Added Prisma schema for Account and Transaction models.
+Includes proper indexes and foreign key constraints.
+Migration file: 20250101_create_transactions_accounts.
+
+[Feature] Implement calendar view component
+
+Created CalendarView component with daily balance display.
+Integrated FullCalendar library with custom rendering.
+Color-coded balance status (green/yellow/red thresholds).
+```
+
+## Quality Gates (Before Merge)
+
+**All items must be checked before merging to main branch:**
+
+### Code Quality
+- [ ] All code builds/compiles without errors (backend and frontend)
+- [ ] No compiler warnings or TypeScript errors
+- [ ] Code follows project conventions and style guide
+- [ ] No commented-out code or debugging statements (console.log, etc.)
+- [ ] No hardcoded values that should be in environment variables
+- [ ] ESLint and Prettier checks pass
+
+### Testing
+- [ ] All existing tests still pass
+- [ ] New tests added for new functionality (unit tests for services, integration tests for APIs)
+- [ ] Manual testing completed in Docker environment
+- [ ] Edge cases considered and tested
+- [ ] Error handling tested (invalid inputs, network failures, etc.)
+
+### Documentation
+- [ ] Code comments added for complex logic
+- [ ] Public APIs documented with JSDoc/TSDoc
+- [ ] README updated if setup process changed
+- [ ] Feature plan marked complete with implementation notes
+- [ ] API documentation updated (Swagger/OpenAPI)
+
+### Architecture
+- [ ] Design principles followed (SOLID, separation of concerns)
+- [ ] No unnecessary dependencies introduced
+- [ ] Proper error handling implemented
+- [ ] Logging added appropriately (Winston for backend)
+- [ ] Performance considerations addressed
+- [ ] Security best practices followed (input validation, SQL injection prevention, XSS protection)
+
+### Database
+- [ ] Prisma schema updated if data model changed
+- [ ] Migration created and tested
+- [ ] Indexes added for frequently queried fields
+- [ ] Foreign key constraints properly defined
+- [ ] Seed data updated if needed
+
+### Git Hygiene
+- [ ] Commits are incremental and logical
+- [ ] Commit messages are clear and descriptive with type prefixes
+- [ ] No merge conflicts
+- [ ] Feature branch is up to date with main
+- [ ] No sensitive data committed (.env files, secrets, credentials)
+
+## Working Principles
+
+**How Claude Code Should Approach This Project:**
+
+1. **Incremental Development**
+   - Break work into small, testable units
+   - Commit frequently with documentation updates
+   - Each commit should represent a complete, working change
+   - Never wait until a feature is "done" to commit
+   - Backend and frontend can be committed separately or together depending on logical boundaries
+
+2. **Documentation-Driven**
+   - Update documentation with every commit
+   - Document decisions and rationale
+   - Keep feature plans up to date
+   - Maintain this claude.md file
+   - Update API documentation when endpoints change
+
+3. **Quality-Focused**
+   - Follow quality gates before merging
+   - Write clean, maintainable code
+   - Consider edge cases and error scenarios
+   - Test thoroughly (manual + automated)
+   - Security-first mindset (authentication, authorization, input validation)
+
+4. **Clear Communication**
+   - Ask clarifying questions when requirements are ambiguous
+   - Reference specific line numbers when discussing code
+   - Explain technical decisions
+   - Highlight potential issues or trade-offs
+   - Document database schema changes clearly
+
+5. **Architecture-Aware**
+   - Follow three-tier architecture consistently
+   - Respect separation of concerns (controller → service → repository)
+   - Use Prisma for all database access (never raw SQL)
+   - Ensure user-level data isolation (userId in all queries)
+   - Consider maintainability and extensibility
+   - Don't over-engineer for current requirements
+
+6. **Context-Aware**
+   - Read solution design document before implementing
+   - Understand existing code patterns
+   - Check for similar implementations elsewhere
+   - Consider how changes affect the broader system
+   - Review ROADMAP.md to understand current milestone
+
+7. **Security-Conscious**
+   - Always validate and sanitize user input (use Zod)
+   - Use Prisma to prevent SQL injection
+   - Hash passwords with bcrypt (12 rounds minimum)
+   - Implement proper JWT token handling
+   - Never expose sensitive data in API responses
+   - Follow OWASP security best practices
+
+## Anti-Patterns to Avoid
+
+**Common Mistakes That Cause Problems:**
+
+1. **Large, Monolithic Commits**
+   - ❌ Implementing backend and frontend for entire feature in one commit
+   - ✅ Break into logical chunks (model → API → UI component)
+
+2. **Implementation Without Understanding**
+   - ❌ Writing code without reading the solution design
+   - ✅ Review design document and existing patterns first
+
+3. **Skipping Documentation**
+   - ❌ "I'll document it later" (it never happens)
+   - ✅ Update docs with each commit
+
+4. **Incomplete Error Handling**
+   - ❌ Happy path only implementations
+   - ✅ Consider and handle error scenarios (validation errors, network failures, database errors)
+
+5. **Ignoring Quality Gates**
+   - ❌ "Tests can wait" or "I'll fix warnings later"
+   - ✅ Meet quality standards before merging
+
+6. **Over-Engineering**
+   - ❌ Building elaborate abstractions for simple requirements
+   - ✅ Solve the current problem appropriately (follow KISS principle)
+
+7. **Copy-Paste Without Understanding**
+   - ❌ Copying code snippets without understanding them
+   - ✅ Understand what code does before using it
+
+8. **Making Assumptions**
+   - ❌ Guessing at requirements or architectural decisions
+   - ✅ Ask clarifying questions
+
+9. **Bypassing Prisma**
+   - ❌ Writing raw SQL queries
+   - ✅ Always use Prisma for database access
+
+10. **Forgetting User Isolation**
+    - ❌ Queries without userId filtering
+    - ✅ Always filter by userId for user-specific data
+
+11. **Hardcoding Configuration**
+    - ❌ Hardcoded database URLs, API keys, etc.
+    - ✅ Use environment variables
+
+12. **Skipping Input Validation**
+    - ❌ Trusting user input
+    - ✅ Validate all inputs with Zod schemas
+
+## Important Files & Locations
+
+### Documentation
+- **Solution Design**: `/docs/budget-tracker-solution-design.md` - Comprehensive system design
+- **Roadmap**: `/ROADMAP.md` - Development milestones and feature list
+- **Feature Plans**: `/docs/feature-plans/` - Individual feature planning documents
+- **This File**: `/claude.md` - Project context for Claude Code
+
+### Configuration
+- **Docker Compose**: `/docker-compose.yml` - Container orchestration
+- **Environment Template**: `/.env.example` - Environment variable template
+- **Backend Config**: `/backend/tsconfig.json` - TypeScript configuration
+- **Frontend Config**: `/frontend/vite.config.ts` - Vite build configuration
+- **Database Schema**: `/backend/prisma/schema.prisma` - Prisma schema definition
+
+### Key Code Files
+- **Backend Entry**: `/backend/src/app.ts` - Express app initialization
+- **Frontend Entry**: `/frontend/src/main.tsx` - React app initialization
+- **Database Seed**: `/backend/prisma/seed.ts` - Default categories and test data
+
+## Current Development Context
+
+### What We're Working On
+- **Phase**: Milestone 1 - Foundation & Core Setup
+- **Current Task**: Feature complete, ready for testing and merge
+- **Status**: Docker scaffolding complete, awaiting user testing with Docker Compose
+
+### Recent Decisions
+- Chose PostgreSQL over MySQL for better ACID compliance and JSON support
+- Selected Material-UI over other UI libraries for comprehensive component set
+- Decided on JWT authentication over session-based for stateless API
+- Using Prisma ORM for database abstraction and future flexibility
+- Containerized deployment approach for easier self-hosting
+- Multi-stage Dockerfiles for development and production targets
+- Nginx Alpine for production frontend serving
+- Winston for backend logging with file and console transports
+- React Query for server state management
+- Vite polling enabled for Docker/WSL hot reload compatibility
+
+### Known Issues
+- Docker Compose not installed on development system (user needs to install for testing)
+- Integration testing pending until Docker Compose is available
+
+### Next Steps
+1. User to install Docker Compose
+2. User to run `docker compose up -d --build` to test full stack
+3. Verify health endpoint responds correctly
+4. Verify frontend loads and can communicate with backend
+5. Begin planning next feature: User authentication system
+6. Create feature plan for authentication (JWT login, registration, password hashing)
+
+## Project-Specific Notes
+
+### Naming Conventions
+- **Database**: snake_case for table and column names
+- **TypeScript/JavaScript**: camelCase for variables and functions, PascalCase for classes and components
+- **React Components**: PascalCase for component files (e.g., `TransactionList.tsx`)
+- **API Endpoints**: kebab-case with plural nouns (e.g., `/api/v1/transactions`)
+- **Environment Variables**: UPPER_SNAKE_CASE (e.g., `DATABASE_URL`)
+
+### Code Style
+- **Indentation**: 2 spaces (both backend and frontend)
+- **Quotes**: Single quotes for TypeScript/JavaScript
+- **Semicolons**: Required
+- **Line Length**: 100 characters maximum
+- **Imports**: Organized (external → internal → relative)
+
+### Integration Points
+- **Frontend ↔ Backend**: RESTful API over HTTP (JSON)
+- **Backend ↔ Database**: Prisma ORM (type-safe queries)
+- **Authentication**: JWT tokens in Authorization header
+- **Future**: Banking API integration (Plaid), Email service (future), SMS service (Twilio - future)
+
+### Performance Requirements
+- API response time < 200ms (p95)
+- Frontend load time < 2s
+- Database query time < 50ms (p95)
+- Support for thousands of transactions per user
+
+### Security Considerations
+- All passwords hashed with bcrypt (12 rounds minimum)
+- JWT tokens with short expiration (15 minutes access, 7 days refresh)
+- Input validation on all endpoints (Zod)
+- CORS restricted to frontend domain
+- Rate limiting on authentication endpoints
+- HTTPS required in production
+- User-level data isolation (all queries filtered by userId)
+- No sensitive data in logs
+
+## Configuration & Settings
+
+### Environment Variables
+
+**Backend (.env)**:
+```bash
+# Database
+DATABASE_URL=postgresql://budget_user:password@database:5432/budget_tracker
+
+# JWT Secrets
+JWT_SECRET=<strong-random-secret>
+JWT_REFRESH_SECRET=<strong-random-secret>
+
+# Node Environment
+NODE_ENV=development  # or production
+
+# API Configuration
+PORT=3000
+CORS_ORIGIN=http://localhost:5173
+```
+
+**Frontend (.env)**:
+```bash
+VITE_API_URL=http://localhost:3000/api/v1
+```
+
+### Secrets Management
+- Development: `.env` files (not committed to git)
+- Production: Environment variables in Docker Compose or container orchestration
+- Never commit `.env` files (use `.env.example` as template)
+
+### Build Configuration
+- **Backend**: TypeScript compiled to `dist/` folder
+- **Frontend**: Vite production build to `dist/` folder
+- **Docker**: Multi-stage builds for smaller production images
+
+## Common Commands
+
+### Development (Local)
+
+```bash
+# Backend development
+cd backend
+npm install                 # Install dependencies
+npm run dev                 # Start dev server with hot reload
+npm run build               # Compile TypeScript
+npm run test                # Run tests
+npm run lint                # Run ESLint
+npx prisma studio           # Open Prisma Studio (database GUI)
+npx prisma migrate dev      # Create and apply migration
+npx prisma db seed          # Seed database with default data
+
+# Frontend development
+cd frontend
+npm install                 # Install dependencies
+npm run dev                 # Start Vite dev server
+npm run build               # Production build
+npm run test                # Run tests
+npm run lint                # Run ESLint
+npm run preview             # Preview production build
+
+# Database operations
+cd backend
+npx prisma migrate dev --name migration_name  # Create new migration
+npx prisma migrate reset    # Reset database (WARNING: deletes all data)
+npx prisma generate         # Generate Prisma client
+npx prisma db push          # Push schema changes (dev only)
+```
+
+### Docker Operations
+
+```bash
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f              # All services
+docker-compose logs -f api          # Backend only
+docker-compose logs -f app          # Frontend only
+docker-compose logs -f database     # Database only
+
+# Stop all services
+docker-compose down
+
+# Rebuild and restart
+docker-compose up -d --build
+
+# Run database migrations in container
+docker-compose exec api npx prisma migrate deploy
+
+# Database backup
+docker exec budget-tracker-db pg_dump -U budget_user budget_tracker > backup.sql
+
+# Database restore
+docker exec -i budget-tracker-db psql -U budget_user budget_tracker < backup.sql
+
+# Access container shell
+docker-compose exec api sh          # Backend container
+docker-compose exec database sh     # Database container
+
+# Remove all containers and volumes (DANGER)
+docker-compose down -v
+```
+
+### Git Operations
+
+```bash
+# Create feature branch
+git checkout -b feature/feature-name
+
+# Check status
+git status
+
+# Stage and commit
+git add .
+git commit -m "[Type] Description"
+
+# Push feature branch
+git push -u origin feature/feature-name
+
+# Update from main
+git checkout main
+git pull
+git checkout feature/feature-name
+git merge main
+
+# Delete merged branch
+git branch -d feature/feature-name
+```
+
+## Resources & References
+
+### Official Documentation
+- **React**: https://react.dev/
+- **TypeScript**: https://www.typescriptlang.org/
+- **Node.js**: https://nodejs.org/
+- **Express**: https://expressjs.com/
+- **Prisma**: https://www.prisma.io/
+- **PostgreSQL**: https://www.postgresql.org/
+- **Material-UI**: https://mui.com/
+- **Docker**: https://www.docker.com/
+- **React Query**: https://tanstack.com/query/
+- **FullCalendar**: https://fullcalendar.io/
+- **Recharts**: https://recharts.org/
+- **React Hook Form**: https://react-hook-form.com/
+- **Zod**: https://zod.dev/
+
+### Project Repository
+- **Location**: `/mnt/c/vso/Other/budget-tracker`
+- **Git Remote**: [To be added when repository is created]
+
+### Design Files
+- Solution Design Document: `/docs/budget-tracker-solution-design.md`
+- Architecture diagrams included in solution design
+
+### API Documentation
+- OpenAPI/Swagger spec: [To be created at `/backend/docs/api-spec.yaml`]
+- API will be documented at `/api/docs` endpoint (Swagger UI)
+
+---
+
+**Last Updated**: December 22, 2025
+**Current Phase**: Milestone 1 - Foundation & Core Setup
+**Framework/Platform**: React + Node.js + PostgreSQL (Full-Stack TypeScript)
+**Status**: Documentation complete, ready to begin implementation
