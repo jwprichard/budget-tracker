@@ -1,9 +1,10 @@
-version: '3.8'
+#version: '3.8'
 
 services:
   # PostgreSQL Database
   database:
-    image: postgres:16-alpine
+    platform: linux/amd64
+    image: postgres:16.11-alpine3.23
     container_name: budget-tracker-db
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-budget_tracker}
@@ -24,6 +25,7 @@ services:
 
   # Backend API
   api:
+    platform: linux/amd64
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -58,6 +60,7 @@ services:
 
   # Frontend App
   app:
+    platform: linux/amd64
     build:
       context: ./frontend
       dockerfile: Dockerfile
