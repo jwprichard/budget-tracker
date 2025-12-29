@@ -33,3 +33,52 @@ export interface HealthCheckResponse {
   database: 'connected' | 'disconnected';
   version: string;
 }
+
+// Account types
+export type AccountType = 'CHECKING' | 'SAVINGS' | 'CREDIT_CARD' | 'CASH' | 'INVESTMENT' | 'OTHER';
+
+export interface Account {
+  id: string;
+  name: string;
+  type: AccountType;
+  category?: string | null;
+  currency: string;
+  initialBalance: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AccountWithBalance extends Account {
+  currentBalance: number;
+  transactionCount: number;
+}
+
+// Transaction types
+export type TransactionType = 'INCOME' | 'EXPENSE' | 'TRANSFER';
+export type TransactionStatus = 'PENDING' | 'CLEARED' | 'RECONCILED';
+
+export interface Transaction {
+  id: string;
+  accountId: string;
+  categoryId?: string | null;
+  type: TransactionType;
+  amount: number;
+  date: Date;
+  description: string;
+  notes?: string | null;
+  status: TransactionStatus;
+  transferToAccountId?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  account?: {
+    id: string;
+    name: string;
+    type: string;
+  };
+  transferAccount?: {
+    id: string;
+    name: string;
+    type: string;
+  };
+}
