@@ -3,7 +3,7 @@
 # Stage 1: Base
 FROM node:20-alpine AS base
 WORKDIR /app
-RUN apk add --no-cache wget
+RUN apk add --no-cache wget openssl
 
 # Stage 2: Dependencies
 FROM base AS dependencies
