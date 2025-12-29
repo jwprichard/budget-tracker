@@ -11,21 +11,23 @@ This roadmap outlines the development milestones for the Budget Tracker applicat
 ### Deliverables
 - [x] Docker containerization setup (PostgreSQL, Backend, Frontend) ✓
 - [x] Database schema design and Prisma configuration ✓
-- [ ] Initial database migrations
 - [x] Backend API structure with Express.js and TypeScript ✓
 - [x] Frontend React application with TypeScript and Vite ✓
-- [ ] Basic authentication system (JWT-based login)
-- [ ] User model and authentication endpoints
 - [x] Development environment configuration ✓
 - [x] Environment variables and configuration management ✓
+- ~~Basic authentication system (JWT-based login)~~ *Deferred - Single user deployment*
+- ~~User model and authentication endpoints~~ *Deferred - Single user deployment*
+- ~~Initial database migrations~~ *Will be created as needed per feature*
 
 ### Technical Components
 - Docker Compose configuration
-- Prisma schema with core models (User, Account, Transaction, Category)
-- JWT authentication with bcrypt password hashing
+- Prisma schema with core models (Account, Transaction, Category)
 - Basic API security (CORS, rate limiting, input validation)
 - React Router setup
 - Material-UI integration
+
+### Architectural Decision
+**Single-User Mode**: Authentication has been deferred to future enhancements. The application will initially be designed for single-user deployment (local/personal use). Multi-user support and authentication will be added later when needed.
 
 ---
 
@@ -296,6 +298,23 @@ This roadmap outlines the development milestones for the Budget Tracker applicat
 ## Future Enhancements (Post-MVP)
 
 These features are planned for future releases after the core application is complete and stable.
+
+### Multi-User Support & Authentication (Deferred from Milestone 1)
+**Priority**: High - Required before deploying for multiple users
+
+When moving from single-user to multi-user deployment:
+- [ ] User registration and login system
+- [ ] JWT-based authentication with refresh tokens
+- [ ] User model and database schema updates
+- [ ] Password hashing with bcrypt (12 rounds minimum)
+- [ ] Protected route middleware (backend)
+- [ ] Authentication context and protected routes (frontend)
+- [ ] User session management
+- [ ] Data isolation: Add userId foreign keys to all user-specific tables
+- [ ] Data migration: Associate existing data with primary user account
+- [ ] Login/registration UI pages
+
+**Note**: Until authentication is implemented, the application operates in single-user mode. All data is accessible without login. This is acceptable for personal/local deployments.
 
 ### Advanced Security
 - Two-factor authentication (2FA)

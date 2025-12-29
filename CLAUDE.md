@@ -500,15 +500,14 @@ Color-coded balance status (green/yellow/red thresholds).
 ## Current Development Context
 
 ### What We're Working On
-- **Phase**: Milestone 1 - Foundation & Core Setup
-- **Current Task**: Docker scaffolding complete and tested ✓
-- **Status**: Ready to merge `feature/docker-project-scaffolding` to `main`
-- **Next Feature**: User authentication system
+- **Phase**: Milestone 1 complete ✓ → Moving to Milestone 2
+- **Current Task**: Planning next feature (Account & Transaction Management)
+- **Status**: Main branch updated with Docker scaffolding
+- **Next Feature**: Account & Transaction Management (Milestone 2)
 
 ### Recent Decisions
 - Chose PostgreSQL over MySQL for better ACID compliance and JSON support
 - Selected Material-UI over other UI libraries for comprehensive component set
-- Decided on JWT authentication over session-based for stateless API
 - Using Prisma ORM for database abstraction and future flexibility
 - Containerized deployment approach for easier self-hosting
 - Multi-stage Dockerfiles for development and production targets
@@ -519,6 +518,7 @@ Color-coded balance status (green/yellow/red thresholds).
 - **Added tslib as runtime dependency** - Required by TypeScript's `importHelpers` feature
 - **Added OpenSSL to Alpine base image** - Prisma requires OpenSSL for database connections
 - **Configured Prisma binary targets** - Set `linux-musl-openssl-3.0.x` for Alpine Linux compatibility
+- **ARCHITECTURAL DECISION: Single-User Mode (Dec 29, 2025)** - Authentication deferred to future enhancement. App will be designed for single-user/personal deployment initially. No userId foreign keys or authentication middleware required for MVP. Multi-user support will be added later when needed.
 
 ### Known Issues
 None - All Docker build and runtime issues resolved
@@ -531,15 +531,17 @@ None - All Docker build and runtime issues resolved
 5. **Stale Docker volumes** - Documented use of `docker compose down -v` to clear volumes
 
 ### Next Steps
-1. Merge `feature/docker-project-scaffolding` to `main` branch
-2. Create feature plan for user authentication system
-   - JWT token-based authentication
-   - User registration endpoint
-   - Login/logout endpoints
-   - Password hashing with bcrypt (12 rounds)
-   - Protected route middleware
-   - Frontend login/register pages
-3. Begin implementation of authentication feature
+1. ✅ Merge `feature/docker-project-scaffolding` to `main` branch (COMPLETE)
+2. Create feature plan for Account & Transaction Management (Milestone 2)
+   - Account data model (Prisma schema)
+   - Account CRUD API endpoints with validation
+   - Transaction data model (Prisma schema)
+   - Transaction CRUD API endpoints with validation
+   - Account management UI components
+   - Transaction entry form and listing UI
+   - Basic dashboard with account overview
+   - Database migrations for Account and Transaction tables
+3. Begin implementation of Account & Transaction Management feature
 
 ## Project-Specific Notes
 
