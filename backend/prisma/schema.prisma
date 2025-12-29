@@ -22,3 +22,73 @@ model User {
   @@index([email])
   @@index([username])
 }
+
+// Enums for Account and Transaction models
+enum AccountType {
+  CHECKING
+  SAVINGS
+  CREDIT_CARD
+  CASH
+  INVESTMENT
+  OTHER
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+enum TransactionStatus {
+  PENDING
+  CLEARED
+  RECONCILED
+}
+
+// Account model - Represents financial accounts (checking, savings, credit cards, etc.)
+model Account {
+  id              String       @id @default(uuid())
+  name            String
+  type            AccountType
+  category        String?      // Custom categorization (e.g., "Personal", "Business")
+  currency        String       @default("USD")
+  initialBalance  Decimal      @db.Decimal(15, 2)
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  // Relations
+  transactions         Transaction[] @relation("AccountTransactions")
+  transferTransactions Transaction[] @relation("TransferDestination")
+
+  @@index([isActive])
+  @@index([createdAt])
+}
+
+// Transaction model - Represents income, expenses, and transfers
+model Transaction {
+  id              String            @id @default(uuid())
+  accountId       String
+  categoryId      String?           // Nullable - category management in Milestone 3
+  type            TransactionType
+  amount          Decimal           @db.Decimal(15, 2)
+  date            DateTime
+  description     String
+  notes           String?
+  status          TransactionStatus @default(CLEARED)
+  transferToAccountId String?       // Links to destination account for transfers
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // Relations
+  account         Account           @relation("AccountTransactions", fields: [accountId], references: [id], onDelete: Cascade)
+  transferAccount Account?          @relation("TransferDestination", fields: [transferToAccountId], references: [id], onDelete: SetNull)
+
+  @@index([accountId])
+  @@index([categoryId])
+  @@index([date])
+  @@index([type])
+  @@index([status])
+  @@index([transferToAccountId])
+}
