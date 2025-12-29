@@ -9,15 +9,15 @@ This roadmap outlines the development milestones for the Budget Tracker applicat
 **Objective**: Establish the foundational infrastructure and basic application framework.
 
 ### Deliverables
-- [ ] Docker containerization setup (PostgreSQL, Backend, Frontend)
-- [ ] Database schema design and Prisma configuration
+- [x] Docker containerization setup (PostgreSQL, Backend, Frontend) ✓
+- [x] Database schema design and Prisma configuration ✓
 - [ ] Initial database migrations
-- [ ] Backend API structure with Express.js and TypeScript
-- [ ] Frontend React application with TypeScript and Vite
+- [x] Backend API structure with Express.js and TypeScript ✓
+- [x] Frontend React application with TypeScript and Vite ✓
 - [ ] Basic authentication system (JWT-based login)
 - [ ] User model and authentication endpoints
-- [ ] Development environment configuration
-- [ ] Environment variables and configuration management
+- [x] Development environment configuration ✓
+- [x] Environment variables and configuration management ✓
 
 ### Technical Components
 - Docker Compose configuration

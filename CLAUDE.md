@@ -501,8 +501,9 @@ Color-coded balance status (green/yellow/red thresholds).
 
 ### What We're Working On
 - **Phase**: Milestone 1 - Foundation & Core Setup
-- **Current Task**: Feature complete, ready for testing and merge
-- **Status**: Docker scaffolding complete, awaiting user testing with Docker Compose
+- **Current Task**: Docker scaffolding complete and tested ✓
+- **Status**: Ready to merge `feature/docker-project-scaffolding` to `main`
+- **Next Feature**: User authentication system
 
 ### Recent Decisions
 - Chose PostgreSQL over MySQL for better ACID compliance and JSON support
@@ -515,18 +516,30 @@ Color-coded balance status (green/yellow/red thresholds).
 - Winston for backend logging with file and console transports
 - React Query for server state management
 - Vite polling enabled for Docker/WSL hot reload compatibility
+- **Added tslib as runtime dependency** - Required by TypeScript's `importHelpers` feature
+- **Added OpenSSL to Alpine base image** - Prisma requires OpenSSL for database connections
+- **Configured Prisma binary targets** - Set `linux-musl-openssl-3.0.x` for Alpine Linux compatibility
 
 ### Known Issues
-- Docker Compose not installed on development system (user needs to install for testing)
-- Integration testing pending until Docker Compose is available
+None - All Docker build and runtime issues resolved
+
+### Recent Fixes (Dec 29, 2025)
+1. **Package lockfiles** - Generated package-lock.json for reproducible Docker builds
+2. **tslib missing** - Added to dependencies (required by ts-node-dev at runtime)
+3. **OpenSSL missing** - Added to Dockerfile for Prisma compatibility
+4. **Prisma binary mismatch** - Configured correct binary target for Alpine Linux + OpenSSL 3.0
+5. **Stale Docker volumes** - Documented use of `docker compose down -v` to clear volumes
 
 ### Next Steps
-1. User to install Docker Compose
-2. User to run `docker compose up -d --build` to test full stack
-3. Verify health endpoint responds correctly
-4. Verify frontend loads and can communicate with backend
-5. Begin planning next feature: User authentication system
-6. Create feature plan for authentication (JWT login, registration, password hashing)
+1. Merge `feature/docker-project-scaffolding` to `main` branch
+2. Create feature plan for user authentication system
+   - JWT token-based authentication
+   - User registration endpoint
+   - Login/logout endpoints
+   - Password hashing with bcrypt (12 rounds)
+   - Protected route middleware
+   - Frontend login/register pages
+3. Begin implementation of authentication feature
 
 ## Project-Specific Notes
 
@@ -696,6 +709,46 @@ git merge main
 git branch -d feature/feature-name
 ```
 
+### Docker Troubleshooting
+
+```bash
+# Issue: "Cannot find module" errors (tslib, etc.)
+# Solution: Clear Docker volumes and rebuild
+docker compose down -v
+docker compose build --no-cache
+docker compose up -d
+
+# Issue: Stale dependencies in containers
+# Solution: Remove volumes to clear cached node_modules
+docker compose down -v  # WARNING: Deletes database data too
+docker compose up -d --build
+
+# Issue: Prisma binary target mismatch
+# Solution: Ensure schema.prisma has correct binaryTargets for Alpine Linux
+# schema.prisma should include:
+#   binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+# Then rebuild containers
+
+# Issue: OpenSSL errors with Prisma
+# Solution: Ensure Dockerfile includes OpenSSL
+# Dockerfile should have: RUN apk add --no-cache wget openssl
+
+# View specific container logs
+docker compose logs -f api
+docker compose logs -f app --tail 100
+
+# Check container resource usage
+docker stats
+
+# Access container shell for debugging
+docker compose exec api sh
+docker compose exec api ls -la node_modules/tslib  # Check if package exists
+docker compose exec api npx prisma --version        # Check Prisma version
+
+# Prune all unused Docker resources (careful!)
+docker system prune -a --volumes  # Removes all stopped containers, unused images, volumes
+```
+
 ## Resources & References
 
 ### Official Documentation
@@ -727,7 +780,7 @@ git branch -d feature/feature-name
 
 ---
 
-**Last Updated**: December 22, 2025
+**Last Updated**: December 29, 2025
 **Current Phase**: Milestone 1 - Foundation & Core Setup
 **Framework/Platform**: React + Node.js + PostgreSQL (Full-Stack TypeScript)
-**Status**: Documentation complete, ready to begin implementation
+**Status**: Docker scaffolding complete and tested, ready for authentication feature
