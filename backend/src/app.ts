@@ -6,6 +6,7 @@ import { requestLogger } from './middlewares/requestLogger';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
 import healthRoutes from './routes/health.routes';
 import accountRoutes from './routes/account.routes';
+import transactionRoutes from './routes/transaction.routes';
 
 const app: Application = express();
 
@@ -39,6 +40,7 @@ app.use(requestLogger);
 const API_VERSION = process.env.API_VERSION || 'v1';
 app.use(`/api/${API_VERSION}`, healthRoutes);
 app.use(`/api/${API_VERSION}/accounts`, accountRoutes);
+app.use(`/api/${API_VERSION}/transactions`, transactionRoutes);
 app.use('/api', healthRoutes); // Also mount at /api for backwards compatibility
 
 // 404 handler
