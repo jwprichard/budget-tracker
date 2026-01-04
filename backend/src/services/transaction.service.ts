@@ -213,12 +213,14 @@ export class TransactionService {
       }
     }
 
-    // Adjust amount based on type if both are provided
+    // Adjust amount based on type
     let amount = data.amount;
-    if (amount !== undefined && data.type) {
-      if (data.type === 'EXPENSE') {
+    if (amount !== undefined) {
+      // Use provided type or fall back to existing transaction type
+      const transactionType = data.type || transaction.type;
+      if (transactionType === 'EXPENSE') {
         amount = -Math.abs(amount);
-      } else if (data.type === 'INCOME') {
+      } else if (transactionType === 'INCOME') {
         amount = Math.abs(amount);
       }
     }
