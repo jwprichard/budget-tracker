@@ -3,8 +3,9 @@ import { Typography } from '@mui/material';
 interface BalanceDisplayProps {
   amount: number | string;
   currency?: string;
-  variant?: 'h4' | 'h5' | 'h6' | 'body1' | 'body2';
+  variant?: 'h4' | 'h5' | 'h6' | 'body1' | 'body2' | 'h3';
   showSign?: boolean;
+  color?: string;
 }
 
 export const BalanceDisplay = ({
@@ -12,6 +13,7 @@ export const BalanceDisplay = ({
   currency = 'USD',
   variant = 'h6',
   showSign = false,
+  color,
 }: BalanceDisplayProps) => {
   const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
   const isNegative = numericAmount < 0;
@@ -30,10 +32,10 @@ export const BalanceDisplay = ({
     ? `+${formattedAmount}`
     : formattedAmount;
 
-  const color = isNegative ? 'error.main' : isPositive ? 'success.main' : 'text.primary';
+  const defaultColor = isNegative ? 'error.main' : isPositive ? 'success.main' : 'text.primary';
 
   return (
-    <Typography variant={variant} component="span" sx={{ color, fontWeight: 'medium' }}>
+    <Typography variant={variant} component="span" sx={{ color: color || defaultColor, fontWeight: 'medium' }}>
       {displayAmount}
     </Typography>
   );

@@ -20,14 +20,27 @@ export const AccountCard = ({ account, onClick }: AccountCardProps) => {
   };
 
   return (
-    <Card sx={{ height: '100%' }}>
+    <Card sx={{ height: '100%', border: '1px solid', borderColor: 'divider' }}>
       <CardActionArea onClick={handleClick} sx={{ height: '100%' }}>
         <CardContent>
           <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <AccountTypeIcon type={account.type} color="primary" />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                }}
+              >
+                <AccountTypeIcon type={account.type} />
+              </Box>
               <Box>
-                <Typography variant="h6" component="div">
+                <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
                   {account.name}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">

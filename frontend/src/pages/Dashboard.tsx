@@ -63,7 +63,7 @@ export const Dashboard = () => {
       return <LoadingSpinner message="" size={20} />;
     }
 
-    return <BalanceDisplay amount={total} variant="h4" />;
+    return <BalanceDisplay amount={total} variant="h3" color="white" />;
   };
 
   const handleAccountClick = (account: Account) => {
@@ -119,13 +119,33 @@ export const Dashboard = () => {
       </Box>
 
       {/* Total Balance Card */}
-      <Card sx={{ mb: 4, bgcolor: 'primary.main', color: 'primary.contrastText' }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
+      <Card
+        sx={{
+          mb: 4,
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          position: 'relative',
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%)',
+            pointerEvents: 'none',
+          },
+        }}
+      >
+        <CardContent sx={{ position: 'relative', zIndex: 1, py: 4 }}>
+          <Typography variant="overline" sx={{ opacity: 0.9, letterSpacing: 2 }}>
             Total Balance
           </Typography>
-          <TotalBalance />
-          <Typography variant="caption">
+          <Box sx={{ my: 2 }}>
+            <TotalBalance />
+          </Box>
+          <Typography variant="body2" sx={{ opacity: 0.8 }}>
             Across {activeAccounts.length} active account{activeAccounts.length !== 1 ? 's' : ''}
           </Typography>
         </CardContent>
