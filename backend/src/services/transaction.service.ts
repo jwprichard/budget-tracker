@@ -272,4 +272,50 @@ export class TransactionService {
       await this.prisma.transaction.delete({ where: { id } });
     }
   }
+
+  /**
+   * Find duplicate transactions
+   * Checks for transactions with same date, amount, and description
+   * @param accountId - Account ID to search within
+   * @param transactions - Array of transactions to check
+   * @returns Array of indices that are duplicates
+   */
+  async findDuplicates(
+    accountId: string,
+    transactions: Array<{ date: Date; amount: number; description: string }>
+  ): Promise<number[]> {
+    const duplicateIndices: number[] = [];
+
+    for (let i = 0; i < transactions.length; i++) {
+      const { date, amount, description } = transactions[i];
+
+      // Normalize date to start of day for comparison
+      const dateStart = new Date(date);
+      dateStart.setHours(0, 0, 0, 0);
+      const dateEnd = new Date(date);
+      dateEnd.setHours(23, 59, 59, 999);
+
+      // Check if transaction with same date, amount, and description already exists
+      const existing = await this.prisma.transaction.findFirst({
+        where: {
+          accountId,
+          date: {
+            gte: dateStart,
+            lte: dateEnd,
+          },
+          amount,
+          description: {
+            equals: description.trim(),
+            mode: 'insensitive', // Case-insensitive comparison
+          },
+        },
+      });
+
+      if (existing) {
+        duplicateIndices.push(i);
+      }
+    }
+
+    return duplicateIndices;
+  }
 }
