@@ -36,6 +36,8 @@ interface ColumnMapping {
   amount: string;
   type?: string;
   notes?: string;
+  dateFormat?: string;
+  amountSign?: string;
 }
 
 interface ParsedTransaction {
@@ -64,8 +66,6 @@ export const TransactionImportDialog = ({ open, onClose, accountId }: Transactio
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvRows, setCsvRows] = useState<string[][]>([]);
   const [mapping, setMapping] = useState<ColumnMapping | null>(null);
-  const [dateFormat, setDateFormat] = useState<keyof typeof DATE_FORMATS>('YYYY-MM-DD');
-  const [amountSign, setAmountSign] = useState<'negative-expense' | 'all-positive'>('negative-expense');
   const [parsedTransactions, setParsedTransactions] = useState<ParsedTransaction[]>([]);
   const [skipDuplicates, setSkipDuplicates] = useState(true);
   const [importResult, setImportResult] = useState<{
@@ -121,6 +121,9 @@ export const TransactionImportDialog = ({ open, onClose, accountId }: Transactio
 
   const parseTransactions = (): ParsedTransaction[] => {
     if (!mapping) return [];
+
+    const dateFormat = (mapping.dateFormat || 'YYYY-MM-DD') as keyof typeof DATE_FORMATS;
+    const amountSign = (mapping.amountSign || 'negative-expense') as 'negative-expense' | 'all-positive';
 
     return csvRows.map((row, index) => {
       try {

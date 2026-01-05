@@ -24,6 +24,8 @@ interface ColumnMapping {
   amount: string;
   type?: string;
   notes?: string;
+  dateFormat?: string;
+  amountSign?: string;
 }
 
 interface ColumnMapperProps {
@@ -83,10 +85,26 @@ export const ColumnMapper = ({ headers, rows, onMappingChange }: ColumnMapperPro
     const detected = autoDetectMapping();
     setMapping(detected);
     if (isValidMapping(detected)) {
-      onMappingChange(detected as ColumnMapping);
+      onMappingChange({
+        ...detected,
+        dateFormat,
+        amountSign,
+      } as ColumnMapping);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [headers]);
+
+  // Update parent when dateFormat or amountSign changes
+  useEffect(() => {
+    if (isValidMapping(mapping)) {
+      onMappingChange({
+        ...mapping,
+        dateFormat,
+        amountSign,
+      } as ColumnMapping);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateFormat, amountSign]);
 
   const isValidMapping = (map: Record<string, string>): boolean => {
     return REQUIRED_FIELDS.every((field) => map[field] && map[field] !== '');
@@ -100,7 +118,11 @@ export const ColumnMapper = ({ headers, rows, onMappingChange }: ColumnMapperPro
     setMapping(newMapping);
 
     if (isValidMapping(newMapping)) {
-      onMappingChange(newMapping as ColumnMapping);
+      onMappingChange({
+        ...newMapping,
+        dateFormat,
+        amountSign,
+      } as ColumnMapping);
     }
   };
 
