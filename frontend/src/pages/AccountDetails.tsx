@@ -1,0 +1,238 @@
+import { useState } from 'react';
+import {
+  Box,
+  Container,
+  Typography,
+  Button,
+  Paper,
+  Grid,
+  IconButton,
+  Chip,
+  Fab,
+} from '@mui/material';
+import {
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Add as AddIcon,
+  ArrowBack as BackIcon,
+} from '@mui/icons-material';
+import { useParams, useNavigate } from 'react-router-dom';
+import {
+  useAccount,
+  useAccountBalance,
+  useAccountTransactions,
+  useUpdateAccount,
+  useDeleteAccount,
+} from '../hooks/useAccounts';
+import { useCreateTransaction } from '../hooks/useTransactions';
+import { LoadingSpinner } from '../components/common/LoadingSpinner';
+import { ErrorAlert } from '../components/common/ErrorAlert';
+import { BalanceDisplay } from '../components/common/BalanceDisplay';
+import { TransactionList } from '../components/transactions/TransactionList';
+import { AccountForm } from '../components/accounts/AccountForm';
+import { DeleteAccountDialog } from '../components/accounts/DeleteAccountDialog';
+import { TransactionForm } from '../components/transactions/TransactionForm';
+import { UpdateAccountDto, CreateTransactionDto } from '../types';
+import { AccountTypeIcon } from '../components/accounts/AccountTypeIcon';
+
+export const AccountDetails = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [editFormOpen, setEditFormOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [transactionFormOpen, setTransactionFormOpen] = useState(false);
+
+  // Queries
+  const { data: account, isLoading: accountLoading, error: accountError } = useAccount(id);
+  const { data: balance, isLoading: balanceLoading } = useAccountBalance(id);
+  const {
+    data: transactionsData,
+    isLoading: transactionsLoading,
+    error: transactionsError,
+  } = useAccountTransactions(id, page, pageSize);
+
+  // Mutations
+  const updateAccountMutation = useUpdateAccount();
+  const deleteAccountMutation = useDeleteAccount();
+  const createTransactionMutation = useCreateTransaction();
+
+  const handleUpdateAccount = async (data: UpdateAccountDto) => {
+    if (!id) return;
+    try {
+      await updateAccountMutation.mutateAsync({ id, data });
+      setEditFormOpen(false);
+    } catch (error) {
+      console.error('Failed to update account:', error);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!id) return;
+    try {
+      await deleteAccountMutation.mutateAsync(id);
+      setDeleteDialogOpen(false);
+      navigate('/accounts');
+    } catch (error) {
+      console.error('Failed to delete account:', error);
+    }
+  };
+
+  const handleCreateTransaction = async (data: CreateTransactionDto) => {
+    try {
+      await createTransactionMutation.mutateAsync(data);
+      setTransactionFormOpen(false);
+    } catch (error) {
+      console.error('Failed to create transaction:', error);
+    }
+  };
+
+  if (accountLoading) {
+    return (
+      <Container maxWidth="lg" sx={{ mt: 4 }}>
+        <LoadingSpinner message="Loading account details..." />
+      </Container>
+    );
+  }
+
+  if (accountError || !account) {
+    return (
+      <Container maxWidth="lg" sx={{ mt: 4 }}>
+        <ErrorAlert error={accountError || new Error('Account not found')} title="Failed to load account" />
+        <Box sx={{ mt: 2 }}>
+          <Button startIcon={<BackIcon />} onClick={() => navigate('/accounts')}>
+            Back to Accounts
+          </Button>
+        </Box>
+      </Container>
+    );
+  }
+
+  return (
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      {/* Back Button */}
+      <Button
+        startIcon={<BackIcon />}
+        onClick={() => navigate('/accounts')}
+        sx={{ mb: 2 }}
+      >
+        Back to Accounts
+      </Button>
+
+      {/* Account Header */}
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Grid container spacing={3} alignItems="center">
+          <Grid item xs={12} md={6}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <AccountTypeIcon type={account.type} sx={{ fontSize: 40 }} color="primary" />
+              <Box>
+                <Typography variant="h4" gutterBottom>
+                  {account.name}
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                  <Chip label={account.type.replace('_', ' ')} size="small" />
+                  {account.category && <Chip label={account.category} size="small" variant="outlined" />}
+                  {!account.isActive && <Chip label="Inactive" size="small" color="default" />}
+                </Box>
+              </Box>
+            </Box>
+          </Grid>
+          <Grid item xs={12} md={6} sx={{ textAlign: { xs: 'left', md: 'right' } }}>
+            <Typography variant="body2" color="text.secondary" gutterBottom>
+              Current Balance
+            </Typography>
+            {balanceLoading ? (
+              <LoadingSpinner message="" size={20} />
+            ) : (
+              <BalanceDisplay amount={balance?.currentBalance || 0} currency={account.currency} variant="h4" />
+            )}
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+              Initial Balance: {account.currency} {parseFloat(account.initialBalance).toFixed(2)}
+            </Typography>
+          </Grid>
+        </Grid>
+
+        <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+          <Button
+            variant="outlined"
+            startIcon={<EditIcon />}
+            onClick={() => setEditFormOpen(true)}
+          >
+            Edit
+          </Button>
+          <Button
+            variant="outlined"
+            color="error"
+            startIcon={<DeleteIcon />}
+            onClick={() => setDeleteDialogOpen(true)}
+          >
+            Delete
+          </Button>
+        </Box>
+      </Paper>
+
+      {/* Transactions Section */}
+      <Box>
+        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h5">Transactions</Typography>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setTransactionFormOpen(true)}
+          >
+            Add Transaction
+          </Button>
+        </Box>
+
+        {transactionsLoading ? (
+          <LoadingSpinner message="Loading transactions..." />
+        ) : transactionsError ? (
+          <ErrorAlert error={transactionsError} title="Failed to load transactions" />
+        ) : (
+          <TransactionList
+            transactions={transactionsData?.transactions || []}
+            pagination={transactionsData?.pagination}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
+        )}
+      </Box>
+
+      {/* Floating Action Button */}
+      <Fab
+        color="primary"
+        aria-label="add transaction"
+        sx={{ position: 'fixed', bottom: 16, right: 16 }}
+        onClick={() => setTransactionFormOpen(true)}
+      >
+        <AddIcon />
+      </Fab>
+
+      {/* Dialogs */}
+      <AccountForm
+        open={editFormOpen}
+        onClose={() => setEditFormOpen(false)}
+        onSubmit={handleUpdateAccount}
+        account={account}
+        isSubmitting={updateAccountMutation.isPending}
+      />
+
+      <DeleteAccountDialog
+        open={deleteDialogOpen}
+        account={account}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={handleDeleteAccount}
+        isDeleting={deleteAccountMutation.isPending}
+      />
+
+      <TransactionForm
+        open={transactionFormOpen}
+        onClose={() => setTransactionFormOpen(false)}
+        onSubmit={handleCreateTransaction}
+        defaultAccountId={id}
+        isSubmitting={createTransactionMutation.isPending}
+      />
+    </Container>
+  );
+};
