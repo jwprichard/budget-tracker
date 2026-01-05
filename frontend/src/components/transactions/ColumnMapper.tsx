@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -79,13 +79,14 @@ export const ColumnMapper = ({ headers, rows, onMappingChange }: ColumnMapperPro
   };
 
   // Initialize with auto-detected mapping
-  useState(() => {
+  useEffect(() => {
     const detected = autoDetectMapping();
     setMapping(detected);
     if (isValidMapping(detected)) {
       onMappingChange(detected as ColumnMapping);
     }
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [headers]);
 
   const isValidMapping = (map: Record<string, string>): boolean => {
     return REQUIRED_FIELDS.every((field) => map[field] && map[field] !== '');
