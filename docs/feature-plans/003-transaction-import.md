@@ -3,8 +3,8 @@
 **Milestone**: Early implementation from Milestone 8
 **Status**: ✅ COMPLETE
 **Started**: January 5, 2026
-**Completed**: January 5, 2026
-**Branch**: `feature/transaction-import` (10 commits)
+**Completed**: January 6, 2026
+**Branch**: `feature/transaction-import` (17 commits)
 
 ---
 
@@ -690,7 +690,23 @@ See "Future Enhancements" section in the original plan for:
   - Updated TransactionImportDialog to use values from mapping
 - **Files**: `/frontend/src/components/transactions/ColumnMapper.tsx`, `/frontend/src/components/transactions/TransactionImportDialog.tsx`
 
+### Bonus Feature Added
+
+**Feature: Balance Adjustment via Edit Dialog** (Commit 17)
+- **Requirement**: User requested ability to update current balance (not initial balance) for traceability
+- **Implementation**:
+  - Modified AccountForm to show "Current Balance" instead of "Initial Balance" when editing
+  - Balance field now displays current calculated balance (rounded to 2 decimals)
+  - When balance is changed, creates a "Balance Adjustment" transaction for the difference
+  - Transaction type is INCOME (increase) or EXPENSE (decrease)
+  - Includes notes explaining the adjustment amount
+- **Benefits**:
+  - Maintains complete audit trail of all balance changes
+  - Never modifies historical data or initial balance
+  - Transaction history clearly shows why balance changed
+- **Files**: `/frontend/src/components/accounts/AccountForm.tsx`, `/frontend/src/pages/AccountDetails.tsx`
+
 ---
 
 **Feature Complete**: January 6, 2026
-**Ready for**: User testing and merge to main
+**Ready for**: Merge to main branch
