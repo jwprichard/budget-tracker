@@ -61,10 +61,26 @@ export const AccountDetails = () => {
   const deleteAccountMutation = useDeleteAccount();
   const createTransactionMutation = useCreateTransaction();
 
-  const handleUpdateAccount = async (data: UpdateAccountDto) => {
+  const handleUpdateAccount = async (data: UpdateAccountDto, balanceChanged?: number) => {
     if (!id) return;
     try {
+      // Update account properties
       await updateAccountMutation.mutateAsync({ id, data });
+
+      // If balance was changed, create adjustment transaction
+      if (balanceChanged && balanceChanged !== 0) {
+        const adjustmentTransaction: CreateTransactionDto = {
+          accountId: id,
+          type: balanceChanged > 0 ? 'INCOME' : 'EXPENSE',
+          amount: Math.abs(balanceChanged),
+          date: new Date().toISOString(),
+          description: 'Balance Adjustment',
+          notes: `Balance adjusted by ${account?.currency} ${balanceChanged.toFixed(2)}`,
+          status: 'CLEARED',
+        };
+        await createTransactionMutation.mutateAsync(adjustmentTransaction);
+      }
+
       setEditFormOpen(false);
     } catch (error) {
       console.error('Failed to update account:', error);
@@ -227,7 +243,8 @@ export const AccountDetails = () => {
         onClose={() => setEditFormOpen(false)}
         onSubmit={handleUpdateAccount}
         account={account}
-        isSubmitting={updateAccountMutation.isPending}
+        currentBalance={balance?.currentBalance}
+        isSubmitting={updateAccountMutation.isPending || createTransactionMutation.isPending}
       />
 
       <DeleteAccountDialog

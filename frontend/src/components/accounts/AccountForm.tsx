@@ -15,8 +15,9 @@ import { AmountInput } from '../common/AmountInput';
 interface AccountFormProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: CreateAccountDto | UpdateAccountDto) => void;
+  onSubmit: (data: CreateAccountDto | UpdateAccountDto, balanceChanged?: number) => void;
   account?: Account | null;
+  currentBalance?: number;
   isSubmitting?: boolean;
 }
 
@@ -29,8 +30,18 @@ const accountTypes: { value: AccountType; label: string }[] = [
   { value: 'OTHER', label: 'Other' },
 ];
 
-export const AccountForm = ({ open, onClose, onSubmit, account, isSubmitting = false }: AccountFormProps) => {
+export const AccountForm = ({
+  open,
+  onClose,
+  onSubmit,
+  account,
+  currentBalance,
+  isSubmitting = false
+}: AccountFormProps) => {
   const isEditing = !!account;
+  const balanceForForm = isEditing && currentBalance !== undefined
+    ? parseFloat(currentBalance.toFixed(2))
+    : (account ? parseFloat(parseFloat(account.initialBalance).toFixed(2)) : 0);
 
   const {
     control,
@@ -43,12 +54,22 @@ export const AccountForm = ({ open, onClose, onSubmit, account, isSubmitting = f
       type: account?.type || 'CHECKING',
       category: account?.category || '',
       currency: account?.currency || 'USD',
-      initialBalance: account ? parseFloat(account.initialBalance) : 0,
+      initialBalance: balanceForForm,
     },
   });
 
   const handleFormSubmit = (data: CreateAccountDto) => {
-    onSubmit(data);
+    let balanceChanged: number | undefined;
+
+    if (isEditing && currentBalance !== undefined) {
+      // Calculate balance difference for adjustment transaction
+      balanceChanged = data.initialBalance - currentBalance;
+      // Don't include initialBalance in update (we'll use adjustment transaction)
+      const { initialBalance, ...updateData } = data;
+      onSubmit(updateData as UpdateAccountDto, balanceChanged);
+    } else {
+      onSubmit(data);
+    }
     reset();
   };
 
@@ -146,11 +167,11 @@ export const AccountForm = ({ open, onClose, onSubmit, account, isSubmitting = f
               <Controller
                 name="initialBalance"
                 control={control}
-                rules={{ required: 'Initial balance is required' }}
+                rules={{ required: isEditing ? 'Current balance is required' : 'Initial balance is required' }}
                 render={({ field: { onChange, value, ...field } }) => (
                   <AmountInput
                     {...field}
-                    label="Initial Balance"
+                    label={isEditing ? "Current Balance" : "Initial Balance"}
                     value={value}
                     onChange={onChange}
                     required
