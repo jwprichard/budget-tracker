@@ -16,12 +16,12 @@ Full-Stack Web Application (Self-Hosted)
 
 ## Current Status
 
-- **Branch**: feature/docker-project-scaffolding (ready for merge to main)
-- **Phase**: Milestone 1 - Foundation & Core Setup
-- **Last Feature Completed**: Docker & Project Scaffolding ✓
-- **Next Feature**: User authentication system
-- **Current Focus**: Complete foundation infrastructure with Docker, backend API, and frontend app
-- **Tests**: Not yet implemented (testing infrastructure planned for later milestone)
+- **Branch**: `main`
+- **Phase**: Milestone 2 - Account & Transaction Management ✅ COMPLETE
+- **Last Feature Completed**: Account & Transaction Management (January 5, 2026) ✓
+- **Next Milestone**: Milestone 3 - Category System
+- **Current Focus**: Ready for next feature implementation
+- **Tests**: Not yet implemented (testing infrastructure planned for Milestone 11)
 
 ## Technology Stack
 
@@ -500,10 +500,10 @@ Color-coded balance status (green/yellow/red thresholds).
 ## Current Development Context
 
 ### What We're Working On
-- **Phase**: Milestone 1 complete ✓ → Moving to Milestone 2
-- **Current Task**: Planning next feature (Account & Transaction Management)
-- **Status**: Main branch updated with Docker scaffolding
-- **Next Feature**: Account & Transaction Management (Milestone 2)
+- **Phase**: Milestone 2 complete ✅ → Moving to Milestone 3
+- **Current Task**: Ready for next feature (Category System)
+- **Status**: Main branch updated with Account & Transaction Management
+- **Next Feature**: Category System (Milestone 3)
 
 ### Recent Decisions
 - Chose PostgreSQL over MySQL for better ACID compliance and JSON support
@@ -519,6 +519,12 @@ Color-coded balance status (green/yellow/red thresholds).
 - **Added OpenSSL to Alpine base image** - Prisma requires OpenSSL for database connections
 - **Configured Prisma binary targets** - Set `linux-musl-openssl-3.0.x` for Alpine Linux compatibility
 - **ARCHITECTURAL DECISION: Single-User Mode (Dec 29, 2025)** - Authentication deferred to future enhancement. App will be designed for single-user/personal deployment initially. No userId foreign keys or authentication middleware required for MVP. Multi-user support will be added later when needed.
+- **Balance Calculation Strategy (Jan 5, 2026)** - On-the-fly calculation using aggregate queries instead of stored balance field. Formula: `currentBalance = initialBalance + sum(transactions.amount)`
+- **Transfer Pattern (Jan 5, 2026)** - Two-transaction pattern with `transferToAccountId` linking. Creates expense from source + income to destination in a single database transaction.
+- **Amount Storage Convention (Jan 5, 2026)** - INCOME stored as positive, EXPENSE as negative, simplifies balance calculation
+- **Date Validation (Jan 5, 2026)** - Only past/current dates allowed for now, future dates will be enabled in Milestone 6 for forecasting
+- **Category Field Preparation (Jan 5, 2026)** - Added nullable `categoryId` to Transaction model for Milestone 3 compatibility
+- **Material-UI Theme (Jan 5, 2026)** - Custom Indigo/Pink theme with Inter font, gradient backgrounds, enhanced shadows
 
 ### Known Issues
 None - All Docker build and runtime issues resolved
@@ -532,16 +538,18 @@ None - All Docker build and runtime issues resolved
 
 ### Next Steps
 1. ✅ Merge `feature/docker-project-scaffolding` to `main` branch (COMPLETE)
-2. Create feature plan for Account & Transaction Management (Milestone 2)
-   - Account data model (Prisma schema)
-   - Account CRUD API endpoints with validation
-   - Transaction data model (Prisma schema)
-   - Transaction CRUD API endpoints with validation
-   - Account management UI components
-   - Transaction entry form and listing UI
-   - Basic dashboard with account overview
-   - Database migrations for Account and Transaction tables
-3. Begin implementation of Account & Transaction Management feature
+2. ✅ Implement Account & Transaction Management (Milestone 2) (COMPLETE - Jan 5, 2026)
+3. Create feature plan for Category System (Milestone 3)
+   - Hierarchical category data model (Prisma schema)
+   - Default category seed data (Income, Housing, Transportation, Food & Dining, etc.)
+   - Category CRUD API endpoints with validation
+   - Category management UI (create, edit, delete, reorganize)
+   - Parent-child category relationships
+   - Category assignment to transactions (update TransactionForm)
+   - Category colors and visual identification
+   - Subcategory breakdown views
+   - Category filtering in transaction lists
+4. Begin implementation of Category System feature
 
 ## Project-Specific Notes
 
@@ -782,7 +790,7 @@ docker system prune -a --volumes  # Removes all stopped containers, unused image
 
 ---
 
-**Last Updated**: December 29, 2025
-**Current Phase**: Milestone 1 - Foundation & Core Setup
+**Last Updated**: January 5, 2026
+**Current Phase**: Milestone 2 - Account & Transaction Management ✅ COMPLETE
 **Framework/Platform**: React + Node.js + PostgreSQL (Full-Stack TypeScript)
-**Status**: Docker scaffolding complete and tested, ready for authentication feature
+**Status**: Account and transaction management complete, ready for Category System (Milestone 3)

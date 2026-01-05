@@ -31,21 +31,25 @@ This roadmap outlines the development milestones for the Budget Tracker applicat
 
 ---
 
-## Milestone 2: Account & Transaction Management
+## Milestone 2: Account & Transaction Management ✅
 
 **Objective**: Enable users to manage accounts and manually enter transactions.
 
+**Status**: COMPLETE (January 5, 2026)
+**Branch**: Merged to `main`
+**Feature Plan**: `/docs/feature-plans/002-account-transaction-management.md`
+
 ### Deliverables
-- [ ] Account CRUD operations (API + UI)
-- [ ] Account types (checking, savings, credit card, cash, investment, other)
-- [ ] Account listing and details views
-- [ ] Transaction CRUD operations (API + UI)
-- [ ] Transaction types (income, expense, transfer)
-- [ ] Transaction entry form with validation
-- [ ] Transaction listing with filtering and sorting
-- [ ] Account balance calculation and tracking
-- [ ] Basic dashboard with account overview
-- [ ] Responsive layout foundation
+- [x] Account CRUD operations (API + UI) ✓
+- [x] Account types (checking, savings, credit card, cash, investment, other) ✓
+- [x] Account listing and details views ✓
+- [x] Transaction CRUD operations (API + UI) ✓
+- [x] Transaction types (income, expense, transfer) ✓
+- [x] Transaction entry form with validation ✓
+- [x] Transaction listing with filtering and sorting ✓
+- [x] Account balance calculation and tracking ✓
+- [x] Basic dashboard with account overview ✓
+- [x] Responsive layout foundation ✓
 
 ### Features
 - Create, read, update, delete accounts
@@ -54,6 +58,9 @@ This roadmap outlines the development milestones for the Budget Tracker applicat
 - Transaction status (pending, cleared, reconciled)
 - Per-account transaction history
 - Consolidated view across all accounts
+- Transfer functionality between accounts
+- Modern UI with Material-UI theme (Indigo/Pink)
+- Date validation (prevents future dates)
 
 ---
 
@@ -400,5 +407,6 @@ Each milestone is considered complete when:
 
 ---
 
-**Last Updated**: December 2025
-**Document Version**: 1.0
+**Last Updated**: January 2026
+**Document Version**: 1.1
+**Latest Completion**: Milestone 2 - Account & Transaction Management (January 5, 2026)
