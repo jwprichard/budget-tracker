@@ -75,3 +75,61 @@ export const updateTransaction = async (id: string, data: UpdateTransactionDto):
 export const deleteTransaction = async (id: string): Promise<void> => {
   await apiClient.delete<SuccessResponse<void>>(`${BASE_PATH}/${id}`);
 };
+
+/**
+ * Parse CSV file and return raw data
+ * @param file - CSV file to parse
+ */
+export const parseCSV = async (file: File): Promise<{ headers: string[]; rows: string[][]; rowCount: number }> => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await apiClient.post<SuccessResponse<{ headers: string[]; rows: string[][]; rowCount: number }>>(
+    `${BASE_PATH}/parse-csv`,
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    }
+  );
+
+  return response.data.data;
+};
+
+/**
+ * Bulk import transactions
+ * @param accountId - Account ID to import into
+ * @param transactions - Array of transactions to import
+ * @param skipDuplicates - Whether to skip duplicate transactions
+ */
+export const bulkImport = async (
+  accountId: string,
+  transactions: Array<{
+    type: 'INCOME' | 'EXPENSE';
+    amount: number;
+    date: string;
+    description: string;
+    notes?: string;
+    status?: 'PENDING' | 'CLEARED' | 'RECONCILED';
+  }>,
+  skipDuplicates = true
+): Promise<{
+  imported: number;
+  skipped: number;
+  errors: Array<{ row: number; message: string }>;
+}> => {
+  const response = await apiClient.post<
+    SuccessResponse<{
+      imported: number;
+      skipped: number;
+      errors: Array<{ row: number; message: string }>;
+    }>
+  >(`${BASE_PATH}/bulk-import`, {
+    accountId,
+    transactions,
+    skipDuplicates,
+  });
+
+  return response.data.data;
+};

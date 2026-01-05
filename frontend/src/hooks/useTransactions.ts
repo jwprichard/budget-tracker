@@ -6,6 +6,8 @@ import {
   createTransfer,
   updateTransaction,
   deleteTransaction,
+  parseCSV,
+  bulkImport,
 } from '../services/transaction.service';
 import {
   Transaction,
@@ -134,6 +136,57 @@ export const useDeleteTransaction = (): UseMutationResult<
         queryClient.invalidateQueries({ queryKey: accountKeys.balance(variables.transferAccountId) });
         queryClient.invalidateQueries({ queryKey: accountKeys.transactions(variables.transferAccountId, 1, 50) });
       }
+    },
+  });
+};
+
+/**
+ * Hook to parse CSV file
+ * Returns headers and rows from CSV file
+ */
+export const useParseCSV = (): UseMutationResult<
+  { headers: string[]; rows: string[][]; rowCount: number },
+  Error,
+  File
+> => {
+  return useMutation({
+    mutationFn: parseCSV,
+  });
+};
+
+/**
+ * Hook to bulk import transactions
+ * Invalidates transaction list and account queries on success
+ */
+export const useBulkImport = (): UseMutationResult<
+  {
+    imported: number;
+    skipped: number;
+    errors: Array<{ row: number; message: string }>;
+  },
+  Error,
+  {
+    accountId: string;
+    transactions: Array<{
+      type: 'INCOME' | 'EXPENSE';
+      amount: number;
+      date: string;
+      description: string;
+      notes?: string;
+      status?: 'PENDING' | 'CLEARED' | 'RECONCILED';
+    }>;
+    skipDuplicates: boolean;
+  }
+> => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ accountId, transactions, skipDuplicates }) =>
+      bulkImport(accountId, transactions, skipDuplicates),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: transactionKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: accountKeys.balance(variables.accountId) });
+      queryClient.invalidateQueries({ queryKey: accountKeys.transactions(variables.accountId, 1, 50) });
     },
   });
 };
