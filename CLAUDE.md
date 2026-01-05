@@ -16,11 +16,15 @@ Full-Stack Web Application (Self-Hosted)
 
 ## Current Status
 
-- **Branch**: `main`
-- **Phase**: Milestone 2 - Account & Transaction Management ✅ COMPLETE
-- **Last Feature Completed**: Account & Transaction Management (January 5, 2026) ✓
+- **Current Branch**: `feature/transaction-import` (ready to merge)
+- **Phase**: Milestone 2 Extensions + Milestone 8 (Partial)
+- **Last Feature Completed**: CSV Transaction Import (January 6, 2026) ✓
+- **Completed Milestones**:
+  - Milestone 1 - Foundation & Core Setup ✅
+  - Milestone 2 - Account & Transaction Management ✅
+  - Milestone 8 (Partial) - CSV Import ✅
 - **Next Milestone**: Milestone 3 - Category System
-- **Current Focus**: Ready for next feature implementation
+- **Current Focus**: Merge transaction import feature, then begin category system
 - **Tests**: Not yet implemented (testing infrastructure planned for Milestone 11)
 
 ## Technology Stack
@@ -500,12 +504,13 @@ Color-coded balance status (green/yellow/red thresholds).
 ## Current Development Context
 
 ### What We're Working On
-- **Phase**: Milestone 2 complete ✅ → Moving to Milestone 3
-- **Current Task**: Ready for next feature (Category System)
-- **Status**: Main branch updated with Account & Transaction Management
+- **Phase**: Milestone 2 Extensions + Milestone 8 (Partial) ✅
+- **Current Task**: Merge CSV import feature to main
+- **Branch**: `feature/transaction-import` (18 commits, ready to merge)
+- **Status**: CSV Transaction Import feature complete and tested
 - **Next Feature**: Category System (Milestone 3)
 
-### Recent Decisions
+### Recent Decisions (Updated Jan 6, 2026)
 - Chose PostgreSQL over MySQL for better ACID compliance and JSON support
 - Selected Material-UI over other UI libraries for comprehensive component set
 - Using Prisma ORM for database abstraction and future flexibility
@@ -525,9 +530,19 @@ Color-coded balance status (green/yellow/red thresholds).
 - **Date Validation (Jan 5, 2026)** - Only past/current dates allowed for now, future dates will be enabled in Milestone 6 for forecasting
 - **Category Field Preparation (Jan 5, 2026)** - Added nullable `categoryId` to Transaction model for Milestone 3 compatibility
 - **Material-UI Theme (Jan 5, 2026)** - Custom Indigo/Pink theme with Inter font, gradient backgrounds, enhanced shadows
+- **CSV Import Implementation (Jan 6, 2026)** - Implemented early from Milestone 8 due to immediate user value
+  - Backend: multer for file upload, csv-parse for parsing
+  - Frontend: Multi-step wizard (Upload → Map → Preview → Results)
+  - Date format flexibility: 10 formats including 2-digit years (DD/MM/YY)
+  - Duplicate detection: date + amount + description matching
+  - Validation: Three-tier (file → field → duplicate)
+- **Balance Adjustment Pattern (Jan 6, 2026)** - Edit account shows "Current Balance" instead of "Initial Balance"
+  - Creates adjustment transaction for balance changes (maintains audit trail)
+  - Never modifies historical data or initial balance
+  - Transaction type: INCOME (increase) or EXPENSE (decrease)
 
 ### Known Issues
-None - All Docker build and runtime issues resolved
+None - All Docker build, runtime, and CSV import issues resolved
 
 ### Recent Fixes (Dec 29, 2025)
 1. **Package lockfiles** - Generated package-lock.json for reproducible Docker builds
@@ -539,7 +554,9 @@ None - All Docker build and runtime issues resolved
 ### Next Steps
 1. ✅ Merge `feature/docker-project-scaffolding` to `main` branch (COMPLETE)
 2. ✅ Implement Account & Transaction Management (Milestone 2) (COMPLETE - Jan 5, 2026)
-3. Create feature plan for Category System (Milestone 3)
+3. ✅ Implement CSV Transaction Import (Milestone 8 - Partial) (COMPLETE - Jan 6, 2026)
+4. Merge `feature/transaction-import` to `main` branch
+5. Create feature plan for Category System (Milestone 3)
    - Hierarchical category data model (Prisma schema)
    - Default category seed data (Income, Housing, Transportation, Food & Dining, etc.)
    - Category CRUD API endpoints with validation
@@ -549,7 +566,7 @@ None - All Docker build and runtime issues resolved
    - Category colors and visual identification
    - Subcategory breakdown views
    - Category filtering in transaction lists
-4. Begin implementation of Category System feature
+6. Begin implementation of Category System feature
 
 ## Project-Specific Notes
 

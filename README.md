@@ -4,13 +4,24 @@ A self-hosted web-based budget tracking application that helps users monitor exp
 
 ## Features
 
-- **Expense & Income Tracking**: Track transactions across multiple accounts
-- **Balance Forecasting**: Predict future cash flow based on recurring expenses and spending patterns
-- **Trend Analysis**: Identify spending patterns and trends over time
+### Currently Available ✅
+- **Multi-Account Management**: Create and manage checking, savings, credit card, cash, investment, and other accounts
+- **Transaction Tracking**: Record income, expenses, and transfers with validation
+- **CSV Import**: Bulk import transactions from bank CSV files with smart column mapping
+- **Balance Calculation**: Real-time balance tracking across all accounts
+- **Balance Adjustment**: Update account balances with full audit trail via adjustment transactions
+- **Transaction History**: View and filter transactions per account or across all accounts
+- **Modern Dashboard**: Account overview with balances and recent transactions
+- **Responsive Design**: Works on desktop, tablet, and mobile devices
+
+### Planned Features 🚧
+- **Category System**: Hierarchical categories for organizing transactions
 - **Budget Management**: Set and track budgets by category
 - **Visual Analytics**: Calendar views, pie charts, and trend visualizations
+- **Recurring Transactions**: Automate regular income and expenses
+- **Balance Forecasting**: Predict future cash flow based on patterns
 - **Alerts & Notifications**: Get notified about low balances and upcoming bills
-- **Multi-Account Support**: Manage checking, savings, credit cards, and more
+- **Advanced Analytics**: Spending trends and pattern analysis
 
 ## Technology Stack
 
@@ -340,10 +351,25 @@ MIT License - See LICENSE file for details
 
 ## Current Status
 
-**Phase**: Milestone 1 - Foundation & Core Setup ✅
-**Last Updated**: December 22, 2025
+**Current Milestone**: Milestone 2 - Account & Transaction Management ✅
+**Latest Feature**: CSV Transaction Import (from Milestone 8) ✅
+**Last Updated**: January 6, 2026
 
-The foundational infrastructure is complete with Docker orchestration, backend API with health check endpoint, and frontend React application. Ready for feature development!
+### Completed Milestones
+- ✅ **Milestone 1**: Foundation & Core Setup (Docker, API, Frontend)
+- ✅ **Milestone 2**: Account & Transaction Management
+- ✅ **Milestone 8** (Partial): CSV Import, Column Mapping, Duplicate Detection
+
+### What's Working Now
+- Full account management (CRUD operations)
+- Transaction entry and tracking (income, expense, transfer)
+- CSV import with smart column mapping
+- Balance tracking with adjustment audit trail
+- Modern Material-UI interface with Indigo/Pink theme
+- Fully containerized deployment with Docker
+
+### Next Up
+- **Milestone 3**: Category System - Hierarchical transaction categorization
 
 ## Support
 

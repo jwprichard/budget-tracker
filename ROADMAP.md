@@ -54,6 +54,7 @@ This roadmap outlines the development milestones for the Budget Tracker applicat
 ### Features
 - Create, read, update, delete accounts
 - Set initial balance and track current balance
+- **Balance adjustment with audit trail** *(Added January 6, 2026)*
 - Manual transaction entry (quick add form)
 - Transaction status (pending, cleared, reconciled)
 - Per-account transaction history
@@ -61,6 +62,7 @@ This roadmap outlines the development milestones for the Budget Tracker applicat
 - Transfer functionality between accounts
 - Modern UI with Material-UI theme (Indigo/Pink)
 - Date validation (prevents future dates)
+- **CSV transaction import** *(Added January 6, 2026 - See Milestone 8)*
 
 ---
 
@@ -193,27 +195,40 @@ This roadmap outlines the development milestones for the Budget Tracker applicat
 
 ---
 
-## Milestone 8: Data Import & Export
+## Milestone 8: Data Import & Export (Partially Complete)
 
 **Objective**: Enable bulk data entry and data portability.
 
+**Status**: CSV Import completed early (January 6, 2026)
+**Branch**: `feature/transaction-import` (ready to merge)
+**Feature Plan**: `/docs/feature-plans/003-transaction-import.md`
+
 ### Deliverables
-- [ ] CSV import functionality
-- [ ] Column mapping interface
-- [ ] Import preview and validation
-- [ ] Duplicate transaction detection
-- [ ] Automatic category suggestion based on description
+- [x] CSV import functionality ✓ *Completed early*
+- [x] Column mapping interface ✓ *Completed early*
+- [x] Import preview and validation ✓ *Completed early*
+- [x] Duplicate transaction detection ✓ *Completed early*
+- [ ] Automatic category suggestion based on description *Pending Milestone 3*
 - [ ] Bulk transaction entry interface
 - [ ] Transaction duplicate feature
 - [ ] Data export functionality (CSV, JSON)
 - [ ] Backup/restore capabilities
 
-### Features
-- Support for common bank CSV formats
-- Flexible column mapping
-- Conflict resolution during import
-- Bulk edit capabilities
-- Full data export for portability
+### CSV Import Features (Completed)
+- Multi-step wizard: Upload → Map → Preview → Results
+- Smart column auto-detection
+- Support for 10 date formats (including 2-digit years)
+- Flexible amount sign convention (negative=expense or all positive)
+- Duplicate detection based on date + amount + description
+- Error handling with detailed validation messages
+- Bulk import up to 10,000 transactions
+- File size limit: 5MB
+- Integration with Account Details page
+
+### Remaining Features
+- Data export functionality (CSV, JSON)
+- Backup/restore capabilities
+- Automatic category suggestion (requires Milestone 3)
 
 ---
 
