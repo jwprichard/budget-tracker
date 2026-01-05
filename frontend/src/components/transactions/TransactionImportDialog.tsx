@@ -55,15 +55,15 @@ const steps = ['Upload CSV', 'Map Columns', 'Preview & Import', 'Results'];
 
 const DATE_FORMATS = {
   'YYYY-MM-DD': 'yyyy-MM-dd',
-  'MM/DD/YYYY': 'MM/dd/yyyy',
-  'DD/MM/YYYY': 'dd/MM/yyyy',
-  'MM-DD-YYYY': 'MM-dd-yyyy',
-  'DD-MM-YYYY': 'dd-MM-yyyy',
-  'DD/MM/YY': 'dd/MM/yy',
-  'MM/DD/YY': 'MM/dd/yy',
-  'YY-MM-DD': 'yy-MM-dd',
-  'DD-MM-YY': 'dd-MM-yy',
-  'MM-DD-YY': 'MM-dd-yy',
+  'MM/DD/YYYY': 'M/d/yyyy',
+  'DD/MM/YYYY': 'd/M/yyyy',
+  'MM-DD-YYYY': 'M-d-yyyy',
+  'DD-MM-YYYY': 'd-M-yyyy',
+  'DD/MM/YY': 'd/M/yy',
+  'MM/DD/YY': 'M/d/yy',
+  'YY-MM-DD': 'yy-M-d',
+  'DD-MM-YY': 'd-M-yy',
+  'MM-DD-YY': 'M-d-yy',
 };
 
 export const TransactionImportDialog = ({ open, onClose, accountId }: TransactionImportDialogProps) => {
@@ -152,7 +152,8 @@ export const TransactionImportDialog = ({ open, onClose, accountId }: Transactio
         }
 
         // Parse date
-        const parsedDate = parse(dateValue, DATE_FORMATS[dateFormat], new Date());
+        const dateFormatString = DATE_FORMATS[dateFormat];
+        const parsedDate = parse(dateValue, dateFormatString, new Date());
         if (!isValid(parsedDate)) {
           return {
             date: new Date(),
@@ -160,7 +161,7 @@ export const TransactionImportDialog = ({ open, onClose, accountId }: Transactio
             amount: 0,
             type: 'EXPENSE' as const,
             validationStatus: 'error' as const,
-            errorMessage: `Invalid date format: ${dateValue}`,
+            errorMessage: `Invalid date format: ${dateValue} (expected ${dateFormat})`,
           };
         }
 
@@ -179,12 +180,14 @@ export const TransactionImportDialog = ({ open, onClose, accountId }: Transactio
         }
 
         // Determine transaction type
-        let type: 'INCOME' | 'EXPENSE';
+        let type: 'INCOME' | 'EXPENSE' | 'TRANSFER';
         if (typeValue) {
           const lowerType = typeValue.toLowerCase();
-          if (lowerType.includes('income') || lowerType.includes('credit') || lowerType.includes('deposit')) {
+          if (lowerType.includes('income') || lowerType.includes('credit') || lowerType.includes('deposit') || lowerType.includes('dc'))  {
             type = 'INCOME';
-          } else {
+          } else if (lowerType.includes('other')) {
+			type = 'TRANSFER';
+		  } else {
             type = 'EXPENSE';
           }
         } else {
@@ -199,7 +202,7 @@ export const TransactionImportDialog = ({ open, onClose, accountId }: Transactio
         return {
           date: parsedDate,
           description: descriptionValue,
-          amount: Math.abs(amount),
+          amount: amount, //Math.abs(amount),
           type,
           notes: notesValue || undefined,
           validationStatus: 'valid' as const,

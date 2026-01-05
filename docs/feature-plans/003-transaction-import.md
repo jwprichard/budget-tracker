@@ -666,7 +666,31 @@ See "Future Enhancements" section in the original plan for:
 - Import history and rollback
 - Advanced duplicate detection (fuzzy matching)
 
+### Bugs Fixed During Implementation
+
+**Bug 1: Docker Dependency Cache Issue** (Commit 11)
+- **Issue**: API failed to start with error `Cannot find module 'csv-parse/sync'`
+- **Cause**: Docker named volume had cached old node_modules without new dependencies
+- **Fix**: Rebuilt containers without cache and removed stale volumes
+- **Commands**: `docker compose build --no-cache api && docker volume rm budget-tracker_backend_node_modules && docker compose up -d`
+
+**Bug 2: React Hook Misuse in ColumnMapper** (Commit 12)
+- **Issue**: Blank white page when uploading CSV files
+- **Cause**: Used `useState(() => {...})` instead of `useEffect(() => {...})` for initialization on line 82
+- **Fix**: Changed to proper useEffect hook with dependency array
+- **File**: `/frontend/src/components/transactions/ColumnMapper.tsx`
+
+**Bug 3: Date Format and Amount Sign Not Propagated** (Commit 13)
+- **Issue**: Date format and amount sign selections in ColumnMapper were not being used during transaction parsing
+- **Cause**: Local state in ColumnMapper not passed back to parent TransactionImportDialog
+- **Fix**:
+  - Updated ColumnMapping interface to include `dateFormat` and `amountSign`
+  - Modified ColumnMapper to pass these values via `onMappingChange` callback
+  - Added useEffect to trigger updates when these values change
+  - Updated TransactionImportDialog to use values from mapping
+- **Files**: `/frontend/src/components/transactions/ColumnMapper.tsx`, `/frontend/src/components/transactions/TransactionImportDialog.tsx`
+
 ---
 
-**Feature Complete**: January 5, 2026
-**Ready for**: Merge to main and deployment
+**Feature Complete**: January 6, 2026
+**Ready for**: User testing and merge to main
