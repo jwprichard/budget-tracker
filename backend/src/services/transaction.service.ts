@@ -318,4 +318,97 @@ export class TransactionService {
 
     return duplicateIndices;
   }
+
+  /**
+   * Bulk import transactions
+   * @param accountId - Account ID to import into
+   * @param transactions - Array of transactions to import
+   * @param skipDuplicates - Whether to skip duplicate transactions
+   * @returns Import summary with counts and errors
+   */
+  async bulkImport(
+    accountId: string,
+    transactions: Array<{
+      type: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+      amount: number;
+      date: string | Date;
+      description: string;
+      notes?: string;
+      status?: 'PENDING' | 'CLEARED' | 'RECONCILED';
+    }>,
+    skipDuplicates = true
+  ): Promise<{
+    imported: number;
+    skipped: number;
+    errors: Array<{ row: number; message: string }>;
+  }> {
+    // Verify account exists
+    const account = await this.prisma.account.findUnique({
+      where: { id: accountId },
+    });
+
+    if (!account) {
+      throw new Error('Account not found');
+    }
+
+    const result = {
+      imported: 0,
+      skipped: 0,
+      errors: [] as Array<{ row: number; message: string }>,
+    };
+
+    // Detect duplicates if skipDuplicates is enabled
+    let duplicateIndices: number[] = [];
+    if (skipDuplicates) {
+      const transactionsForDuplicateCheck = transactions.map((t) => ({
+        date: new Date(t.date),
+        amount: t.type === 'EXPENSE' ? -Math.abs(t.amount) : Math.abs(t.amount),
+        description: t.description,
+      }));
+      duplicateIndices = await this.findDuplicates(accountId, transactionsForDuplicateCheck);
+    }
+
+    // Process each transaction
+    for (let i = 0; i < transactions.length; i++) {
+      // Skip duplicates
+      if (duplicateIndices.includes(i)) {
+        result.skipped++;
+        continue;
+      }
+
+      try {
+        const transaction = transactions[i];
+
+        // Convert amount based on type
+        let amount = transaction.amount;
+        if (transaction.type === 'EXPENSE') {
+          amount = -Math.abs(amount);
+        } else if (transaction.type === 'INCOME') {
+          amount = Math.abs(amount);
+        }
+
+        // Create transaction
+        await this.prisma.transaction.create({
+          data: {
+            accountId,
+            type: transaction.type,
+            amount,
+            date: new Date(transaction.date),
+            description: transaction.description,
+            notes: transaction.notes || null,
+            status: transaction.status || 'CLEARED',
+          },
+        });
+
+        result.imported++;
+      } catch (error) {
+        result.errors.push({
+          row: i + 1, // 1-indexed for user display
+          message: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+
+    return result;
+  }
 }

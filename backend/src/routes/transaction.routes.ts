@@ -7,6 +7,7 @@ import {
   updateTransaction,
   deleteTransaction,
   parseCSV,
+  bulkImport,
 } from '../controllers/transaction.controller';
 import { validateBody, validateQuery } from '../middlewares/validation';
 import {
@@ -14,6 +15,7 @@ import {
   createTransferSchema,
   updateTransactionSchema,
   transactionQuerySchema,
+  bulkImportSchema,
 } from '../schemas/transaction.schema';
 import { uploadCSV } from '../middlewares/upload';
 
@@ -30,6 +32,9 @@ router.post('/transfer', validateBody(createTransferSchema), createTransfer);
 
 // POST /api/v1/transactions/parse-csv - Parse CSV file
 router.post('/parse-csv', uploadCSV.single('file'), parseCSV);
+
+// POST /api/v1/transactions/bulk-import - Bulk import transactions
+router.post('/bulk-import', validateBody(bulkImportSchema), bulkImport);
 
 // GET /api/v1/transactions/:id - Get transaction by ID
 router.get('/:id', getTransactionById);

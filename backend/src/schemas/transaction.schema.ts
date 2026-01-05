@@ -75,7 +75,26 @@ export const transactionQuerySchema = z.object({
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });
 
+export const bulkImportSchema = z.object({
+  accountId: z.string().uuid('Invalid account ID'),
+  transactions: z
+    .array(
+      z.object({
+        type: transactionTypeEnum,
+        amount: z.number().finite('Amount must be a valid number'),
+        date: z.string().datetime({ message: 'Date must be a valid ISO datetime string' }).or(z.date()),
+        description: z.string().min(1, 'Description is required').max(255, 'Description must be at most 255 characters'),
+        notes: z.string().max(1000, 'Notes must be at most 1000 characters').optional(),
+        status: transactionStatusEnum.default('CLEARED'),
+      })
+    )
+    .min(1, 'At least one transaction is required')
+    .max(10000, 'Cannot import more than 10,000 transactions at once'),
+  skipDuplicates: z.boolean().default(true),
+});
+
 export type CreateTransactionDto = z.infer<typeof createTransactionSchema>;
 export type CreateTransferDto = z.infer<typeof createTransferSchema>;
 export type UpdateTransactionDto = z.infer<typeof updateTransactionSchema>;
 export type TransactionQuery = z.infer<typeof transactionQuerySchema>;
+export type BulkImportDto = z.infer<typeof bulkImportSchema>;

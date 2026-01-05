@@ -168,3 +168,23 @@ export const parseCSV = async (req: Request, res: Response, next: NextFunction):
     next(error);
   }
 };
+
+/**
+ * Bulk import transactions
+ * Body: { accountId, transactions[], skipDuplicates }
+ */
+export const bulkImport = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { accountId, transactions, skipDuplicates } = req.body;
+
+    const result = await transactionService.bulkImport(accountId, transactions, skipDuplicates);
+
+    res.status(201).json({
+      success: true,
+      data: result,
+      message: `Import completed: ${result.imported} imported, ${result.skipped} skipped, ${result.errors.length} errors`,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
