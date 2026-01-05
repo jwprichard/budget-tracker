@@ -15,6 +15,7 @@ import {
   Delete as DeleteIcon,
   Add as AddIcon,
   ArrowBack as BackIcon,
+  Upload as UploadIcon,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -32,6 +33,7 @@ import { TransactionList } from '../components/transactions/TransactionList';
 import { AccountForm } from '../components/accounts/AccountForm';
 import { DeleteAccountDialog } from '../components/accounts/DeleteAccountDialog';
 import { TransactionForm } from '../components/transactions/TransactionForm';
+import { TransactionImportDialog } from '../components/transactions/TransactionImportDialog';
 import { UpdateAccountDto, CreateTransactionDto } from '../types';
 import { AccountTypeIcon } from '../components/accounts/AccountTypeIcon';
 
@@ -43,6 +45,7 @@ export const AccountDetails = () => {
   const [editFormOpen, setEditFormOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [transactionFormOpen, setTransactionFormOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   // Queries
   const { data: account, isLoading: accountLoading, error: accountError } = useAccount(id);
@@ -174,15 +177,24 @@ export const AccountDetails = () => {
 
       {/* Transactions Section */}
       <Box>
-        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
           <Typography variant="h5">Transactions</Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setTransactionFormOpen(true)}
-          >
-            Add Transaction
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="outlined"
+              startIcon={<UploadIcon />}
+              onClick={() => setImportDialogOpen(true)}
+            >
+              Import CSV
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setTransactionFormOpen(true)}
+            >
+              Add Transaction
+            </Button>
+          </Box>
         </Box>
 
         {transactionsLoading ? (
@@ -232,6 +244,12 @@ export const AccountDetails = () => {
         onSubmit={handleCreateTransaction}
         defaultAccountId={id}
         isSubmitting={createTransactionMutation.isPending}
+      />
+
+      <TransactionImportDialog
+        open={importDialogOpen}
+        onClose={() => setImportDialogOpen(false)}
+        accountId={id || ''}
       />
     </Container>
   );
