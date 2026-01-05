@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { TransactionService } from '../services/transaction.service';
 import { CreateTransactionDto, CreateTransferDto, UpdateTransactionDto, TransactionQuery } from '../schemas/transaction.schema';
+import { parse } from 'csv-parse/sync';
 
 const prisma = new PrismaClient();
 const transactionService = new TransactionService(prisma);
@@ -109,6 +110,59 @@ export const deleteTransaction = async (req: Request, res: Response, next: NextF
     res.status(200).json({
       success: true,
       message: 'Transaction deleted successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Parse CSV file and return raw data
+ * Expects file upload via multipart/form-data
+ */
+export const parseCSV = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ success: false, message: 'No file uploaded' });
+      return;
+    }
+
+    // Parse CSV from buffer
+    const fileContent = req.file.buffer.toString('utf-8');
+
+    // Parse with csv-parse
+    const records = parse(fileContent, {
+      skip_empty_lines: true,
+      trim: true,
+      relaxColumnCount: true, // Allow rows with varying column counts
+    });
+
+    if (records.length === 0) {
+      res.status(400).json({ success: false, message: 'CSV file is empty' });
+      return;
+    }
+
+    // Validate row count
+    const maxRows = 10000;
+    if (records.length > maxRows + 1) { // +1 for header row
+      res.status(400).json({
+        success: false,
+        message: `CSV file has too many rows. Maximum ${maxRows} rows allowed.`,
+      });
+      return;
+    }
+
+    // Extract headers (first row) and data rows
+    const headers = records[0] as string[];
+    const rows = records.slice(1) as string[][];
+
+    res.status(200).json({
+      success: true,
+      data: {
+        headers,
+        rows,
+        rowCount: rows.length,
+      },
     });
   } catch (error) {
     next(error);

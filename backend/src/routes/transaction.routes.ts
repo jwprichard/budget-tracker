@@ -6,6 +6,7 @@ import {
   createTransfer,
   updateTransaction,
   deleteTransaction,
+  parseCSV,
 } from '../controllers/transaction.controller';
 import { validateBody, validateQuery } from '../middlewares/validation';
 import {
@@ -14,6 +15,7 @@ import {
   updateTransactionSchema,
   transactionQuerySchema,
 } from '../schemas/transaction.schema';
+import { uploadCSV } from '../middlewares/upload';
 
 const router = Router();
 
@@ -25,6 +27,9 @@ router.post('/', validateBody(createTransactionSchema), createTransaction);
 
 // POST /api/v1/transactions/transfer - Create transfer
 router.post('/transfer', validateBody(createTransferSchema), createTransfer);
+
+// POST /api/v1/transactions/parse-csv - Parse CSV file
+router.post('/parse-csv', uploadCSV.single('file'), parseCSV);
 
 // GET /api/v1/transactions/:id - Get transaction by ID
 router.get('/:id', getTransactionById);
