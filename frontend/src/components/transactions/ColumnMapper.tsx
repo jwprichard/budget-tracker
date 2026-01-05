@@ -220,6 +220,11 @@ export const ColumnMapper = ({ headers, rows, onMappingChange }: ColumnMapperPro
               <MenuItem value="DD/MM/YYYY">DD/MM/YYYY (15/01/2024)</MenuItem>
               <MenuItem value="MM-DD-YYYY">MM-DD-YYYY (01-15-2024)</MenuItem>
               <MenuItem value="DD-MM-YYYY">DD-MM-YYYY (15-01-2024)</MenuItem>
+              <MenuItem value="DD/MM/YY">DD/MM/YY (15/01/24)</MenuItem>
+              <MenuItem value="MM/DD/YY">MM/DD/YY (01/15/24)</MenuItem>
+              <MenuItem value="YY-MM-DD">YY-MM-DD (24-01-15)</MenuItem>
+              <MenuItem value="DD-MM-YY">DD-MM-YY (15-01-24)</MenuItem>
+              <MenuItem value="MM-DD-YY">MM-DD-YY (01-15-24)</MenuItem>
             </Select>
           </FormControl>
         </Grid>

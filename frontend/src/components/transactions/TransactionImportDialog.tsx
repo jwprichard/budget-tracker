@@ -59,6 +59,11 @@ const DATE_FORMATS = {
   'DD/MM/YYYY': 'dd/MM/yyyy',
   'MM-DD-YYYY': 'MM-dd-yyyy',
   'DD-MM-YYYY': 'dd-MM-yyyy',
+  'DD/MM/YY': 'dd/MM/yy',
+  'MM/DD/YY': 'MM/dd/yy',
+  'YY-MM-DD': 'yy-MM-dd',
+  'DD-MM-YY': 'dd-MM-yy',
+  'MM-DD-YY': 'MM-dd-yy',
 };
 
 export const TransactionImportDialog = ({ open, onClose, accountId }: TransactionImportDialogProps) => {
