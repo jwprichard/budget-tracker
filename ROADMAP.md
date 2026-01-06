@@ -588,7 +588,9 @@ Each milestone is considered complete when:
 ---
 
 **Last Updated**: January 6, 2026
-**Document Version**: 1.3
+**Document Version**: 1.4
 **Latest Completion**: Milestone 3 - Category System (January 6, 2026)
 **In Progress**: None (ready for next milestone)
-**New Addition**: Milestone 3.5 - Smart Categorization & Rules Engine (planned)
+**New Additions**:
+- Milestone 3.5 - Smart Categorization & Rules Engine (planned)
+- Milestone 8.5 - Automatic Data Synchronization with Akahu (planned)
