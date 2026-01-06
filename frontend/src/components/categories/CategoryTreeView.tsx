@@ -1,5 +1,6 @@
 import { Box, Typography, CircularProgress, Alert } from '@mui/material';
-import { TreeView, TreeItem } from '@mui/x-tree-view';
+import { SimpleTreeView } from '@mui/x-tree-view/SimpleTreeView';
+import { TreeItem } from '@mui/x-tree-view/TreeItem';
 import { ChevronRight, ExpandMore } from '@mui/icons-material';
 import { useCategoryHierarchy } from '../../hooks/useCategories';
 import { CategoryColorBadge } from './CategoryColorBadge';
@@ -25,7 +26,7 @@ export const CategoryTreeView = ({
     return (
       <TreeItem
         key={category.id}
-        nodeId={category.id}
+        itemId={category.id}
         label={
           <Box
             sx={{
@@ -34,6 +35,7 @@ export const CategoryTreeView = ({
               gap: 1,
               py: 0.5,
             }}
+            onClick={() => onCategorySelect?.(category)}
           >
             <CategoryColorBadge color={category.color} size={14} />
             <Typography variant="body2" sx={{ flexGrow: 1 }}>
@@ -46,7 +48,6 @@ export const CategoryTreeView = ({
             )}
           </Box>
         }
-        onClick={() => onCategorySelect?.(category)}
       >
         {hasChildren && category.children?.map((child) => renderTree(child))}
       </TreeItem>
@@ -79,10 +80,12 @@ export const CategoryTreeView = ({
   }
 
   return (
-    <TreeView
-      defaultCollapseIcon={<ExpandMore />}
-      defaultExpandIcon={<ChevronRight />}
-      selected={selectedId}
+    <SimpleTreeView
+      slots={{
+        collapseIcon: ExpandMore,
+        expandIcon: ChevronRight,
+      }}
+      selectedItems={selectedId}
       sx={{
         flexGrow: 1,
         maxWidth: 400,
@@ -90,6 +93,6 @@ export const CategoryTreeView = ({
       }}
     >
       {categories.map((category) => renderTree(category))}
-    </TreeView>
+    </SimpleTreeView>
   );
 };
