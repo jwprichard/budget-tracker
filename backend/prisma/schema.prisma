@@ -65,11 +65,30 @@ model Account {
   @@index([createdAt])
 }
 
+// Category model - Represents transaction categories with hierarchical structure
+model Category {
+  id          String    @id @default(uuid())
+  name        String
+  color       String    @default("#757575")  // Hex color code
+  icon        String?                         // Optional Material-UI icon name
+  parentId    String?                         // Self-referential for hierarchy
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  parent       Category?      @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children     Category[]     @relation("CategoryHierarchy")
+  transactions Transaction[]
+
+  @@index([parentId])
+  @@index([name])
+}
+
 // Transaction model - Represents income, expenses, and transfers
 model Transaction {
   id              String            @id @default(uuid())
   accountId       String
-  categoryId      String?           // Nullable - category management in Milestone 3
+  categoryId      String?           // Nullable - links to Category
   type            TransactionType
   amount          Decimal           @db.Decimal(15, 2)
   date            DateTime
@@ -83,6 +102,7 @@ model Transaction {
 
   // Relations
   account         Account           @relation("AccountTransactions", fields: [accountId], references: [id], onDelete: Cascade)
+  category        Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   transferAccount Account?          @relation("TransferDestination", fields: [transferToAccountId], references: [id], onDelete: SetNull)
 
   @@index([accountId])
