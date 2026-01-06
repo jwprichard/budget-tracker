@@ -330,6 +330,73 @@ This roadmap outlines the development milestones for the Budget Tracker applicat
 
 ---
 
+## Milestone 8.5: Automatic Data Synchronization (Akahu Integration)
+
+**Objective**: Automate account and transaction synchronization using Akahu's open banking API for real-time financial data.
+
+**Status**: PLANNED
+**Dependencies**: Milestone 2 (Accounts & Transactions), Milestone 3 (Categories)
+**Feature Plan**: `/docs/feature-plans/005-automatic-data-sync-akahu.md`
+**Priority**: High - Major feature for automated financial tracking
+
+### Deliverables
+- [ ] Akahu OAuth 2.0 authentication flow
+- [ ] Secure token storage and management
+- [ ] Connected bank account management UI
+- [ ] Automatic account synchronization
+- [ ] Automatic transaction synchronization
+- [ ] Duplicate transaction detection and merging
+- [ ] Background sync jobs (scheduled)
+- [ ] Manual sync trigger
+- [ ] Account linking (Akahu ↔ local accounts)
+- [ ] Transaction reconciliation UI
+- [ ] Sync status indicators and history
+- [ ] Error handling and recovery
+- [ ] Security audit and encryption
+- [ ] Integration with smart categorization (Milestone 3.5)
+
+### Features
+- Connect multiple bank accounts via Akahu
+- Automatic balance updates
+- Scheduled transaction import (hourly, daily, or manual)
+- Intelligent duplicate detection (>95% accuracy)
+- Historical transaction backfill
+- Manual sync trigger
+- Account connection management
+- Encrypted credential storage
+- Comprehensive sync logging
+- User consent and privacy controls
+
+### Technical Components
+- Akahu API client integration
+- OAuth 2.0 flow implementation
+- Database schema for Akahu data
+- Background job queue (Bull/BullMQ)
+- Duplicate detection algorithm
+- Token encryption/decryption
+- Account and transaction mapping services
+- Sync job monitoring and logging
+
+### Security & Privacy
+- AES-256 token encryption at rest
+- HTTPS-only communication
+- User consent management
+- Data retention policies
+- NZ Privacy Act compliance
+- Audit logging for all data access
+
+### Future Enhancements
+**Webhooks** (requires Akahu multi-account tier):
+- Real-time transaction updates via webhooks
+- Webhook endpoint with signature verification
+- Instant balance updates
+- Real-time UI notifications
+- WebSocket/SSE for live updates
+
+**Note**: Currently using Akahu single account mode which doesn't support webhooks. Sync will be scheduled (hourly/daily) or manual trigger only.
+
+---
+
 ## Milestone 9: Alert & Notification System
 
 **Objective**: Implement configurable alerts and in-app notifications.
