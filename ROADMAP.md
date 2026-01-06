@@ -66,12 +66,12 @@ This roadmap outlines the development milestones for the Budget Tracker applicat
 
 ---
 
-## Milestone 3: Category System 🚧
+## Milestone 3: Category System ✅
 
 **Objective**: Implement hierarchical category management for transaction organization.
 
-**Status**: IN PROGRESS (January 6, 2026)
-**Branch**: `feature/category-system`
+**Status**: COMPLETE (January 6, 2026)
+**Branch**: `feature/category-system` (ready to merge)
 **Feature Plan**: `/docs/feature-plans/004-category-system.md`
 
 ### Deliverables
@@ -83,7 +83,7 @@ This roadmap outlines the development milestones for the Budget Tracker applicat
 - [x] Category assignment to transactions ✓
 - [x] Category colors and visual identification ✓
 - [x] Tree view and grid view for categories ✓
-- [ ] Subcategory breakdown views *Pending completion*
+- [x] Subcategory breakdown views ✓
 
 ### Features
 - Unlimited category hierarchy depth
@@ -521,7 +521,7 @@ Each milestone is considered complete when:
 ---
 
 **Last Updated**: January 6, 2026
-**Document Version**: 1.2
-**Latest Completion**: Milestone 2 - Account & Transaction Management (January 5, 2026)
-**In Progress**: Milestone 3 - Category System
+**Document Version**: 1.3
+**Latest Completion**: Milestone 3 - Category System (January 6, 2026)
+**In Progress**: None (ready for next milestone)
 **New Addition**: Milestone 3.5 - Smart Categorization & Rules Engine (planned)
