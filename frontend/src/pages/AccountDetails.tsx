@@ -25,7 +25,7 @@ import {
   useUpdateAccount,
   useDeleteAccount,
 } from '../hooks/useAccounts';
-import { useCreateTransaction } from '../hooks/useTransactions';
+import { useCreateTransaction, useUpdateTransaction, useDeleteTransaction } from '../hooks/useTransactions';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { ErrorAlert } from '../components/common/ErrorAlert';
 import { BalanceDisplay } from '../components/common/BalanceDisplay';
@@ -34,7 +34,8 @@ import { AccountForm } from '../components/accounts/AccountForm';
 import { DeleteAccountDialog } from '../components/accounts/DeleteAccountDialog';
 import { TransactionForm } from '../components/transactions/TransactionForm';
 import { TransactionImportDialog } from '../components/transactions/TransactionImportDialog';
-import { UpdateAccountDto, CreateTransactionDto } from '../types';
+import { DeleteTransactionDialog } from '../components/transactions/DeleteTransactionDialog';
+import { UpdateAccountDto, CreateTransactionDto, UpdateTransactionDto, Transaction } from '../types';
 import { AccountTypeIcon } from '../components/accounts/AccountTypeIcon';
 
 export const AccountDetails = () => {
@@ -46,6 +47,8 @@ export const AccountDetails = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [transactionFormOpen, setTransactionFormOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
+  const [deleteTransaction, setDeleteTransaction] = useState<Transaction | null>(null);
 
   // Queries
   const { data: account, isLoading: accountLoading, error: accountError } = useAccount(id);
@@ -60,6 +63,8 @@ export const AccountDetails = () => {
   const updateAccountMutation = useUpdateAccount();
   const deleteAccountMutation = useDeleteAccount();
   const createTransactionMutation = useCreateTransaction();
+  const updateTransactionMutation = useUpdateTransaction();
+  const deleteTransactionMutation = useDeleteTransaction();
 
   const handleUpdateAccount = async (data: UpdateAccountDto, balanceChanged?: number) => {
     if (!id) return;
@@ -104,6 +109,34 @@ export const AccountDetails = () => {
       setTransactionFormOpen(false);
     } catch (error) {
       console.error('Failed to create transaction:', error);
+    }
+  };
+
+  const handleUpdateTransaction = async (data: UpdateTransactionDto) => {
+    if (!editTransaction) return;
+    try {
+      await updateTransactionMutation.mutateAsync({ id: editTransaction.id, data });
+      setEditTransaction(null);
+    } catch (error) {
+      console.error('Failed to update transaction:', error);
+    }
+  };
+
+  const handleEditClick = (transaction: Transaction) => {
+    setEditTransaction(transaction);
+  };
+
+  const handleDeleteClick = (transaction: Transaction) => {
+    setDeleteTransaction(transaction);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTransaction) return;
+    try {
+      await deleteTransactionMutation.mutateAsync(deleteTransaction.id);
+      setDeleteTransaction(null);
+    } catch (error) {
+      console.error('Failed to delete transaction:', error);
     }
   };
 
@@ -223,6 +256,8 @@ export const AccountDetails = () => {
             pagination={transactionsData?.pagination}
             onPageChange={setPage}
             onPageSizeChange={setPageSize}
+            onEdit={handleEditClick}
+            onDelete={handleDeleteClick}
           />
         )}
       </Box>
@@ -267,6 +302,22 @@ export const AccountDetails = () => {
         open={importDialogOpen}
         onClose={() => setImportDialogOpen(false)}
         accountId={id || ''}
+      />
+
+      <TransactionForm
+        open={!!editTransaction}
+        onClose={() => setEditTransaction(null)}
+        onSubmit={handleUpdateTransaction}
+        transaction={editTransaction}
+        isSubmitting={updateTransactionMutation.isPending}
+      />
+
+      <DeleteTransactionDialog
+        open={!!deleteTransaction}
+        transaction={deleteTransaction}
+        onClose={() => setDeleteTransaction(null)}
+        onConfirm={handleDeleteConfirm}
+        isDeleting={deleteTransactionMutation.isPending}
       />
     </Container>
   );
