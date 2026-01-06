@@ -60,7 +60,6 @@ model Account {
   // Relations
   transactions         Transaction[] @relation("AccountTransactions")
   transferTransactions Transaction[] @relation("TransferDestination")
-  akahuAccount         AkahuAccount? // Reverse relation to Akahu account
 
   @@index([isActive])
   @@index([createdAt])
@@ -102,10 +101,9 @@ model Transaction {
   updatedAt       DateTime          @updatedAt
 
   // Relations
-  account          Account           @relation("AccountTransactions", fields: [accountId], references: [id], onDelete: Cascade)
-  category         Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  transferAccount  Account?          @relation("TransferDestination", fields: [transferToAccountId], references: [id], onDelete: SetNull)
-  akahuTransaction AkahuTransaction? // Reverse relation to Akahu transaction
+  account         Account           @relation("AccountTransactions", fields: [accountId], references: [id], onDelete: Cascade)
+  category        Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  transferAccount Account?          @relation("TransferDestination", fields: [transferToAccountId], references: [id], onDelete: SetNull)
 
   @@index([accountId])
   @@index([categoryId])
@@ -113,125 +111,4 @@ model Transaction {
   @@index([type])
   @@index([status])
   @@index([transferToAccountId])
-}
-
-// ============================================================================
-// Akahu Integration Models
-// ============================================================================
-
-// AkahuConnection - Stores Akahu OAuth connection and tokens
-model AkahuConnection {
-  id              String    @id @default(uuid())
-  userId          String    @default("default") // For future multi-user support
-  accessToken     String    @db.Text // Encrypted
-  refreshToken    String    @db.Text // Encrypted
-  tokenExpiry     DateTime
-  consentId       String    // Akahu consent ID
-  isActive        Boolean   @default(true)
-  lastSync        DateTime?
-  lastError       String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  accounts        AkahuAccount[]
-
-  @@index([userId])
-  @@index([consentId])
-  @@index([isActive])
-}
-
-// AkahuAccount - Akahu account linked to local Account
-model AkahuAccount {
-  id                String    @id @default(uuid())
-  connectionId      String
-  akahuAccountId    String    @unique // Akahu's account ID
-  localAccountId    String?   @unique // Link to local Account model
-  name              String
-  type              String    // Akahu account type (BANK, CARD, etc.)
-  institution       String
-  accountNumber     String?
-  status            String    @default("ACTIVE")
-  lastSync          DateTime?
-  syncEnabled       Boolean   @default(true)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-
-  connection        AkahuConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
-  localAccount      Account?        @relation(fields: [localAccountId], references: [id], onDelete: SetNull)
-  transactions      AkahuTransaction[]
-
-  @@index([connectionId])
-  @@index([akahuAccountId])
-  @@index([localAccountId])
-  @@index([syncEnabled])
-}
-
-// AkahuTransaction - Transaction from Akahu, may be linked to local Transaction
-model AkahuTransaction {
-  id                String    @id @default(uuid())
-  akahuAccountId    String
-  akahuTransactionId String   @unique // Akahu's transaction ID
-  localTransactionId String?  @unique // Link to local Transaction model
-  date              DateTime
-  amount            Decimal   @db.Decimal(15, 2)
-  description       String
-  merchant          String?
-  category          String?   // Akahu's category
-  type              String    // Akahu transaction type
-  status            String    // PENDING, POSTED
-  balance           Decimal?  @db.Decimal(15, 2)
-  rawData           Json?     // Store full Akahu response
-  isDuplicate       Boolean   @default(false)
-  duplicateOfId     String?   // Link to duplicate local transaction
-  needsReview       Boolean   @default(false)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-
-  akahuAccount      AkahuAccount  @relation(fields: [akahuAccountId], references: [id], onDelete: Cascade)
-  localTransaction  Transaction?  @relation(fields: [localTransactionId], references: [id], onDelete: SetNull)
-
-  @@index([akahuAccountId])
-  @@index([akahuTransactionId])
-  @@index([localTransactionId])
-  @@index([date])
-  @@index([isDuplicate])
-  @@index([needsReview])
-}
-
-// WebhookEvent - Store webhook events for future implementation
-model WebhookEvent {
-  id              String    @id @default(uuid())
-  eventType       String    // transaction.created, account.updated, etc.
-  payload         Json
-  signature       String
-  processed       Boolean   @default(false)
-  processedAt     DateTime?
-  error           String?
-  retryCount      Int       @default(0)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@index([eventType])
-  @@index([processed])
-  @@index([createdAt])
-}
-
-// SyncJob - Track sync job history and status
-model SyncJob {
-  id                  String    @id @default(uuid())
-  connectionId        String
-  type                String    // FULL, INCREMENTAL, ACCOUNT_ONLY, TRANSACTION_ONLY
-  status              String    // PENDING, IN_PROGRESS, COMPLETED, FAILED
-  startedAt           DateTime  @default(now())
-  completedAt         DateTime?
-  accountsSynced      Int       @default(0)
-  transactionsSynced  Int       @default(0)
-  duplicatesFound     Int       @default(0)
-  errors              Json?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-
-  @@index([connectionId])
-  @@index([status])
-  @@index([startedAt])
 }
