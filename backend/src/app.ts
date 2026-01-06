@@ -8,6 +8,7 @@ import healthRoutes from './routes/health.routes';
 import accountRoutes from './routes/account.routes';
 import transactionRoutes from './routes/transaction.routes';
 import categoryRoutes from './routes/category.routes';
+import syncRoutes from './routes/syncRoutes';
 
 const app: Application = express();
 
@@ -43,6 +44,7 @@ app.use(`/api/${API_VERSION}`, healthRoutes);
 app.use(`/api/${API_VERSION}/accounts`, accountRoutes);
 app.use(`/api/${API_VERSION}/transactions`, transactionRoutes);
 app.use(`/api/${API_VERSION}/categories`, categoryRoutes);
+app.use(`/api/${API_VERSION}/sync`, syncRoutes);
 app.use('/api', healthRoutes); // Also mount at /api for backwards compatibility
 
 // 404 handler
