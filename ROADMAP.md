@@ -330,6 +330,72 @@ This roadmap outlines the development milestones for the Budget Tracker applicat
 
 ---
 
+## Milestone 8.5: Bank Synchronization (Akahu Personal App)
+
+**Objective**: Automate transaction synchronization using Akahu Personal App tier (single account, no OAuth).
+
+**Status**: PLANNED
+**Dependencies**: Milestone 2 (Accounts & Transactions), Milestone 3 (Categories)
+**Feature Plan**: `/docs/feature-plans/005-akahu-personal-app-integration.md`
+**Priority**: High - Major time-saver for daily transaction tracking
+**Duration**: 5 weeks
+
+### Deliverables
+- [ ] Provider abstraction layer (IBankingDataProvider interface)
+- [ ] Akahu API client wrapper
+- [ ] Akahu Personal Provider implementation
+- [ ] Bank connection and linked account models
+- [ ] External transaction tracking
+- [ ] Sync orchestration service
+- [ ] Intelligent duplicate detection (>90% accuracy)
+- [ ] Transaction mapping service
+- [ ] Sync API endpoints
+- [ ] Sync button and status UI
+- [ ] Transaction review workflow
+- [ ] Sync history tracking
+- [ ] Token encryption utilities
+
+### Features
+- Connect personal Akahu account (app token)
+- Manual sync trigger from UI
+- Automatic account detection
+- Link external accounts to local accounts
+- Fetch historical transactions (90 days default)
+- Smart duplicate detection with confidence scoring
+- Auto-import high-confidence matches (≥95%)
+- Review workflow for medium-confidence matches (70-94%)
+- Sync status indicators
+- Sync history and logging
+- Error handling and recovery
+
+### Architecture Highlights
+- **Provider-agnostic design**: Core sync logic works with any banking provider
+- **Easy migration path**: Swap to OAuth provider later without changing app logic
+- **Interface-based abstraction**: `IBankingDataProvider` enables future Plaid, TrueLayer, etc.
+- **Separation of concerns**: API client → Provider → Sync Service → API Endpoints → UI
+- **Encrypted token storage**: AES-256-GCM encryption at rest
+
+### Technical Implementation
+- Database models: BankConnection, LinkedAccount, ExternalTransaction, SyncHistory
+- Services: AkahuApiClient, AkahuPersonalProvider, SyncService, DuplicateDetectionService, TransactionMappingService
+- API routes: `/api/v1/sync/*`
+- Frontend components: SyncButton, SyncStatusIndicator, TransactionReviewDialog
+
+### Migration Path to Multi-Account
+When upgrading to Akahu OAuth tier:
+1. Create `AkahuOAuthProvider` implementing same interface
+2. Add OAuth flow UI
+3. Update provider factory
+4. **No changes needed** to: SyncService, DuplicateDetection, TransactionMapping, API endpoints, or UI components
+
+### Success Metrics
+- Sync completion rate > 99%
+- Duplicate detection accuracy > 90%
+- <5% transactions need manual review
+- 80% reduction in manual transaction entry
+
+---
+
 ## Milestone 9: Alert & Notification System
 
 **Objective**: Implement configurable alerts and in-app notifications.
@@ -540,9 +606,10 @@ Each milestone is considered complete when:
 ---
 
 **Last Updated**: January 7, 2026
-**Document Version**: 1.5
+**Document Version**: 1.6
 **Latest Completion**: Milestone 3 - Category System (January 6, 2026)
 **In Progress**: None (ready for next milestone)
 **Recent Changes**:
 - Milestone 3.5 - Smart Categorization & Rules Engine (planned)
-- Milestone 8.5 (Full Akahu Integration) moved to Future Enhancements - requires multi-account tier upgrade
+- Milestone 8.5 - Bank Synchronization (Akahu Personal App) feature plan created
+- Full Akahu OAuth Integration moved to Future Enhancements - requires multi-account tier upgrade
