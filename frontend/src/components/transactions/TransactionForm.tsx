@@ -12,6 +12,7 @@ import {
 import { Transaction, CreateTransactionDto, UpdateTransactionDto, TransactionType, TransactionStatus } from '../../types';
 import { AmountInput } from '../common/AmountInput';
 import { DatePicker } from '../common/DatePicker';
+import { CategorySelect } from '../categories/CategorySelect';
 import { useAccounts } from '../../hooks/useAccounts';
 
 interface TransactionFormProps {
@@ -56,6 +57,7 @@ export const TransactionForm = ({
   } = useForm<CreateTransactionDto>({
     defaultValues: {
       accountId: transaction?.accountId || defaultAccountId || '',
+      categoryId: transaction?.categoryId || '',
       type: transaction?.type !== 'TRANSFER' ? transaction?.type : 'EXPENSE' || 'EXPENSE',
       amount: transaction ? Math.abs(parseFloat(transaction.amount)) : 0,
       date: transaction?.date ? transaction.date.split('T')[0] : today,
@@ -213,6 +215,21 @@ export const TransactionForm = ({
                     required
                     error={!!errors.description}
                     helperText={errors.description?.message}
+                    disabled={isSubmitting}
+                  />
+                )}
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <Controller
+                name="categoryId"
+                control={control}
+                render={({ field }) => (
+                  <CategorySelect
+                    value={field.value || ''}
+                    onChange={field.onChange}
+                    label="Category (Optional)"
                     disabled={isSubmitting}
                   />
                 )}
