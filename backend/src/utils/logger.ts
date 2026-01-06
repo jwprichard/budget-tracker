@@ -9,7 +9,7 @@ const logFormat = printf(({ level, message, timestamp, stack }) => {
 
 // Create Winston logger instance
 const logger = winston.createLogger({
-  level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+  level: process.env['NODE_ENV'] === 'production' ? 'info' : 'debug',
   format: combine(
     errors({ stack: true }),
     timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),

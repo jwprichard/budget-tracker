@@ -2,7 +2,7 @@ import { IBankingDataProvider } from '../interfaces/IBankingDataProvider';
 import { DuplicateDetectionService } from './DuplicateDetectionService';
 import { TransactionMappingService } from './TransactionMappingService';
 import { PrismaClient } from '@prisma/client';
-import { logger } from '../utils/logger';
+import logger from '../utils/logger';
 
 const prisma = new PrismaClient();
 
@@ -171,7 +171,9 @@ export class SyncService {
           status: 'FAILED',
           completedAt: new Date(),
           errorMessage: error instanceof Error ? error.message : 'Unknown error',
-          errorDetails: error,
+          errorDetails: error instanceof Error
+            ? { message: error.message, stack: error.stack }
+            : { error: String(error) },
         },
       });
 
@@ -369,9 +371,8 @@ export class SyncService {
       linkedAccount.localAccountId
     );
 
-    if (duplicates.length > 0) {
-      const bestMatch = duplicates[0];
-
+    const bestMatch = duplicates[0];
+    if (bestMatch) {
       logger.info('[SyncService] Found potential duplicates', {
         externalTransactionId: extTx.externalTransactionId,
         matchCount: duplicates.length,

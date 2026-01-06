@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
-import { logger } from '../../utils/logger';
+import logger from '../../utils/logger';
 
 /**
  * Akahu API response types
@@ -63,7 +63,7 @@ export class AkahuApiClient {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = process.env.AKAHU_BASE_URL || 'https://api.akahu.nz';
+    this.baseUrl = process.env['AKAHU_BASE_URL'] || 'https://api.akahu.nz';
 
     this.client = axios.create({
       baseURL: this.baseUrl,
@@ -132,10 +132,16 @@ export class AkahuApiClient {
 
       const params = new URLSearchParams();
       if (options?.start) {
-        params.append('start', options.start.toISOString().split('T')[0]);
+        const startDate = options.start.toISOString().split('T')[0];
+        if (startDate) {
+          params.append('start', startDate);
+        }
       }
       if (options?.end) {
-        params.append('end', options.end.toISOString().split('T')[0]);
+        const endDate = options.end.toISOString().split('T')[0];
+        if (endDate) {
+          params.append('end', endDate);
+        }
       }
       if (options?.cursor) {
         params.append('cursor', options.cursor);

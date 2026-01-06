@@ -1,9 +1,8 @@
 import crypto from 'crypto';
-import { logger } from './logger';
+import logger from './logger';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16; // For AES, this is always 16
-const SALT_LENGTH = 64;
 const TAG_LENGTH = 16;
 const KEY_LENGTH = 32; // 256 bits
 
@@ -12,7 +11,7 @@ const KEY_LENGTH = 32; // 256 bits
  * The key should be a 32-byte (64 character) hex string
  */
 function getEncryptionKey(): Buffer {
-  const keyHex = process.env.ENCRYPTION_KEY;
+  const keyHex = process.env['ENCRYPTION_KEY'];
 
   if (!keyHex) {
     throw new Error('ENCRYPTION_KEY environment variable is not set');
@@ -79,7 +78,13 @@ export function decrypt(encryptedData: string): string {
       throw new Error('Invalid encrypted data format. Expected format: iv:authTag:encrypted');
     }
 
-    const [ivHex, authTagHex, encrypted] = parts;
+    const ivHex = parts[0];
+    const authTagHex = parts[1];
+    const encrypted = parts[2];
+
+    if (!ivHex || !authTagHex || !encrypted) {
+      throw new Error('Invalid encrypted data format. Missing components.');
+    }
 
     const iv = Buffer.from(ivHex, 'hex');
     const authTag = Buffer.from(authTagHex, 'hex');

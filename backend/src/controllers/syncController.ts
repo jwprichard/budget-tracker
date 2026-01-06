@@ -5,7 +5,7 @@ import { BankingProviderFactory } from '../services/BankingProviderFactory';
 import { DuplicateDetectionService } from '../services/DuplicateDetectionService';
 import { TransactionMappingService } from '../services/TransactionMappingService';
 import { encrypt } from '../utils/encryption';
-import { logger } from '../utils/logger';
+import logger from '../utils/logger';
 
 const prisma = new PrismaClient();
 
@@ -328,11 +328,12 @@ export const getReviewTransactions = async (
             take: 1,
           });
 
-          if (duplicates.length > 0) {
+          const duplicate = duplicates[0];
+          if (duplicate) {
             potentialDuplicate = {
-              id: duplicates[0].id,
-              date: duplicates[0].date,
-              description: duplicates[0].description,
+              id: duplicate.id,
+              date: duplicate.date,
+              description: duplicate.description,
               confidence: tx.duplicateConfidence,
             };
           }
@@ -399,7 +400,7 @@ export const approveTransaction = async (
     const mappedTransaction = mappingService.mapToLocalTransaction(
       {
         date: externalTx.date,
-        amount: externalTx.amount,
+        amount: Number(externalTx.amount),
         description: externalTx.description,
         merchant: externalTx.merchant || undefined,
         category: externalTx.category || undefined,

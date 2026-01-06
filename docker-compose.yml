@@ -37,6 +37,9 @@ services:
       NODE_ENV: development
       CORS_ORIGIN: http://localhost:${FRONTEND_PORT:-5173}
       API_VERSION: v1
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      AKAHU_BASE_URL: ${AKAHU_BASE_URL:-https://api.akahu.nz}
+      AKAHU_APP_TOKEN: ${AKAHU_APP_TOKEN}
     depends_on:
       database:
         condition: service_healthy

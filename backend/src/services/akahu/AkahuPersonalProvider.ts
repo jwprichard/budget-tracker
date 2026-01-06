@@ -9,7 +9,7 @@ import {
 import { AkahuApiClient, AkahuAccount, AkahuTransaction } from './AkahuApiClient';
 import { PrismaClient } from '@prisma/client';
 import { decrypt } from '../../utils/encryption';
-import { logger } from '../../utils/logger';
+import logger from '../../utils/logger';
 
 // Use existing prisma instance or create new one
 // In production, this should be imported from a shared prisma instance

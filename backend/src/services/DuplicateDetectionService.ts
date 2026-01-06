@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { logger } from '../utils/logger';
+import logger from '../utils/logger';
 
 const prisma = new PrismaClient();
 
@@ -60,7 +60,7 @@ export class DuplicateDetectionService {
         amount: externalTransaction.amount,
         description: externalTransaction.description.substring(0, 30),
         matchCount: matches.length,
-        highestConfidence: matches.length > 0 ? matches[0].confidence : 0,
+        highestConfidence: matches[0]?.confidence ?? 0,
       });
 
       return matches;
@@ -213,25 +213,25 @@ export class DuplicateDetectionService {
 
     // Initialize first row
     for (let j = 0; j <= str1.length; j++) {
-      matrix[0][j] = j;
+      matrix[0]![j] = j;
     }
 
     // Fill in the rest of the matrix
     for (let i = 1; i <= str2.length; i++) {
       for (let j = 1; j <= str1.length; j++) {
         if (str2.charAt(i - 1) === str1.charAt(j - 1)) {
-          matrix[i][j] = matrix[i - 1][j - 1]; // No operation needed
+          matrix[i]![j] = matrix[i - 1]![j - 1]!; // No operation needed
         } else {
-          matrix[i][j] = Math.min(
-            matrix[i - 1][j - 1] + 1, // Substitution
-            matrix[i][j - 1] + 1, // Insertion
-            matrix[i - 1][j] + 1 // Deletion
+          matrix[i]![j] = Math.min(
+            matrix[i - 1]![j - 1]! + 1, // Substitution
+            matrix[i]![j - 1]! + 1, // Insertion
+            matrix[i - 1]![j]! + 1 // Deletion
           );
         }
       }
     }
 
-    return matrix[str2.length][str1.length];
+    return matrix[str2.length]![str1.length]!;
   }
 
   /**
