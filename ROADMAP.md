@@ -330,73 +330,6 @@ This roadmap outlines the development milestones for the Budget Tracker applicat
 
 ---
 
-## Milestone 8.5: Automatic Data Synchronization (Akahu Integration)
-
-**Objective**: Automate account and transaction synchronization using Akahu's open banking API for real-time financial data.
-
-**Status**: PLANNED
-**Dependencies**: Milestone 2 (Accounts & Transactions), Milestone 3 (Categories)
-**Feature Plan**: `/docs/feature-plans/005-automatic-data-sync-akahu.md`
-**Priority**: High - Major feature for automated financial tracking
-
-### Deliverables
-- [ ] Akahu OAuth 2.0 authentication flow
-- [ ] Secure token storage and management
-- [ ] Connected bank account management UI
-- [ ] Automatic account synchronization
-- [ ] Automatic transaction synchronization
-- [ ] Duplicate transaction detection and merging
-- [ ] Background sync jobs (scheduled)
-- [ ] Manual sync trigger
-- [ ] Account linking (Akahu ↔ local accounts)
-- [ ] Transaction reconciliation UI
-- [ ] Sync status indicators and history
-- [ ] Error handling and recovery
-- [ ] Security audit and encryption
-- [ ] Integration with smart categorization (Milestone 3.5)
-
-### Features
-- Connect multiple bank accounts via Akahu
-- Automatic balance updates
-- Scheduled transaction import (hourly, daily, or manual)
-- Intelligent duplicate detection (>95% accuracy)
-- Historical transaction backfill
-- Manual sync trigger
-- Account connection management
-- Encrypted credential storage
-- Comprehensive sync logging
-- User consent and privacy controls
-
-### Technical Components
-- Akahu API client integration
-- OAuth 2.0 flow implementation
-- Database schema for Akahu data
-- Background job queue (Bull/BullMQ)
-- Duplicate detection algorithm
-- Token encryption/decryption
-- Account and transaction mapping services
-- Sync job monitoring and logging
-
-### Security & Privacy
-- AES-256 token encryption at rest
-- HTTPS-only communication
-- User consent management
-- Data retention policies
-- NZ Privacy Act compliance
-- Audit logging for all data access
-
-### Future Enhancements
-**Webhooks** (requires Akahu multi-account tier):
-- Real-time transaction updates via webhooks
-- Webhook endpoint with signature verification
-- Instant balance updates
-- Real-time UI notifications
-- WebSocket/SSE for live updates
-
-**Note**: Currently using Akahu single account mode which doesn't support webhooks. Sync will be scheduled (hourly/daily) or manual trigger only.
-
----
-
 ## Milestone 9: Alert & Notification System
 
 **Objective**: Implement configurable alerts and in-app notifications.
@@ -529,12 +462,31 @@ When moving from single-user to multi-user deployment:
 - Report sharing
 - Data visualization enhancements
 
-### Banking Integrations (Premium)
-- Plaid API integration
-- Automatic transaction sync
-- Bank account linking
-- Real-time balance updates
-- Multi-bank support
+### Banking Integrations
+
+**Akahu Integration (Full Multi-Account Tier)**:
+- OAuth 2.0 authentication flow
+- Multiple bank account connections
+- Real-time transaction sync via webhooks
+- Automatic balance updates
+- Duplicate transaction detection and merging
+- Background sync jobs with job queue
+- Transaction reconciliation UI
+- Webhook signature verification
+- AES-256 encrypted token storage
+- Comprehensive sync logging
+- Account linking interface
+- Historical transaction backfill
+- WebSocket/SSE for real-time UI updates
+
+**Note**: Currently only personal Akahu app tier is supported (single account, no webhooks). Full multi-account tier with webhooks, OAuth, and advanced features requires upgrade and significant implementation effort (see archived feature plan: `/docs/feature-plans/005-automatic-data-sync-akahu-full-version-archived.md`)
+
+**Other Banking APIs**:
+- Plaid API integration (US/Canada)
+- TrueLayer (UK/EU)
+- Open Banking UK
+- Multi-region banking support
+- Standardized integration layer
 
 ### Mobile Application
 - React Native mobile app
@@ -587,10 +539,10 @@ Each milestone is considered complete when:
 
 ---
 
-**Last Updated**: January 6, 2026
-**Document Version**: 1.4
+**Last Updated**: January 7, 2026
+**Document Version**: 1.5
 **Latest Completion**: Milestone 3 - Category System (January 6, 2026)
 **In Progress**: None (ready for next milestone)
-**New Additions**:
+**Recent Changes**:
 - Milestone 3.5 - Smart Categorization & Rules Engine (planned)
-- Milestone 8.5 - Automatic Data Synchronization with Akahu (planned)
+- Milestone 8.5 (Full Akahu Integration) moved to Future Enhancements - requires multi-account tier upgrade
