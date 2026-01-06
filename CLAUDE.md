@@ -351,6 +351,7 @@ Color-coded balance status (green/yellow/red thresholds).
 - [ ] README updated if setup process changed
 - [ ] Feature plan marked complete with implementation notes
 - [ ] API documentation updated (Swagger/OpenAPI)
+- [ ] Postman collection updated if API endpoints added/changed (`docs/Budget-Tracker-API.postman_collection.json`)
 
 ### Architecture
 - [ ] Design principles followed (SOLID, separation of concerns)
@@ -391,6 +392,7 @@ Color-coded balance status (green/yellow/red thresholds).
    - Keep feature plans up to date
    - Maintain this claude.md file
    - Update API documentation when endpoints change
+   - Update Postman collection (`docs/Budget-Tracker-API.postman_collection.json`) when adding/modifying API endpoints
 
 3. **Quality-Focused**
    - Follow quality gates before merging
@@ -487,6 +489,7 @@ Color-coded balance status (green/yellow/red thresholds).
 - **Solution Design**: `/docs/budget-tracker-solution-design.md` - Comprehensive system design
 - **Roadmap**: `/ROADMAP.md` - Development milestones and feature list
 - **Feature Plans**: `/docs/feature-plans/` - Individual feature planning documents
+- **Postman Collection**: `/docs/Budget-Tracker-API.postman_collection.json` - Complete API collection for testing (must be updated when API changes)
 - **This File**: `/claude.md` - Project context for Claude Code
 
 ### Configuration
@@ -504,11 +507,11 @@ Color-coded balance status (green/yellow/red thresholds).
 ## Current Development Context
 
 ### What We're Working On
-- **Phase**: Milestone 2 Extensions + Milestone 8 (Partial) ✅ COMPLETE
-- **Current Task**: Ready for next feature
-- **Branch**: `main` (CSV import merged successfully)
-- **Status**: All current features complete and deployed
-- **Next Feature**: Category System (Milestone 3)
+- **Phase**: Milestone 8.5 - Akahu Personal App Integration (Backend) ✅ PHASES 1-3 COMPLETE
+- **Current Task**: Backend sync endpoints implemented and tested
+- **Branch**: `feature/akahu-integration` (ready for frontend integration)
+- **Status**: Backend API complete, Postman collection created
+- **Next Phase**: Phase 4 - Frontend Integration OR Category System (Milestone 3)
 
 ### Recent Decisions (Updated Jan 6, 2026)
 - Chose PostgreSQL over MySQL for better ACID compliance and JSON support
@@ -540,6 +543,14 @@ Color-coded balance status (green/yellow/red thresholds).
   - Creates adjustment transaction for balance changes (maintains audit trail)
   - Never modifies historical data or initial balance
   - Transaction type: INCOME (increase) or EXPENSE (decrease)
+- **Akahu Personal App Integration (Jan 6-7, 2026)** - Backend implementation for bank sync
+  - Provider abstraction layer (IBankingDataProvider) for future multi-provider support
+  - AES-256-GCM encryption for secure token storage
+  - Levenshtein distance algorithm for duplicate detection (98% exact, 70-94% review, <70% import)
+  - Provider-agnostic sync service architecture
+  - 10 REST API endpoints for complete sync workflow
+  - Database models: BankConnection, LinkedAccount, ExternalTransaction, SyncHistory
+  - Postman collection created for API testing
 
 ### Known Issues
 None - All Docker build, runtime, and CSV import issues resolved
@@ -802,12 +813,13 @@ docker system prune -a --volumes  # Removes all stopped containers, unused image
 - Architecture diagrams included in solution design
 
 ### API Documentation
+- **Postman Collection**: `/docs/Budget-Tracker-API.postman_collection.json` - Complete API testing collection (40+ endpoints)
 - OpenAPI/Swagger spec: [To be created at `/backend/docs/api-spec.yaml`]
-- API will be documented at `/api/docs` endpoint (Swagger UI)
+- API will be documented at `/api/docs` endpoint (Swagger UI) [Future]
 
 ---
 
-**Last Updated**: January 5, 2026
-**Current Phase**: Milestone 2 - Account & Transaction Management ✅ COMPLETE
+**Last Updated**: January 7, 2026
+**Current Phase**: Milestone 8.5 - Akahu Personal App Integration (Backend Complete - Phases 1-3) ✅
 **Framework/Platform**: React + Node.js + PostgreSQL (Full-Stack TypeScript)
-**Status**: Account and transaction management complete, ready for Category System (Milestone 3)
+**Status**: Backend sync API complete with 10 endpoints, Postman collection created, ready for frontend integration (Phase 4)
