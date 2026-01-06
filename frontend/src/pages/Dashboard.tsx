@@ -23,13 +23,16 @@ import { TransactionList } from '../components/transactions/TransactionList';
 import { AccountForm } from '../components/accounts/AccountForm';
 import { TransactionForm } from '../components/transactions/TransactionForm';
 import { useCreateAccount } from '../hooks/useAccounts';
-import { useCreateTransaction } from '../hooks/useTransactions';
-import { Account, CreateAccountDto, CreateTransactionDto } from '../types';
+import { useCreateTransaction, useUpdateTransaction, useDeleteTransaction } from '../hooks/useTransactions';
+import { Account, CreateAccountDto, CreateTransactionDto, UpdateTransactionDto, Transaction } from '../types';
+import { DeleteTransactionDialog } from '../components/transactions/DeleteTransactionDialog';
 
 export const Dashboard = () => {
   const navigate = useNavigate();
   const [accountFormOpen, setAccountFormOpen] = useState(false);
   const [transactionFormOpen, setTransactionFormOpen] = useState(false);
+  const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
+  const [deleteTransaction, setDeleteTransaction] = useState<Transaction | null>(null);
 
   // Fetch data
   const { data: accounts = [], isLoading: accountsLoading, error: accountsError } = useAccounts();
@@ -42,6 +45,8 @@ export const Dashboard = () => {
   // Mutations
   const createAccountMutation = useCreateAccount();
   const createTransactionMutation = useCreateTransaction();
+  const updateTransactionMutation = useUpdateTransaction();
+  const deleteTransactionMutation = useDeleteTransaction();
 
   // Calculate total balance
   const TotalBalance = () => {
@@ -85,6 +90,34 @@ export const Dashboard = () => {
       setTransactionFormOpen(false);
     } catch (error) {
       console.error('Failed to create transaction:', error);
+    }
+  };
+
+  const handleUpdateTransaction = async (data: UpdateTransactionDto) => {
+    if (!editTransaction) return;
+    try {
+      await updateTransactionMutation.mutateAsync({ id: editTransaction.id, data });
+      setEditTransaction(null);
+    } catch (error) {
+      console.error('Failed to update transaction:', error);
+    }
+  };
+
+  const handleEditClick = (transaction: Transaction) => {
+    setEditTransaction(transaction);
+  };
+
+  const handleDeleteClick = (transaction: Transaction) => {
+    setDeleteTransaction(transaction);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTransaction) return;
+    try {
+      await deleteTransactionMutation.mutateAsync(deleteTransaction.id);
+      setDeleteTransaction(null);
+    } catch (error) {
+      console.error('Failed to delete transaction:', error);
     }
   };
 
@@ -211,7 +244,11 @@ export const Dashboard = () => {
           <ErrorAlert error={transactionsError} title="Failed to load transactions" />
         ) : transactionsData && transactionsData.transactions.length > 0 ? (
           <>
-            <TransactionList transactions={transactionsData.transactions} />
+            <TransactionList
+              transactions={transactionsData.transactions}
+              onEdit={handleEditClick}
+              onDelete={handleDeleteClick}
+            />
             <Box sx={{ mt: 2, textAlign: 'center' }}>
               <Button onClick={() => navigate('/transactions')}>
                 View All Transactions ({transactionsData.pagination.totalItems})
@@ -254,6 +291,22 @@ export const Dashboard = () => {
         onClose={() => setTransactionFormOpen(false)}
         onSubmit={handleCreateTransaction}
         isSubmitting={createTransactionMutation.isPending}
+      />
+
+      <TransactionForm
+        open={!!editTransaction}
+        onClose={() => setEditTransaction(null)}
+        onSubmit={handleUpdateTransaction}
+        transaction={editTransaction}
+        isSubmitting={updateTransactionMutation.isPending}
+      />
+
+      <DeleteTransactionDialog
+        open={!!deleteTransaction}
+        transaction={deleteTransaction}
+        onClose={() => setDeleteTransaction(null)}
+        onConfirm={handleDeleteConfirm}
+        isDeleting={deleteTransactionMutation.isPending}
       />
     </Container>
   );
