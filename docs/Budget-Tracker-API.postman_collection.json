@@ -1,0 +1,1128 @@
+{
+	"info": {
+		"_postman_id": "budget-tracker-api-collection",
+		"name": "Budget Tracker API",
+		"description": "Complete API collection for Budget Tracker application including account management, transactions, categories, and Akahu bank sync integration.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "budget-tracker"
+	},
+	"item": [
+		{
+			"name": "Health",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Check API health status and version information"
+					},
+					"response": []
+				}
+			],
+			"description": "Health check endpoints"
+		},
+		{
+			"name": "Accounts",
+			"item": [
+				{
+					"name": "Get All Accounts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/accounts?includeInactive=false",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"accounts"
+							],
+							"query": [
+								{
+									"key": "includeInactive",
+									"value": "false",
+									"description": "Include inactive accounts"
+								}
+							]
+						},
+						"description": "Get all accounts with optional filter for inactive accounts"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Account by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/accounts/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"accounts",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{accountId}}",
+									"description": "Account UUID"
+								}
+							]
+						},
+						"description": "Get a specific account by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Account Balance",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/accounts/:id/balance",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"accounts",
+								":id",
+								"balance"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{accountId}}",
+									"description": "Account UUID"
+								}
+							]
+						},
+						"description": "Get current balance for an account"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Account",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Checking Account\",\n  \"type\": \"CHECKING\",\n  \"initialBalance\": 1000.00,\n  \"currency\": \"USD\",\n  \"color\": \"#2196F3\",\n  \"icon\": \"account_balance\",\n  \"notes\": \"Primary checking account\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/accounts",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"accounts"
+							]
+						},
+						"description": "Create a new account"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Account",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Updated Checking Account\",\n  \"color\": \"#1976D2\",\n  \"notes\": \"Updated notes\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/accounts/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"accounts",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{accountId}}",
+									"description": "Account UUID"
+								}
+							]
+						},
+						"description": "Update an existing account"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Account",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/accounts/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"accounts",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{accountId}}",
+									"description": "Account UUID"
+								}
+							]
+						},
+						"description": "Soft delete an account (marks as inactive)"
+					},
+					"response": []
+				}
+			],
+			"description": "Account management endpoints"
+		},
+		{
+			"name": "Transactions",
+			"item": [
+				{
+					"name": "Get All Transactions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/transactions?page=1&pageSize=20",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"transactions"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number"
+								},
+								{
+									"key": "pageSize",
+									"value": "20",
+									"description": "Items per page"
+								},
+								{
+									"key": "accountId",
+									"value": "",
+									"description": "Filter by account ID",
+									"disabled": true
+								},
+								{
+									"key": "type",
+									"value": "",
+									"description": "Filter by type (INCOME, EXPENSE, TRANSFER)",
+									"disabled": true
+								},
+								{
+									"key": "startDate",
+									"value": "",
+									"description": "Filter from date (YYYY-MM-DD)",
+									"disabled": true
+								},
+								{
+									"key": "endDate",
+									"value": "",
+									"description": "Filter to date (YYYY-MM-DD)",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get all transactions with pagination and optional filters"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Transactions by Account",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/accounts/:id/transactions?page=1&pageSize=20",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"accounts",
+								":id",
+								"transactions"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "20"
+								}
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{accountId}}",
+									"description": "Account UUID"
+								}
+							]
+						},
+						"description": "Get all transactions for a specific account"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Transaction by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/transactions/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"transactions",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{transactionId}}",
+									"description": "Transaction UUID"
+								}
+							]
+						},
+						"description": "Get a specific transaction by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Transaction (Income)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"type\": \"INCOME\",\n  \"amount\": 5000.00,\n  \"date\": \"2026-01-06\",\n  \"description\": \"Monthly Salary\",\n  \"categoryId\": null,\n  \"notes\": \"January salary payment\",\n  \"status\": \"CLEARED\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/transactions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"transactions"
+							]
+						},
+						"description": "Create a new income transaction"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Transaction (Expense)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"accountId\": \"{{accountId}}\",\n  \"type\": \"EXPENSE\",\n  \"amount\": -50.00,\n  \"date\": \"2026-01-06\",\n  \"description\": \"Grocery Shopping\",\n  \"categoryId\": null,\n  \"notes\": \"Weekly groceries\",\n  \"status\": \"CLEARED\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/transactions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"transactions"
+							]
+						},
+						"description": "Create a new expense transaction"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Transaction (Transfer)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"accountId\": \"{{sourceAccountId}}\",\n  \"type\": \"TRANSFER\",\n  \"amount\": -200.00,\n  \"date\": \"2026-01-06\",\n  \"description\": \"Transfer to Savings\",\n  \"transferToAccountId\": \"{{targetAccountId}}\",\n  \"notes\": \"Monthly savings transfer\",\n  \"status\": \"CLEARED\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/transactions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"transactions"
+							]
+						},
+						"description": "Create a transfer between two accounts"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Transaction",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"amount\": -55.00,\n  \"description\": \"Grocery Shopping - Updated\",\n  \"notes\": \"Weekly groceries + household items\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/transactions/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"transactions",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{transactionId}}",
+									"description": "Transaction UUID"
+								}
+							]
+						},
+						"description": "Update an existing transaction"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Transaction",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/transactions/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"transactions",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{transactionId}}",
+									"description": "Transaction UUID"
+								}
+							]
+						},
+						"description": "Delete a transaction"
+					},
+					"response": []
+				},
+				{
+					"name": "Import Transactions (CSV)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": []
+								},
+								{
+									"key": "accountId",
+									"value": "{{accountId}}",
+									"type": "text"
+								},
+								{
+									"key": "mapping",
+									"value": "{\"date\":\"Date\",\"amount\":\"Amount\",\"description\":\"Description\"}",
+									"type": "text",
+									"description": "Column mapping JSON"
+								},
+								{
+									"key": "dateFormat",
+									"value": "DD/MM/YYYY",
+									"type": "text"
+								},
+								{
+									"key": "skipDuplicates",
+									"value": "true",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/transactions/import",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"transactions",
+								"import"
+							]
+						},
+						"description": "Import transactions from CSV file"
+					},
+					"response": []
+				}
+			],
+			"description": "Transaction management endpoints"
+		},
+		{
+			"name": "Categories",
+			"item": [
+				{
+					"name": "Get All Categories",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/categories?includeChildren=true",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories"
+							],
+							"query": [
+								{
+									"key": "includeChildren",
+									"value": "true",
+									"description": "Include subcategories"
+								},
+								{
+									"key": "parentId",
+									"value": "",
+									"description": "Filter by parent category ID",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Get all categories with optional subcategory inclusion"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Category by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/categories/:id?includeChildren=true",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								":id"
+							],
+							"query": [
+								{
+									"key": "includeChildren",
+									"value": "true"
+								}
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{categoryId}}",
+									"description": "Category UUID"
+								}
+							]
+						},
+						"description": "Get a specific category by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Category",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Food & Dining\",\n  \"type\": \"EXPENSE\",\n  \"color\": \"#FF5722\",\n  \"icon\": \"restaurant\",\n  \"parentId\": null\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/categories",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories"
+							]
+						},
+						"description": "Create a new category"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Subcategory",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Groceries\",\n  \"type\": \"EXPENSE\",\n  \"color\": \"#FF7043\",\n  \"icon\": \"shopping_cart\",\n  \"parentId\": \"{{categoryId}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/categories",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories"
+							]
+						},
+						"description": "Create a subcategory under a parent category"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Category",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Food & Dining (Updated)\",\n  \"color\": \"#E64A19\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/categories/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{categoryId}}",
+									"description": "Category UUID"
+								}
+							]
+						},
+						"description": "Update an existing category"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Category",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/categories/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{categoryId}}",
+									"description": "Category UUID"
+								}
+							]
+						},
+						"description": "Delete a category"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Category Usage Stats",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/categories/:id/usage?includeChildren=true",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								":id",
+								"usage"
+							],
+							"query": [
+								{
+									"key": "includeChildren",
+									"value": "true"
+								}
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "{{categoryId}}",
+									"description": "Category UUID"
+								}
+							]
+						},
+						"description": "Get transaction count and total amount for a category"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Default Categories",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/categories/defaults",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"defaults"
+							]
+						},
+						"description": "Get list of default categories (for seeding)"
+					},
+					"response": []
+				}
+			],
+			"description": "Category management endpoints"
+		},
+		{
+			"name": "Bank Sync (Akahu)",
+			"item": [
+				{
+					"name": "Setup Connection",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"provider\": \"AKAHU_PERSONAL\",\n  \"appToken\": \"your_akahu_app_token_here\",\n  \"metadata\": {\n    \"description\": \"Personal Banking Connection\"\n  }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/sync/setup",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sync",
+								"setup"
+							]
+						},
+						"description": "Setup a new bank connection with Akahu Personal App Token"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Connected Accounts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/sync/accounts?connectionId={{connectionId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sync",
+								"accounts"
+							],
+							"query": [
+								{
+									"key": "connectionId",
+									"value": "{{connectionId}}",
+									"description": "Bank connection UUID"
+								}
+							]
+						},
+						"description": "Get all accounts linked to a bank connection"
+					},
+					"response": []
+				},
+				{
+					"name": "Link Account",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"linkedAccountId\": \"{{linkedAccountId}}\",\n  \"localAccountId\": \"{{accountId}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/sync/link-account",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sync",
+								"link-account"
+							]
+						},
+						"description": "Link an external bank account to a local account"
+					},
+					"response": []
+				},
+				{
+					"name": "Trigger Sync",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"connectionId\": \"{{connectionId}}\",\n  \"options\": {\n    \"startDate\": \"2025-01-01T00:00:00Z\",\n    \"endDate\": \"2026-01-06T23:59:59Z\",\n    \"forceFull\": false\n  }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/sync/trigger",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sync",
+								"trigger"
+							]
+						},
+						"description": "Trigger a sync operation for a bank connection (runs in background)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Sync Status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/sync/status/:syncHistoryId",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sync",
+								"status",
+								":syncHistoryId"
+							],
+							"variable": [
+								{
+									"key": "syncHistoryId",
+									"value": "{{syncHistoryId}}",
+									"description": "Sync history UUID"
+								}
+							]
+						},
+						"description": "Get the status of a specific sync operation"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Sync History",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/sync/history?connectionId={{connectionId}}&page=1&pageSize=20",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sync",
+								"history"
+							],
+							"query": [
+								{
+									"key": "connectionId",
+									"value": "{{connectionId}}",
+									"description": "Filter by connection ID (optional)"
+								},
+								{
+									"key": "page",
+									"value": "1",
+									"description": "Page number"
+								},
+								{
+									"key": "pageSize",
+									"value": "20",
+									"description": "Items per page (max 100)"
+								}
+							]
+						},
+						"description": "Get sync history with pagination"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Transactions for Review",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/sync/review?connectionId={{connectionId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sync",
+								"review"
+							],
+							"query": [
+								{
+									"key": "connectionId",
+									"value": "{{connectionId}}",
+									"description": "Bank connection UUID"
+								}
+							]
+						},
+						"description": "Get transactions that need manual review (potential duplicates)"
+					},
+					"response": []
+				},
+				{
+					"name": "Approve Transaction",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/sync/review/:externalTransactionId/approve",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sync",
+								"review",
+								":externalTransactionId",
+								"approve"
+							],
+							"variable": [
+								{
+									"key": "externalTransactionId",
+									"value": "{{externalTransactionId}}",
+									"description": "External transaction UUID"
+								}
+							]
+						},
+						"description": "Approve and import transaction as new (not a duplicate)"
+					},
+					"response": []
+				},
+				{
+					"name": "Reject Transaction",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/sync/review/:externalTransactionId/reject",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sync",
+								"review",
+								":externalTransactionId",
+								"reject"
+							],
+							"variable": [
+								{
+									"key": "externalTransactionId",
+									"value": "{{externalTransactionId}}",
+									"description": "External transaction UUID"
+								}
+							]
+						},
+						"description": "Reject transaction as duplicate (don't import)"
+					},
+					"response": []
+				},
+				{
+					"name": "Link Transaction to Existing",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"localTransactionId\": \"{{transactionId}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/sync/review/:externalTransactionId/link",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sync",
+								"review",
+								":externalTransactionId",
+								"link"
+							],
+							"variable": [
+								{
+									"key": "externalTransactionId",
+									"value": "{{externalTransactionId}}",
+									"description": "External transaction UUID"
+								}
+							]
+						},
+						"description": "Link external transaction to existing local transaction (confirm duplicate)"
+					},
+					"response": []
+				}
+			],
+			"description": "Akahu bank sync integration endpoints"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000/api/v1",
+			"type": "string"
+		},
+		{
+			"key": "accountId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "transactionId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "categoryId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "connectionId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "linkedAccountId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "syncHistoryId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "externalTransactionId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "sourceAccountId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "targetAccountId",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
