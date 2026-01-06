@@ -1,6 +1,8 @@
-import { FormControl, InputLabel, Select, MenuItem, Box, Typography, CircularProgress } from '@mui/material';
-import { useCategories } from '../../hooks/useCategories';
+import { Box, CircularProgress, Typography } from '@mui/material';
+import { useMemo } from 'react';
+import { useCategoryHierarchy } from '../../hooks/useCategories';
 import { CategoryColorBadge } from './CategoryColorBadge';
+import { TreeSelect, TreeNode } from '../common/TreeSelect';
 import { Category } from '../../types';
 
 interface CategorySelectProps {
@@ -22,75 +24,61 @@ export const CategorySelect = ({
   includeUncategorized = true,
   disabled = false,
 }: CategorySelectProps) => {
-  const { data: categories, isLoading } = useCategories();
+  const { data: categories, isLoading } = useCategoryHierarchy();
 
-  // Flatten the category hierarchy for the dropdown
-  const flattenCategories = (cats: Category[] | undefined): Category[] => {
-    if (!cats) return [];
-    const result: Category[] = [];
+  // Convert categories to TreeNode format
+  const treeData = useMemo((): TreeNode<Category>[] => {
+    if (!categories) return [];
 
-    cats.forEach((cat) => {
-      result.push(cat);
-      // Add children with indentation marker
-      if (cat.children && cat.children.length > 0) {
-        cat.children.forEach((child) => {
-          result.push({ ...child, name: `  ${child.name}` }); // Add indentation
-        });
-      }
+    const convertToTreeNode = (category: Category): TreeNode<Category> => ({
+      id: category.id,
+      data: category,
+      children: category.children?.map(convertToTreeNode),
     });
 
-    return result;
-  };
+    return categories.map(convertToTreeNode);
+  }, [categories]);
 
-  const flatCategories = flattenCategories(categories);
+  if (isLoading) {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 2 }}>
+        <CircularProgress size={20} />
+        <Typography variant="body2" color="text.secondary">
+          Loading categories...
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
-    <FormControl fullWidth error={error} disabled={disabled || isLoading}>
-      <InputLabel>{label}</InputLabel>
-      <Select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        label={label}
-        renderValue={(selected) => {
-          if (!selected) return includeUncategorized ? 'Uncategorized' : '';
-
-          const category = flatCategories.find((c) => c.id === selected);
-          if (!category) return selected;
-
-          return (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CategoryColorBadge color={category.color} />
-              <span>{category.name.trim()}</span>
-            </Box>
-          );
-        }}
-      >
-        {includeUncategorized && (
-          <MenuItem value="">
-            <Typography color="text.secondary">Uncategorized</Typography>
-          </MenuItem>
-        )}
-        {isLoading ? (
-          <MenuItem disabled>
-            <CircularProgress size={20} sx={{ mr: 1 }} />
-            Loading categories...
-          </MenuItem>
-        ) : (
-          flatCategories.map((category) => (
-            <MenuItem key={category.id} value={category.id}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <CategoryColorBadge color={category.color} />
-                <span>{category.name}</span>
-              </Box>
-            </MenuItem>
-          ))
-        )}
-      </Select>
-      {helperText && (
-        <Typography variant="caption" color={error ? 'error' : 'text.secondary'} sx={{ mt: 0.5, ml: 2 }}>
-          {helperText}
-        </Typography>
+    <TreeSelect<Category>
+      items={treeData}
+      value={value}
+      onChange={(categoryId) => onChange(categoryId)}
+      label={label}
+      placeholder="Select category..."
+      getItemLabel={(category) => category.name}
+      allowEmpty={includeUncategorized}
+      emptyLabel="Uncategorized"
+      error={error}
+      helperText={helperText}
+      disabled={disabled}
+      renderItem={(category) => (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+          <CategoryColorBadge color={category.color} size={12} />
+          <Typography variant="body2">{category.name}</Typography>
+        </Box>
       )}
-    </FormControl>
+      renderValue={(category) =>
+        category ? (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CategoryColorBadge color={category.color} size={14} />
+            <span>{category.name}</span>
+          </Box>
+        ) : (
+          <span>Uncategorized</span>
+        )
+      }
+    />
   );
 };
