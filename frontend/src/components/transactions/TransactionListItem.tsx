@@ -3,6 +3,8 @@ import { Delete as DeleteIcon, Edit as EditIcon, SwapHoriz as TransferIcon } fro
 import { Transaction } from '../../types';
 import { BalanceDisplay } from '../common/BalanceDisplay';
 import { TransactionStatusChip } from './TransactionStatusChip';
+import { CategoryColorBadge } from '../categories/CategoryColorBadge';
+import { useCategories } from '../../hooks/useCategories';
 import { format } from 'date-fns';
 
 interface TransactionListItemProps {
@@ -13,6 +15,13 @@ interface TransactionListItemProps {
 
 export const TransactionListItem = ({ transaction, onEdit, onDelete }: TransactionListItemProps) => {
   const isTransfer = !!transaction.transferToAccountId;
+  const { data: categories = [] } = useCategories();
+
+  // Find the category for this transaction
+  const category = transaction.categoryId
+    ? categories.find((cat) => cat.id === transaction.categoryId) ||
+      categories.flatMap((cat) => cat.children || []).find((child) => child.id === transaction.categoryId)
+    : null;
 
   const handleEdit = () => {
     if (onEdit && !isTransfer) {
@@ -57,6 +66,18 @@ export const TransactionListItem = ({ transaction, onEdit, onDelete }: Transacti
         ) : (
           <Typography variant="body2" color="text.secondary">
             Unknown
+          </Typography>
+        )}
+      </TableCell>
+      <TableCell>
+        {category ? (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CategoryColorBadge color={category.color} size={12} />
+            <Typography variant="body2">{category.name}</Typography>
+          </Box>
+        ) : (
+          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+            Uncategorized
           </Typography>
         )}
       </TableCell>

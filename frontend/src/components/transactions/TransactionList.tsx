@@ -62,6 +62,7 @@ export const TransactionList = ({
               <TableCell>Date</TableCell>
               <TableCell>Description</TableCell>
               <TableCell>Account</TableCell>
+              <TableCell>Category</TableCell>
               <TableCell>Type</TableCell>
               <TableCell align="right">Amount</TableCell>
               <TableCell>Status</TableCell>
