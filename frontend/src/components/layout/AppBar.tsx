@@ -20,6 +20,7 @@ import {
   Dashboard as DashboardIcon,
   AccountBalance as AccountsIcon,
   Receipt as TransactionsIcon,
+  Category as CategoryIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -27,6 +28,7 @@ const navigation = [
   { name: 'Dashboard', path: '/', icon: <DashboardIcon /> },
   { name: 'Accounts', path: '/accounts', icon: <AccountsIcon /> },
   { name: 'Transactions', path: '/transactions', icon: <TransactionsIcon /> },
+  { name: 'Categories', path: '/categories', icon: <CategoryIcon /> },
 ];
 
 export const AppBar = () => {
