@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import {
   Dialog,
@@ -27,6 +28,7 @@ interface TransactionFormProps {
 const transactionTypes: { value: TransactionType; label: string }[] = [
   { value: 'INCOME', label: 'Income' },
   { value: 'EXPENSE', label: 'Expense' },
+  { value: 'TRANSFER', label: 'Transfer' },
 ];
 
 const transactionStatuses: { value: TransactionStatus; label: string }[] = [
@@ -56,16 +58,45 @@ export const TransactionForm = ({
     formState: { errors },
   } = useForm<CreateTransactionDto>({
     defaultValues: {
-      accountId: transaction?.accountId || defaultAccountId || '',
-      categoryId: transaction?.categoryId || '',
-      type: transaction?.type !== 'TRANSFER' ? transaction?.type : 'EXPENSE' || 'EXPENSE',
-      amount: transaction ? Math.abs(parseFloat(transaction.amount)) : 0,
-      date: transaction?.date ? transaction.date.split('T')[0] : today,
-      description: transaction?.description || '',
-      notes: transaction?.notes || '',
-      status: transaction?.status || 'CLEARED',
+      accountId: defaultAccountId || '',
+      categoryId: '',
+      type: 'EXPENSE',
+      amount: 0,
+      date: today,
+      description: '',
+      notes: '',
+      status: 'CLEARED',
     },
   });
+
+  // Reset form when transaction or dialog open state changes
+  useEffect(() => {
+    if (open && transaction) {
+      // Editing existing transaction
+      reset({
+        accountId: transaction.accountId,
+        categoryId: transaction.categoryId || '',
+        type: transaction.type !== 'TRANSFER' ? transaction.type : 'EXPENSE',
+        amount: Math.abs(parseFloat(transaction.amount)),
+        date: transaction.date.split('T')[0],
+        description: transaction.description,
+        notes: transaction.notes || '',
+        status: transaction.status,
+      });
+    } else if (open && !transaction) {
+      // Creating new transaction
+      reset({
+        accountId: defaultAccountId || '',
+        categoryId: '',
+        type: 'EXPENSE',
+        amount: 0,
+        date: today,
+        description: '',
+        notes: '',
+        status: 'CLEARED',
+      });
+    }
+  }, [open, transaction, defaultAccountId, today, reset]);
 
   const handleFormSubmit = (data: CreateTransactionDto) => {
     // Convert date to ISO string
