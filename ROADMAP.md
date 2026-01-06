@@ -66,26 +66,124 @@ This roadmap outlines the development milestones for the Budget Tracker applicat
 
 ---
 
-## Milestone 3: Category System
+## Milestone 3: Category System 🚧
 
 **Objective**: Implement hierarchical category management for transaction organization.
 
+**Status**: IN PROGRESS (January 6, 2026)
+**Branch**: `feature/category-system`
+**Feature Plan**: `/docs/feature-plans/004-category-system.md`
+
 ### Deliverables
-- [ ] Hierarchical category data model
-- [ ] Default category seed data
-- [ ] Category CRUD operations (API + UI)
-- [ ] Category management interface
-- [ ] Parent-child category relationships
-- [ ] Category assignment to transactions
-- [ ] Category colors and visual identification
-- [ ] Subcategory breakdown views
+- [x] Hierarchical category data model ✓
+- [x] Default category seed data (65 categories) ✓
+- [x] Category CRUD operations (API + UI) ✓
+- [x] Category management interface ✓
+- [x] Parent-child category relationships ✓
+- [x] Category assignment to transactions ✓
+- [x] Category colors and visual identification ✓
+- [x] Tree view and grid view for categories ✓
+- [ ] Subcategory breakdown views *Pending completion*
 
 ### Features
 - Unlimited category hierarchy depth
-- Predefined category set (Income, Housing, Transportation, Food & Dining, etc.)
+- Predefined category set (11 parent categories, 54 subcategories)
 - Custom user-created categories
-- Category editing and reorganization
+- Category editing and reorganization with circular reference prevention
 - Visual category indicators (colors/icons)
+- CategorySelect component for transaction forms
+- Grid and tree view toggle
+
+---
+
+## Milestone 3.5: Smart Categorization & Rules Engine
+
+**Objective**: Implement intelligent automatic category assignment based on configurable rules and machine learning.
+
+**Status**: PLANNED
+**Dependencies**: Milestone 3 (Category System)
+
+### Deliverables
+- [ ] Category rule data model and API
+- [ ] Rule engine architecture (extensible pattern matching)
+- [ ] Rule CRUD operations and management UI
+- [ ] Multiple rule types implementation
+- [ ] Rule priority and conflict resolution
+- [ ] Auto-apply rules to new transactions
+- [ ] Bulk apply rules to existing transactions
+- [ ] Rule testing and validation interface
+- [ ] Category suggestions based on transaction history
+- [ ] Rule import/export functionality
+- [ ] Performance optimization for large rule sets
+
+### Rule Types
+1. **Text-Based Rules**
+   - Description contains keyword (case-insensitive)
+   - Description exact match
+   - Regular expression pattern matching
+   - Merchant name matching
+
+2. **Amount-Based Rules**
+   - Amount range (e.g., $0-$20 → Fast Food)
+   - Amount threshold (e.g., >$500 → Rent)
+   - Specific amount match
+
+3. **Context-Based Rules**
+   - Transaction type (income/expense)
+   - Account type
+   - Day of week/month
+   - Combination rules (AND/OR logic)
+
+4. **Smart Learning Rules** *(Future Enhancement)*
+   - Pattern detection from manual categorizations
+   - Suggested rules based on user behavior
+   - Confidence scoring
+
+### Features
+- **Rule Management Interface**
+  - Visual rule builder (no code required)
+  - Drag-and-drop rule priority ordering
+  - Enable/disable individual rules
+  - Rule testing against sample transactions
+  - Bulk rule import from templates
+
+- **Automatic Application**
+  - Real-time categorization during transaction entry
+  - Batch processing for CSV imports
+  - Background job for uncategorized transactions
+  - Manual review workflow for low-confidence matches
+
+- **Rule Templates**
+  - Pre-built rule sets (common merchants, bills, subscriptions)
+  - Community-shared rule templates
+  - Industry-standard categorization rules
+
+- **Advanced Features**
+  - Rule effectiveness analytics
+  - Conflict detection and resolution UI
+  - Rule versioning and history
+  - A/B testing for rule improvements
+  - Suggestion engine for new rules based on patterns
+
+### User Experience
+- **First-Time Setup**: Wizard to select common rule templates
+- **Quick Add**: Right-click transaction → "Create rule from this"
+- **Smart Suggestions**: "We noticed 15 similar transactions. Create a rule?"
+- **Bulk Operations**: "Apply all rules to 342 uncategorized transactions"
+- **Confidence Indicators**: Visual feedback on rule match certainty
+
+### Technical Implementation
+- Rule evaluation engine with caching for performance
+- PostgreSQL pattern matching (LIKE, ILIKE, regex)
+- Transaction queue for async rule processing
+- Redis caching for frequently-used rules (optional)
+- Webhook support for external categorization services
+
+### Success Metrics
+- 80%+ automatic categorization rate after rule setup
+- <100ms rule evaluation time (p95)
+- <5% false positive rate
+- User satisfaction with suggested categories
 
 ---
 
@@ -208,7 +306,7 @@ This roadmap outlines the development milestones for the Budget Tracker applicat
 - [x] Column mapping interface ✓ *Completed early*
 - [x] Import preview and validation ✓ *Completed early*
 - [x] Duplicate transaction detection ✓ *Completed early*
-- [ ] Automatic category suggestion based on description *Pending Milestone 3*
+- [ ] Automatic category assignment during import *Pending Milestone 3.5 (Smart Categorization)*
 - [ ] Bulk transaction entry interface
 - [ ] Transaction duplicate feature
 - [ ] Data export functionality (CSV, JSON)
@@ -228,7 +326,7 @@ This roadmap outlines the development milestones for the Budget Tracker applicat
 ### Remaining Features
 - Data export functionality (CSV, JSON)
 - Backup/restore capabilities
-- Automatic category suggestion (requires Milestone 3)
+- Automatic category assignment during import (requires Milestone 3.5)
 
 ---
 
@@ -422,6 +520,8 @@ Each milestone is considered complete when:
 
 ---
 
-**Last Updated**: January 2026
-**Document Version**: 1.1
+**Last Updated**: January 6, 2026
+**Document Version**: 1.2
 **Latest Completion**: Milestone 2 - Account & Transaction Management (January 5, 2026)
+**In Progress**: Milestone 3 - Category System
+**New Addition**: Milestone 3.5 - Smart Categorization & Rules Engine (planned)
