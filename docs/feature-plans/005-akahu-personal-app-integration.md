@@ -42,8 +42,8 @@ Integrate with Akahu Personal App to automatically synchronize bank transactions
                         │ Uses
 ┌───────────────────────▼─────────────────────────────────────┐
 │              Frontend API Service Layer                      │
-│                  (api/akahuService.ts)                       │
-│         Generic interface - no Akahu specifics               │
+│                  (api/syncService.ts)                        │
+│         Generic interface - no provider specifics            │
 └───────────────────────┬─────────────────────────────────────┘
                         │ HTTP
 ┌───────────────────────▼─────────────────────────────────────┐
