@@ -148,3 +148,39 @@ export interface PaginatedResponse<T> {
   data: T[];
   pagination: PaginationMeta;
 }
+
+// Category types
+export interface Category {
+  id: string;
+  name: string;
+  color: string;
+  icon: string | null;
+  parentId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  parent?: Category | null;
+  children?: Category[];
+  _count?: {
+    transactions: number;
+  };
+}
+
+export interface CreateCategoryDto {
+  name: string;
+  color?: string;
+  icon?: string;
+  parentId?: string;
+}
+
+export interface UpdateCategoryDto {
+  name?: string;
+  color?: string;
+  icon?: string;
+  parentId?: string | null;
+}
+
+export interface CategoryQuery {
+  includeChildren?: boolean;
+  parentId?: string;
+  includeRoot?: boolean;
+}
