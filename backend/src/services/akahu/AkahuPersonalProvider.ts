@@ -52,19 +52,20 @@ export class AkahuPersonalProvider implements IBankingDataProvider {
         where: { id: connectionId },
       });
 
-      if (!connection || !connection.appToken) {
+      if (!connection || !connection.appToken || !connection.userToken) {
         return {
           isValid: false,
-          error: 'Connection not found or missing app token',
+          error: 'Connection not found or missing tokens',
           lastChecked: new Date(),
         };
       }
 
-      // Decrypt app token
+      // Decrypt both tokens
       const appToken = decrypt(connection.appToken);
+      const userToken = decrypt(connection.userToken);
 
       // Test connection by fetching accounts
-      await this.apiClient.getAccounts(appToken);
+      await this.apiClient.getAccounts(appToken, userToken);
 
       logger.info('[AkahuPersonalProvider] Connection test successful', { connectionId });
 
@@ -95,8 +96,9 @@ export class AkahuPersonalProvider implements IBankingDataProvider {
 
       const connection = await this.getConnection(connectionId);
       const appToken = decrypt(connection.appToken!);
+      const userToken = decrypt(connection.userToken!);
 
-      const akahuAccounts = await this.apiClient.getAccounts(appToken);
+      const akahuAccounts = await this.apiClient.getAccounts(appToken, userToken);
 
       const externalAccounts = akahuAccounts.map((acc) => this.mapAccount(acc));
 
@@ -133,8 +135,9 @@ export class AkahuPersonalProvider implements IBankingDataProvider {
 
       const connection = await this.getConnection(connectionId);
       const appToken = decrypt(connection.appToken!);
+      const userToken = decrypt(connection.userToken!);
 
-      const result = await this.apiClient.getTransactions(appToken, externalAccountId, {
+      const result = await this.apiClient.getTransactions(appToken, userToken, externalAccountId, {
         start: options?.startDate,
         end: options?.endDate,
         cursor: options?.cursor,
@@ -184,9 +187,11 @@ export class AkahuPersonalProvider implements IBankingDataProvider {
 
       const connection = await this.getConnection(connectionId);
       const appToken = decrypt(connection.appToken!);
+      const userToken = decrypt(connection.userToken!);
 
       const allTransactions = await this.apiClient.getAllTransactions(
         appToken,
+        userToken,
         externalAccountId,
         {
           start: options?.startDate,
@@ -230,6 +235,10 @@ export class AkahuPersonalProvider implements IBankingDataProvider {
 
     if (!connection.appToken) {
       throw new Error('App token not configured for connection');
+    }
+
+    if (!connection.userToken) {
+      throw new Error('User token not configured for connection');
     }
 
     return connection;

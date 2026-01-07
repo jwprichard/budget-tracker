@@ -3,8 +3,16 @@ import winston from 'winston';
 const { combine, timestamp, printf, colorize, errors } = winston.format;
 
 // Custom log format
-const logFormat = printf(({ level, message, timestamp, stack }) => {
-  return `${timestamp} [${level}]: ${stack || message}`;
+const logFormat = printf(({ level, message, timestamp, stack, ...metadata }) => {
+  // Filter out Winston's internal fields
+  const { splat, ...cleanMeta } = metadata;
+
+  // Format metadata as JSON if present
+  const metaString = Object.keys(cleanMeta).length > 0
+    ? ' ' + JSON.stringify(cleanMeta)
+    : '';
+
+  return `${timestamp} [${level}]: ${stack || message}${metaString}`;
 });
 
 // Create Winston logger instance

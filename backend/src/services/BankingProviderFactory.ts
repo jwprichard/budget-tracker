@@ -28,11 +28,12 @@ export class BankingProviderFactory {
   static async createProvider(connectionId: string): Promise<IBankingDataProvider> {
     try {
       logger.info('[BankingProviderFactory] Creating provider', { connectionId });
+	  logger.info('Test');
 
       const connection = await prisma.bankConnection.findUnique({
         where: { id: connectionId },
       });
-
+	  
       if (!connection) {
         throw new Error('Bank connection not found');
       }

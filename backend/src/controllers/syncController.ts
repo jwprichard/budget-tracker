@@ -21,6 +21,61 @@ const prisma = new PrismaClient();
  */
 
 /**
+ * Test connection by calling /v1/me endpoint
+ * POST /api/v1/sync/test
+ */
+export const testConnection = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { connectionId } = req.body;
+
+    logger.info('[SyncController] Testing connection', { connectionId });
+
+    // Get connection from database
+    const connection = await prisma.bankConnection.findUnique({
+      where: { id: connectionId },
+    });
+
+    if (!connection) {
+      res.status(404).json({ error: 'Connection not found' });
+      return;
+    }
+
+    if (!connection.appToken || !connection.userToken) {
+      res.status(400).json({ error: 'Connection missing required tokens' });
+      return;
+    }
+
+    // Decrypt tokens
+    const { decrypt } = await import('../utils/encryption');
+    const appToken = decrypt(connection.appToken);
+    const userToken = decrypt(connection.userToken);
+
+    // Create provider and test
+    const provider = await BankingProviderFactory.createProvider(connectionId);
+    const { AkahuApiClient } = await import('../services/akahu/AkahuApiClient');
+    const apiClient = new AkahuApiClient();
+
+    const meData = await apiClient.testMe(appToken, userToken);
+
+    logger.info('[SyncController] Connection test successful', { connectionId });
+
+    res.json({
+      success: true,
+      connectionId: connection.id,
+      provider: connection.provider,
+      meData,
+    });
+  } catch (error) {
+    logger.error('[SyncController] Connection test failed', { error });
+    next(error);
+  }
+};
+
+/**
  * Setup a new bank connection
  * POST /api/v1/sync/setup
  */
@@ -30,18 +85,20 @@ export const setupConnection = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { provider, appToken, metadata } = req.body;
+    const { provider, appToken, userToken, metadata } = req.body;
 
     logger.info('[SyncController] Setting up connection', { provider });
 
-    // Encrypt app token
-    const encryptedToken = encrypt(appToken);
+    // Encrypt both tokens
+    const encryptedAppToken = encrypt(appToken);
+    const encryptedUserToken = encrypt(userToken);
 
     // Create bank connection
     const connection = await prisma.bankConnection.create({
       data: {
         provider,
-        appToken: encryptedToken,
+        appToken: encryptedAppToken,
+        userToken: encryptedUserToken,
         status: 'ACTIVE',
         metadata,
       },

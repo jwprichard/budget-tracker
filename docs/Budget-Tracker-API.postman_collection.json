@@ -769,7 +769,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"provider\": \"AKAHU_PERSONAL\",\n  \"appToken\": \"your_akahu_app_token_here\",\n  \"metadata\": {\n    \"description\": \"Personal Banking Connection\"\n  }\n}"
+							"raw": "{\n  \"provider\": \"AKAHU_PERSONAL\",\n  \"appToken\": \"your_akahu_app_token_here\",\n  \"userToken\": \"your_akahu_user_token_here\",\n  \"metadata\": {\n    \"description\": \"Personal Banking Connection\"\n  }\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/sync/setup",
@@ -782,6 +782,34 @@
 							]
 						},
 						"description": "Setup a new bank connection with Akahu Personal App Token"
+					},
+					"response": []
+				},
+				{
+					"name": "Test Connection",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"connectionId\": \"{{connectionId}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/sync/test",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sync",
+								"test"
+							]
+						},
+						"description": "Test connection by calling Akahu /v1/me endpoint"
 					},
 					"response": []
 				},

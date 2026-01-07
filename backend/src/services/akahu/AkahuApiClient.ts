@@ -63,7 +63,7 @@ export class AkahuApiClient {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = process.env['AKAHU_BASE_URL'] || 'https://api.akahu.nz';
+    this.baseUrl = process.env['AKAHU_BASE_URL'] || 'https://api.akahu.io';
 
     this.client = axios.create({
       baseURL: this.baseUrl,
@@ -84,19 +84,47 @@ export class AkahuApiClient {
   }
 
   /**
+   * Test connection by calling /v1/me endpoint
+   *
+   * @param appToken - Unencrypted app token
+   * @param userToken - Unencrypted user token
+   * @returns User information from Akahu
+   */
+  async testMe(appToken: string, userToken: string): Promise<any> {
+    try {
+      logger.info('[AkahuApiClient] Testing /v1/me endpoint');
+
+      const response = await this.client.get('/v1/me', {
+        headers: {
+          'Authorization': `Bearer ${userToken}`,
+          'X-Akahu-ID': appToken,
+        },
+      });
+
+      logger.info('[AkahuApiClient] /v1/me test successful');
+      return response.data;
+    } catch (error) {
+      logger.error('[AkahuApiClient] /v1/me test failed', { error });
+      throw error;
+    }
+  }
+
+  /**
    * Get all accounts (personal app token)
    *
    * @param appToken - Unencrypted app token
+   * @param userToken - Unencrypted user token
    * @returns Array of Akahu accounts
    */
-  async getAccounts(appToken: string): Promise<AkahuAccount[]> {
+  async getAccounts(appToken: string, userToken: string): Promise<AkahuAccount[]> {
     try {
       logger.info('[AkahuApiClient] Fetching accounts');
 
       const response = await this.client.get<AkahuPaginatedResponse<AkahuAccount>>(
-        '/api/v1/accounts',
+        '/v1/accounts',
         {
           headers: {
+            'Authorization': `Bearer ${userToken}`,
             'X-Akahu-ID': appToken,
           },
         }
@@ -114,12 +142,14 @@ export class AkahuApiClient {
    * Get transactions for an account with pagination
    *
    * @param appToken - Unencrypted app token
+   * @param userToken - Unencrypted user token
    * @param accountId - Akahu account ID
    * @param options - Filter and pagination options
    * @returns Paginated transaction response
    */
   async getTransactions(
     appToken: string,
+    userToken: string,
     accountId: string,
     options?: {
       start?: Date;
@@ -147,12 +177,13 @@ export class AkahuApiClient {
         params.append('cursor', options.cursor);
       }
 
-      const url = `/api/v1/accounts/${accountId}/transactions${
+      const url = `/v1/accounts/${accountId}/transactions${
         params.toString() ? `?${params.toString()}` : ''
       }`;
 
       const response = await this.client.get<AkahuPaginatedResponse<AkahuTransaction>>(url, {
         headers: {
+          'Authorization': `Bearer ${userToken}`,
           'X-Akahu-ID': appToken,
         },
       });
@@ -169,12 +200,14 @@ export class AkahuApiClient {
    * Fetch all transactions with automatic pagination
    *
    * @param appToken - Unencrypted app token
+   * @param userToken - Unencrypted user token
    * @param accountId - Akahu account ID
    * @param options - Filter options
    * @returns Array of all transactions
    */
   async getAllTransactions(
     appToken: string,
+    userToken: string,
     accountId: string,
     options?: {
       start?: Date;
@@ -187,7 +220,7 @@ export class AkahuApiClient {
     const maxPages = 100; // Safety limit
 
     do {
-      const response = await this.getTransactions(appToken, accountId, {
+      const response = await this.getTransactions(appToken, userToken, accountId, {
         ...options,
         cursor,
       });

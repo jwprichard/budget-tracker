@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import {
+  testConnection,
   setupConnection,
   linkAccount,
   triggerSync,
@@ -13,6 +14,7 @@ import {
 } from '../controllers/syncController';
 import { validate } from '../middlewares/validate';
 import {
+  testConnectionSchema,
   setupConnectionSchema,
   linkAccountSchema,
   triggerSyncSchema,
@@ -41,6 +43,7 @@ const router = Router();
  */
 
 // Connection management
+router.post('/test', validate(testConnectionSchema), testConnection);
 router.post('/setup', validate(setupConnectionSchema), setupConnection);
 router.post('/link-account', validate(linkAccountSchema), linkAccount);
 router.get('/accounts', validate(getConnectedAccountsSchema), getConnectedAccounts);

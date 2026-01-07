@@ -6,6 +6,16 @@ import { z } from 'zod';
  */
 
 /**
+ * Test connection request
+ * POST /api/v1/sync/test
+ */
+export const testConnectionSchema = z.object({
+  body: z.object({
+    connectionId: z.string().uuid('Invalid connection ID'),
+  }),
+});
+
+/**
  * Setup connection request
  * POST /api/v1/sync/setup
  */
@@ -21,6 +31,10 @@ export const setupConnectionSchema = z.object({
       .string()
       .min(1, 'App token is required')
       .max(1000, 'App token too long'),
+    userToken: z
+      .string()
+      .min(1, 'User token is required')
+      .max(1000, 'User token too long'),
     metadata: z.record(z.any()).optional(),
   }),
 });

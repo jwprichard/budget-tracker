@@ -137,6 +137,7 @@ model BankConnection {
 
   // Personal App fields (used now)
   appToken        String?   @db.Text // Encrypted, nullable for future OAuth
+  userToken       String?   @db.Text // Encrypted, for Personal App user access token
 
   // OAuth fields (not used now, ready for future)
   accessToken     String?   @db.Text // Encrypted, null for personal app
