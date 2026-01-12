@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { requestLogger } from './middlewares/requestLogger';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
+import authRoutes from './routes/auth.routes';
 import healthRoutes from './routes/health.routes';
 import accountRoutes from './routes/account.routes';
 import transactionRoutes from './routes/transaction.routes';
@@ -41,6 +42,7 @@ app.use(requestLogger);
 
 // API routes
 const API_VERSION = process.env.API_VERSION || 'v1';
+app.use(`/api/${API_VERSION}/auth`, authRoutes); // Auth routes (public)
 app.use(`/api/${API_VERSION}`, healthRoutes);
 app.use(`/api/${API_VERSION}/accounts`, accountRoutes);
 app.use(`/api/${API_VERSION}/transactions`, transactionRoutes);
