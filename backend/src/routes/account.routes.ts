@@ -6,6 +6,7 @@ import {
   updateAccount,
   deleteAccount,
   getAccountBalance,
+  getAvailableBalance,
   getAccountTransactions,
 } from '../controllers/account.controller';
 import { validateBody, validateQuery } from '../middlewares/validation';
@@ -30,6 +31,9 @@ router.delete('/:id', deleteAccount);
 
 // GET /api/v1/accounts/:id/balance - Get account balance
 router.get('/:id/balance', getAccountBalance);
+
+// GET /api/v1/accounts/:id/available-balance - Get available balance from bank
+router.get('/:id/available-balance', getAvailableBalance);
 
 // GET /api/v1/accounts/:id/transactions - Get account transactions
 router.get('/:id/transactions', getAccountTransactions);

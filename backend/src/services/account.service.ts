@@ -1,6 +1,8 @@
 import { PrismaClient, Account } from '@prisma/client';
 import { CreateAccountDto, UpdateAccountDto } from '../schemas/account.schema';
 import { AppError } from '../middlewares/errorHandler';
+import { AkahuApiClient } from './akahu/AkahuApiClient';
+import { decrypt } from '../utils/encryption';
 
 export class AccountService {
   constructor(private prisma: PrismaClient) {}
@@ -158,6 +160,62 @@ export class AccountService {
         totalPages: Math.ceil(totalCount / pageSize),
         totalItems: totalCount,
       },
+    };
+  }
+
+  /**
+   * Get available balance from bank for linked account
+   * Fetches real-time balance data from Akahu API
+   * @param id - Account UUID
+   * @returns Balance data or null if not linked
+   * @throws AppError if account not found
+   */
+  async getAvailableBalance(
+    id: string
+  ): Promise<{ current: number; available: number | null } | null> {
+    // Check if account exists and is linked to bank
+    const account = await this.prisma.account.findUnique({
+      where: { id },
+      include: {
+        linkedAccount: {
+          include: {
+            connection: true,
+          },
+        },
+      },
+    });
+
+    if (!account) {
+      throw new AppError('Account not found', 404);
+    }
+
+    // Return null if not linked to bank
+    if (!account.isLinkedToBank || !account.linkedAccount) {
+      return null;
+    }
+
+    // Get connection and decrypt tokens
+    const connection = account.linkedAccount.connection;
+    const appToken = decrypt(connection.appToken);
+    const userToken = decrypt(connection.userToken);
+
+    // Use AkahuApiClient to fetch account details
+    const apiClient = new AkahuApiClient();
+    const accounts = await apiClient.getAccounts(appToken, userToken);
+
+    // Find matching account
+    const akahuAccount = accounts.find(
+      (acc) => acc._id === account.linkedAccount!.externalAccountId
+    );
+
+    if (!akahuAccount || !akahuAccount.balance) {
+      return null;
+    }
+
+    // Return balance data
+    return {
+      current: akahuAccount.balance.current,
+      available: akahuAccount.balance.available || null,
     };
   }
 }

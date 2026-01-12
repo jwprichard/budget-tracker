@@ -116,6 +116,24 @@ export const getAccountBalance = async (req: Request, res: Response, next: NextF
 };
 
 /**
+ * Get available balance for linked account
+ * Fetches real-time balance from Akahu API
+ * Route params: id (account ID)
+ */
+export const getAvailableBalance = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const balance = await accountService.getAvailableBalance(req.params.id);
+
+    res.status(200).json({
+      success: true,
+      data: balance,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Get transactions for an account (paginated)
  * Route params: id
  * Query params: page, pageSize
