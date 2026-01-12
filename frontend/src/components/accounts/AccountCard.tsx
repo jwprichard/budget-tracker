@@ -1,21 +1,47 @@
-import { Card, CardContent, CardActionArea, Typography, Box, Chip } from '@mui/material';
+import { Card, CardContent, CardActionArea, Typography, Box, Chip, IconButton, Tooltip } from '@mui/material';
+import { LinkOff as UnlinkIcon, Link as LinkIcon } from '@mui/icons-material';
 import { Account } from '../../types';
 import { AccountTypeIcon } from './AccountTypeIcon';
 import { BalanceDisplay } from '../common/BalanceDisplay';
 import { useAccountBalance } from '../../hooks/useAccounts';
 import { LoadingSpinner } from '../common/LoadingSpinner';
+import { unlinkAccount } from '../../services/sync.service';
+import { useState } from 'react';
 
 interface AccountCardProps {
   account: Account;
   onClick?: (account: Account) => void;
+  onUnlink?: () => void;
 }
 
-export const AccountCard = ({ account, onClick }: AccountCardProps) => {
+export const AccountCard = ({ account, onClick, onUnlink }: AccountCardProps) => {
   const { data: balanceData, isLoading } = useAccountBalance(account.id);
+  const [unlinking, setUnlinking] = useState(false);
 
   const handleClick = () => {
     if (onClick) {
       onClick(account);
+    }
+  };
+
+  const handleUnlink = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+
+    if (!confirm('Are you sure you want to unlink this account from your bank? You can always relink it later.')) {
+      return;
+    }
+
+    try {
+      setUnlinking(true);
+      await unlinkAccount(account.id);
+      if (onUnlink) {
+        onUnlink();
+      }
+    } catch (error) {
+      console.error('Failed to unlink account:', error);
+      alert('Failed to unlink account. Please try again.');
+    } finally {
+      setUnlinking(false);
     }
   };
 
@@ -48,10 +74,36 @@ export const AccountCard = ({ account, onClick }: AccountCardProps) => {
                 </Typography>
               </Box>
             </Box>
-            {!account.isActive && (
-              <Chip label="Inactive" size="small" color="default" variant="outlined" />
-            )}
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              {account.isLinkedToBank && (
+                <Tooltip title="Unlink from bank">
+                  <IconButton
+                    size="small"
+                    onClick={handleUnlink}
+                    disabled={unlinking}
+                    sx={{ color: 'error.main' }}
+                  >
+                    <UnlinkIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
+              {!account.isActive && (
+                <Chip label="Inactive" size="small" color="default" variant="outlined" />
+              )}
+            </Box>
           </Box>
+
+          {account.isLinkedToBank && (
+            <Box sx={{ mb: 2 }}>
+              <Chip
+                icon={<LinkIcon />}
+                label="Linked to Bank"
+                size="small"
+                color="success"
+                variant="outlined"
+              />
+            </Box>
+          )}
 
           {account.category && (
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>

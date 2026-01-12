@@ -24,7 +24,7 @@ export const Accounts = () => {
   const [includeInactive, setIncludeInactive] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
 
-  const { data: accounts = [], isLoading, error } = useAccounts(includeInactive);
+  const { data: accounts = [], isLoading, error, refetch } = useAccounts(includeInactive);
   const createAccountMutation = useCreateAccount();
 
   const handleAccountClick = (account: Account) => {
@@ -38,6 +38,11 @@ export const Accounts = () => {
     } catch (error) {
       console.error('Failed to create account:', error);
     }
+  };
+
+  const handleAccountUnlink = () => {
+    // Refetch accounts to update linked status
+    refetch();
   };
 
   if (isLoading) {
@@ -107,7 +112,11 @@ export const Accounts = () => {
           onAction={() => setFormOpen(true)}
         />
       ) : (
-        <AccountList accounts={accounts} onAccountClick={handleAccountClick} />
+        <AccountList
+          accounts={accounts}
+          onAccountClick={handleAccountClick}
+          onAccountUnlink={handleAccountUnlink}
+        />
       )}
 
       {/* Floating Action Button */}

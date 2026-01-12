@@ -58,6 +58,13 @@ export class SyncService {
   }
 
   /**
+   * Utility: delay execution
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
    * Trigger sync for a bank connection
    *
    * @param connectionId - Database ID of BankConnection
@@ -117,9 +124,16 @@ export class SyncService {
         count: linkedAccounts.length,
       });
 
-      for (const linkedAccount of linkedAccounts) {
+      for (let i = 0; i < linkedAccounts.length; i++) {
+        const linkedAccount = linkedAccounts[i];
         try {
           await this.syncAccountTransactions(linkedAccount, options, result);
+
+          // Add delay between accounts to avoid rate limiting (except after last account)
+          if (i < linkedAccounts.length - 1) {
+            logger.debug('[SyncService] Waiting before next account to avoid rate limits');
+            await this.delay(1000); // 1 second delay between accounts
+          }
         } catch (error) {
           const errorMsg = `Account ${linkedAccount.externalName}: ${
             error instanceof Error ? error.message : 'Unknown error'
@@ -260,17 +274,31 @@ export class SyncService {
     });
 
     // Determine date range
-    const startDate =
-      options?.startDate ||
-      linkedAccount.lastSync ||
-      new Date(Date.now() - 90 * 24 * 60 * 60 * 1000); // Default: 90 days ago
+    const isFirstSync = !linkedAccount.lastSync;
+    const defaultDaysBack = isFirstSync ? 7 : 1; // First sync: 7 days, subsequent: 1 day back
+
+    let startDate: Date;
+    if (options?.startDate) {
+      // Use explicit start date if provided
+      startDate = options.startDate;
+    } else if (linkedAccount.lastSync) {
+      // Go back 1 day from last sync to ensure we don't miss transactions
+      const lastSyncTime = new Date(linkedAccount.lastSync).getTime();
+      startDate = new Date(lastSyncTime - 1 * 24 * 60 * 60 * 1000);
+    } else {
+      // First sync: go back 7 days
+      startDate = new Date(Date.now() - defaultDaysBack * 24 * 60 * 60 * 1000);
+    }
 
     const endDate = options?.endDate || new Date();
 
     logger.info('[SyncService] Fetching transactions', {
       linkedAccountId: linkedAccount.id,
-      startDate,
-      endDate,
+      externalAccountId: linkedAccount.externalAccountId,
+      isFirstSync,
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString(),
+      dayRange: Math.ceil((endDate.getTime() - startDate.getTime()) / (24 * 60 * 60 * 1000)),
     });
 
     // Fetch transactions from provider
@@ -313,6 +341,11 @@ export class SyncService {
       linkedAccountId: linkedAccount.id,
       fetched: externalTransactions.length,
     });
+
+    // Reconcile balance: Update local account balance to match external balance
+    if (linkedAccount.localAccountId) {
+      await this.reconcileBalance(linkedAccount.connectionId, linkedAccount.externalAccountId, linkedAccount.localAccountId);
+    }
   }
 
   /**
@@ -494,5 +527,75 @@ export class SyncService {
       externalTransactionId: externalTransaction.id,
       localTransactionId: localTransaction.id,
     });
+  }
+
+  /**
+   * Reconcile local account balance with external account balance
+   * Updates initialBalance so that current balance matches external balance
+   * Private helper method
+   *
+   * @param connectionId - Database ID of BankConnection
+   * @param externalAccountId - External account ID from provider
+   * @param localAccountId - Local account ID
+   */
+  private async reconcileBalance(
+    connectionId: string,
+    externalAccountId: string,
+    localAccountId: string
+  ): Promise<void> {
+    try {
+      logger.info('[SyncService] Reconciling balance', {
+        externalAccountId,
+        localAccountId,
+      });
+
+      // Fetch external account to get current balance
+      const externalAccounts = await this.provider.fetchAccounts(connectionId);
+      const externalAccount = externalAccounts.find(
+        (acc) => acc.externalAccountId === externalAccountId
+      );
+
+      if (!externalAccount || !externalAccount.balance) {
+        logger.warn('[SyncService] No balance available from external account', {
+          externalAccountId,
+        });
+        return;
+      }
+
+      const externalBalance = externalAccount.balance.current;
+
+      // Calculate sum of all transactions for this account
+      const transactionSum = await prisma.transaction.aggregate({
+        where: { accountId: localAccountId },
+        _sum: { amount: true },
+      });
+
+      const totalTransactions = transactionSum._sum.amount || 0;
+
+      // Calculate required initial balance: externalBalance - sum(transactions)
+      // This ensures: initialBalance + sum(transactions) = externalBalance
+      const requiredInitialBalance = externalBalance - Number(totalTransactions);
+
+      // Update local account initial balance
+      await prisma.account.update({
+        where: { id: localAccountId },
+        data: { initialBalance: requiredInitialBalance },
+      });
+
+      logger.info('[SyncService] Balance reconciled', {
+        externalAccountId,
+        localAccountId,
+        externalBalance,
+        totalTransactions: Number(totalTransactions),
+        requiredInitialBalance,
+      });
+    } catch (error) {
+      logger.error('[SyncService] Failed to reconcile balance', {
+        externalAccountId,
+        localAccountId,
+        error,
+      });
+      // Don't throw - balance reconciliation is not critical to sync success
+    }
   }
 }

@@ -334,26 +334,30 @@ This roadmap outlines the development milestones for the Budget Tracker applicat
 
 **Objective**: Automate transaction synchronization using Akahu Personal App tier (single account, no OAuth).
 
-**Status**: PLANNED
+**Status**: ✅ COMPLETE (January 7, 2026)
 **Dependencies**: Milestone 2 (Accounts & Transactions), Milestone 3 (Categories)
 **Feature Plan**: `/docs/feature-plans/005-akahu-personal-app-integration.md`
 **Priority**: High - Major time-saver for daily transaction tracking
-**Duration**: 5 weeks
+**Duration**: 5 weeks (actual: 3 weeks)
 
 ### Deliverables
-- [ ] Provider abstraction layer (IBankingDataProvider interface)
-- [ ] Akahu API client wrapper
-- [ ] Akahu Personal Provider implementation
-- [ ] Bank connection and linked account models
-- [ ] External transaction tracking
-- [ ] Sync orchestration service
-- [ ] Intelligent duplicate detection (>90% accuracy)
-- [ ] Transaction mapping service
-- [ ] Sync API endpoints
-- [ ] Sync button and status UI
-- [ ] Transaction review workflow
-- [ ] Sync history tracking
-- [ ] Token encryption utilities
+- [x] Provider abstraction layer (IBankingDataProvider interface)
+- [x] Akahu API client wrapper
+- [x] Akahu Personal Provider implementation
+- [x] Bank connection and linked account models
+- [x] External transaction tracking
+- [x] Sync orchestration service
+- [x] Intelligent duplicate detection (>90% accuracy)
+- [x] Transaction mapping service
+- [x] Sync API endpoints
+- [x] Sync button and status UI
+- [x] Transaction review workflow
+- [x] Sync history tracking
+- [x] Token encryption utilities
+- [x] Manual days back control (UI input)
+- [x] Balance reconciliation after sync
+- [x] Unlink account functionality
+- [x] Frontend polling optimization (5s intervals)
 
 ### Features
 - Connect personal Akahu account (app token)
@@ -393,6 +397,46 @@ When upgrading to Akahu OAuth tier:
 - Duplicate detection accuracy > 90%
 - <5% transactions need manual review
 - 80% reduction in manual transaction entry
+
+---
+
+## Milestone 8.6: Enhanced Akahu Data Display
+
+**Objective**: Improve visibility of data already captured from Akahu API without additional API calls or schema changes.
+
+**Status**: PLANNED
+**Dependencies**: Milestone 8.5 (Akahu Sync) ✅ Complete
+**Feature Plan**: `/docs/feature-plans/milestone-8.6-enhanced-akahu-data.md`
+**Priority**: Medium - Quick wins for better UX
+**Estimated Effort**: Small (2-4 hours)
+
+### Deliverables
+- [ ] Available balance display (credit cards)
+- [ ] Prominent merchant name display in transaction lists
+- [ ] Account status visual indicators
+- [ ] Foundation for balance trend charts (future)
+
+### Features
+- **Available Balance**: Show both current and available balance for credit cards
+- **Merchant Display**: Extract and prominently display merchant names
+- **Account Status Badges**: Visual indicators for closed/inactive accounts
+- **Graceful Degradation**: Handle missing data elegantly
+
+### Quick Wins (2-4 hours)
+1. Available balance display (30 mins) - High value for credit card users
+2. Merchant name extraction and display (1-2 hours) - Better transaction visibility
+3. Account status indicators (1 hour) - Edge case handling
+
+### Future Enhancements (Deferred)
+- Balance trend charts (requires more complex visualization)
+- Merchant spending breakdowns (better with categories)
+- Top merchants report
+
+### Technical Notes
+- ✅ No schema changes required (data already captured)
+- ✅ No additional API calls needed
+- ✅ UI-only enhancements
+- All data already in `ExternalTransaction.merchant`, `ExternalTransaction.balance`, and `LinkedAccount` status
 
 ---
 
@@ -610,6 +654,7 @@ Each milestone is considered complete when:
 **Latest Completion**: Milestone 3 - Category System (January 6, 2026)
 **In Progress**: None (ready for next milestone)
 **Recent Changes**:
+- Milestone 8.6 - Enhanced Akahu Data Display (planned - quick UI improvements)
+- Milestone 8.5 - Bank Synchronization (Akahu Personal App) ✅ COMPLETE (Jan 7, 2026)
 - Milestone 3.5 - Smart Categorization & Rules Engine (planned)
-- Milestone 8.5 - Bank Synchronization (Akahu Personal App) feature plan created
 - Full Akahu OAuth Integration moved to Future Enhancements - requires multi-account tier upgrade

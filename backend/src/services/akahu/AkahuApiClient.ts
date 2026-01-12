@@ -117,25 +117,27 @@ export class AkahuApiClient {
    * @returns Array of Akahu accounts
    */
   async getAccounts(appToken: string, userToken: string): Promise<AkahuAccount[]> {
-    try {
-      logger.info('[AkahuApiClient] Fetching accounts');
+    return this.retryWithBackoff(async () => {
+      try {
+        logger.info('[AkahuApiClient] Fetching accounts');
 
-      const response = await this.client.get<AkahuPaginatedResponse<AkahuAccount>>(
-        '/v1/accounts',
-        {
-          headers: {
-            'Authorization': `Bearer ${userToken}`,
-            'X-Akahu-ID': appToken,
-          },
-        }
-      );
+        const response = await this.client.get<AkahuPaginatedResponse<AkahuAccount>>(
+          '/v1/accounts',
+          {
+            headers: {
+              'Authorization': `Bearer ${userToken}`,
+              'X-Akahu-ID': appToken,
+            },
+          }
+        );
 
-      logger.info(`[AkahuApiClient] Fetched ${response.data.items.length} accounts`);
-      return response.data.items;
-    } catch (error) {
-      logger.error('[AkahuApiClient] Failed to fetch accounts', { error });
-      throw error;
-    }
+        logger.info(`[AkahuApiClient] Fetched ${response.data.items.length} accounts`);
+        return response.data.items;
+      } catch (error) {
+        logger.error('[AkahuApiClient] Failed to fetch accounts', { error });
+        throw error;
+      }
+    });
   }
 
   /**
@@ -229,9 +231,9 @@ export class AkahuApiClient {
       cursor = response.cursor?.next;
       pageCount++;
 
-      // Rate limiting: small delay between requests
+      // Rate limiting: delay between pagination requests
       if (cursor && pageCount < maxPages) {
-        await this.delay(100);
+        await this.delay(500); // Increased from 100ms to 500ms
       }
 
       if (pageCount >= maxPages) {
@@ -244,6 +246,55 @@ export class AkahuApiClient {
       `[AkahuApiClient] Fetched total of ${allTransactions.length} transactions in ${pageCount} pages`
     );
     return allTransactions;
+  }
+
+  /**
+   * Retry request with exponential backoff
+   *
+   * @param fn - Function to retry
+   * @param maxRetries - Maximum number of retries
+   * @returns Result of the function
+   */
+  private async retryWithBackoff<T>(
+    fn: () => Promise<T>,
+    maxRetries = 3
+  ): Promise<T> {
+    let lastError: any;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error: any) {
+        lastError = error;
+
+        // Check if it's a rate limit error
+        const isRateLimit = error.response?.status === 429;
+        const isServerError = error.response?.status >= 500;
+
+        // Only retry on rate limits and server errors
+        if (!isRateLimit && !isServerError) {
+          throw error;
+        }
+
+        // Don't retry on last attempt
+        if (attempt === maxRetries) {
+          throw error;
+        }
+
+        // Calculate backoff delay (exponential: 1s, 2s, 4s)
+        const backoffMs = Math.pow(2, attempt) * 1000;
+        logger.warn('[AkahuApiClient] Rate limit hit, retrying', {
+          attempt: attempt + 1,
+          maxRetries,
+          backoffMs,
+          status: error.response?.status,
+        });
+
+        await this.delay(backoffMs);
+      }
+    }
+
+    throw lastError;
   }
 
   /**

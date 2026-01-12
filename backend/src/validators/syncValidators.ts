@@ -51,6 +51,16 @@ export const linkAccountSchema = z.object({
 });
 
 /**
+ * Unlink account request
+ * POST /api/v1/sync/unlink-account
+ */
+export const unlinkAccountSchema = z.object({
+  body: z.object({
+    localAccountId: z.string().uuid('Invalid local account ID'),
+  }),
+});
+
+/**
  * Trigger sync request
  * POST /api/v1/sync/trigger
  */

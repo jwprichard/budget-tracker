@@ -7,6 +7,7 @@ import { Accounts } from './pages/Accounts';
 import { AccountDetails } from './pages/AccountDetails';
 import { Transactions } from './pages/Transactions';
 import { Categories } from './pages/Categories';
+import { BankSync } from './pages/BankSync';
 
 // Create Material-UI theme with enhanced visual design
 const theme = createTheme({
@@ -183,6 +184,7 @@ function App() {
               <Route path="/accounts/:id" element={<AccountDetails />} />
               <Route path="/transactions" element={<Transactions />} />
               <Route path="/categories" element={<Categories />} />
+              <Route path="/bank-sync" element={<BankSync />} />
             </Routes>
           </Layout>
         </BrowserRouter>

@@ -138,6 +138,29 @@ export const linkAccount = async (
       localAccountId,
     });
 
+    // Check if this local account is already linked to another external account
+    const existingLink = await prisma.linkedAccount.findUnique({
+      where: { localAccountId },
+      include: {
+        localAccount: true,
+      },
+    });
+
+    if (existingLink && existingLink.id !== linkedAccountId) {
+      logger.warn('[SyncController] Local account already linked', {
+        localAccountId,
+        existingLinkedAccountId: existingLink.id,
+        existingExternalAccountId: existingLink.externalAccountId,
+      });
+      res.status(400).json({
+        error: {
+          code: 'ACCOUNT_ALREADY_LINKED',
+          message: `This account is already linked to "${existingLink.externalName}". Each local account can only be linked to one external account.`,
+        },
+      });
+      return;
+    }
+
     // Update linked account
     const linkedAccount = await prisma.linkedAccount.update({
       where: { id: linkedAccountId },
@@ -173,6 +196,66 @@ export const linkAccount = async (
     });
   } catch (error) {
     logger.error('[SyncController] Failed to link account', { error });
+    next(error);
+  }
+};
+
+/**
+ * Unlink external account from local account
+ * POST /api/v1/sync/unlink-account
+ */
+export const unlinkAccount = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { localAccountId } = req.body;
+
+    logger.info('[SyncController] Unlinking account', {
+      localAccountId,
+    });
+
+    // Find the linked account by local account ID
+    const linkedAccount = await prisma.linkedAccount.findUnique({
+      where: { localAccountId },
+    });
+
+    if (!linkedAccount) {
+      res.status(404).json({
+        error: {
+          code: 'LINKED_ACCOUNT_NOT_FOUND',
+          message: 'No linked account found for this local account',
+        },
+      });
+      return;
+    }
+
+    // Unlink: set localAccountId to null
+    await prisma.linkedAccount.update({
+      where: { id: linkedAccount.id },
+      data: { localAccountId: null },
+    });
+
+    // Update local account
+    await prisma.account.update({
+      where: { id: localAccountId },
+      data: {
+        isLinkedToBank: false,
+      },
+    });
+
+    logger.info('[SyncController] Account unlinked successfully', {
+      linkedAccountId: linkedAccount.id,
+      localAccountId,
+    });
+
+    res.json({
+      success: true,
+      message: 'Account unlinked successfully',
+    });
+  } catch (error) {
+    logger.error('[SyncController] Failed to unlink account', { error });
     next(error);
   }
 };
@@ -573,6 +656,38 @@ export const linkTransaction = async (
     res.json({ success: true });
   } catch (error) {
     logger.error('[SyncController] Failed to link transaction', { error });
+    next(error);
+  }
+};
+
+/**
+ * Get all bank connections
+ * GET /api/v1/sync/connections
+ */
+export const getConnections = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    logger.debug('[SyncController] Getting connections');
+
+    const connections = await prisma.bankConnection.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json({
+      items: connections.map((conn) => ({
+        connectionId: conn.id,
+        provider: conn.provider,
+        status: conn.status,
+        createdAt: conn.createdAt,
+        lastSync: conn.lastSync,
+        lastError: conn.lastError,
+      })),
+    });
+  } catch (error) {
+    logger.error('[SyncController] Failed to get connections', { error });
     next(error);
   }
 };

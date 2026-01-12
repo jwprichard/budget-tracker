@@ -758,6 +758,25 @@
 			"name": "Bank Sync (Akahu)",
 			"item": [
 				{
+					"name": "Get Connections",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/sync/connections",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sync",
+								"connections"
+							]
+						},
+						"description": "Get all bank connections"
+					},
+					"response": []
+				},
+				{
 					"name": "Setup Connection",
 					"request": {
 						"method": "POST",

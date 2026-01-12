@@ -3,6 +3,7 @@ import {
   testConnection,
   setupConnection,
   linkAccount,
+  unlinkAccount,
   triggerSync,
   getSyncStatus,
   getSyncHistory,
@@ -10,6 +11,7 @@ import {
   approveTransaction,
   rejectTransaction,
   linkTransaction,
+  getConnections,
   getConnectedAccounts,
 } from '../controllers/syncController';
 import { validate } from '../middlewares/validate';
@@ -17,6 +19,7 @@ import {
   testConnectionSchema,
   setupConnectionSchema,
   linkAccountSchema,
+  unlinkAccountSchema,
   triggerSyncSchema,
   getSyncStatusSchema,
   getSyncHistorySchema,
@@ -43,9 +46,11 @@ const router = Router();
  */
 
 // Connection management
+router.get('/connections', getConnections);
 router.post('/test', validate(testConnectionSchema), testConnection);
 router.post('/setup', validate(setupConnectionSchema), setupConnection);
 router.post('/link-account', validate(linkAccountSchema), linkAccount);
+router.post('/unlink-account', validate(unlinkAccountSchema), unlinkAccount);
 router.get('/accounts', validate(getConnectedAccountsSchema), getConnectedAccounts);
 
 // Sync operations
