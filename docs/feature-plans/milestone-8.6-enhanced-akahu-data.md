@@ -1,8 +1,8 @@
 # Milestone 8.6 - Enhanced Akahu Data Display
 
-**Status:** ✅ Complete (January 12, 2026)
+**Status:** ✅ Complete (January 13, 2026)
 **Priority:** Medium
-**Estimated Effort:** Small (6-7 hours actual)
+**Estimated Effort:** Small (6-7 hours actual + 2 hours for dev tools)
 **Dependencies:** Milestone 8.5 (Akahu Sync) ✅ Complete
 
 ## Overview
@@ -311,6 +311,44 @@ All three phases successfully implemented and committed to `feature/milestone-8.
 - Test with real Akahu data (multiple account types)
 - Monitor API performance for available balance fetching
 - Consider caching strategy if API calls become frequent
+
+---
+
+## Bonus Feature: Development Tools (January 13, 2026)
+
+After completing the main milestone deliverables, a development tools interface was added to facilitate testing and debugging.
+
+### Implementation:
+**Backend (3 files):**
+- backend/src/controllers/dev.controller.ts - Reset endpoints and database statistics
+- backend/src/routes/dev.routes.ts - Development API routes
+- backend/src/app.ts - Registered dev routes
+
+**Frontend (3 files):**
+- frontend/src/pages/Development.tsx - Development tools page
+- frontend/src/App.tsx - Added development route
+- frontend/src/components/layout/AppBar.tsx - Added development nav item
+
+### Features:
+- **Database Statistics Dashboard**: Real-time counts of all entities
+- **Granular Reset Operations**:
+  - Reset transactions only (preserves accounts and connections)
+  - Reset accounts (cascades to transactions)
+  - Reset bank connections (preserves manual data)
+  - Nuclear reset everything (preserves categories only)
+- **Safety Features**: Confirmation dialogs for all destructive operations
+- **Auto-refresh**: Statistics update automatically after resets
+- **Query Invalidation**: UI refreshes across the app after data deletion
+
+### Commits:
+- `773ab8b` [Feature] Add development tools page for database management
+
+### Value:
+- Speeds up testing by allowing quick database resets
+- Provides visibility into database state during development
+- Reduces need for manual database operations
+- Safe destruction with confirmation dialogs
+- Categories always preserved (seed data)
 
 ---
 

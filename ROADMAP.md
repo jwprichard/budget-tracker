@@ -400,21 +400,22 @@ When upgrading to Akahu OAuth tier:
 
 ---
 
-## Milestone 8.6: Enhanced Akahu Data Display
+## Milestone 8.6: Enhanced Akahu Data Display ✅
 
 **Objective**: Improve visibility of data already captured from Akahu API without additional API calls or schema changes.
 
-**Status**: PLANNED
+**Status**: COMPLETE (January 13, 2026)
+**Branch**: `feature/milestone-8.6-enhanced-akahu-data` (ready to merge)
 **Dependencies**: Milestone 8.5 (Akahu Sync) ✅ Complete
 **Feature Plan**: `/docs/feature-plans/milestone-8.6-enhanced-akahu-data.md`
 **Priority**: Medium - Quick wins for better UX
 **Estimated Effort**: Small (2-4 hours)
 
 ### Deliverables
-- [ ] Available balance display (credit cards)
-- [ ] Prominent merchant name display in transaction lists
-- [ ] Account status visual indicators
-- [ ] Foundation for balance trend charts (future)
+- [x] Available balance display (credit cards) ✓
+- [x] Account status visual indicators ✓
+- [x] Foundation for balance trend charts (future) ✓
+- [x] Development tools page for database management ✓ (Bonus feature)
 
 ### Features
 - **Available Balance**: Show both current and available balance for credit cards
@@ -649,12 +650,13 @@ Each milestone is considered complete when:
 
 ---
 
-**Last Updated**: January 7, 2026
-**Document Version**: 1.6
-**Latest Completion**: Milestone 3 - Category System (January 6, 2026)
+**Last Updated**: January 13, 2026
+**Document Version**: 1.7
+**Latest Completion**: Milestone 8.6 - Enhanced Akahu Data Display (January 13, 2026)
 **In Progress**: None (ready for next milestone)
 **Recent Changes**:
-- Milestone 8.6 - Enhanced Akahu Data Display (planned - quick UI improvements)
-- Milestone 8.5 - Bank Synchronization (Akahu Personal App) ✅ COMPLETE (Jan 7, 2026)
+- Milestone 8.6 - Enhanced Akahu Data Display ✅ COMPLETE (Jan 13, 2026)
+- Milestone 8.5 - Bank Synchronization (Akahu Personal App) ✅ COMPLETE (Jan 12, 2026)
+- Development Tools page added (Jan 13, 2026) - Database management interface
 - Milestone 3.5 - Smart Categorization & Rules Engine (planned)
 - Full Akahu OAuth Integration moved to Future Enhancements - requires multi-account tier upgrade

@@ -16,16 +16,17 @@ Full-Stack Web Application (Self-Hosted)
 
 ## Current Status
 
-- **Current Branch**: `feature/akahu-integration`
-- **Phase**: Milestone 8.5 - Bank Synchronization ✅ COMPLETE
-- **Last Feature Completed**: Akahu Bank Sync (January 12, 2026) ✓
+- **Current Branch**: `feature/milestone-8.6-enhanced-akahu-data`
+- **Phase**: Milestone 8.6 - Enhanced Akahu Data Display ✅ COMPLETE
+- **Last Feature Completed**: Enhanced Akahu Data Display + Development Tools (January 13, 2026) ✓
 - **Completed Milestones**:
   - Milestone 1 - Foundation & Core Setup ✅
   - Milestone 2 - Account & Transaction Management ✅
   - Milestone 8 (Partial) - CSV Import ✅
   - Milestone 8.5 - Akahu Bank Synchronization ✅
-- **Next Milestone**: Milestone 3 - Category System OR Milestone 8.6 - Enhanced Akahu Data Display (Quick Wins)
-- **Current Focus**: Ready for next feature - Categories or enhanced data display
+  - Milestone 8.6 - Enhanced Akahu Data Display ✅
+- **Next Milestone**: Milestone 3 - Category System (Ready to start)
+- **Current Focus**: Ready to merge feature branch and begin category system implementation
 - **Tests**: Not yet implemented (testing infrastructure planned for Milestone 11)
 
 ## Technology Stack
@@ -509,11 +510,11 @@ Color-coded balance status (green/yellow/red thresholds).
 ## Current Development Context
 
 ### What We're Working On
-- **Phase**: Milestone 8.5 - Akahu Bank Synchronization ✅ COMPLETE (Jan 12, 2026)
-- **Current Task**: All phases complete (Backend API + Frontend Integration + Optimizations)
-- **Branch**: `feature/akahu-integration` (ready to merge to main)
+- **Phase**: Milestone 8.6 - Enhanced Akahu Data Display ✅ COMPLETE (Jan 13, 2026)
+- **Current Task**: All milestones complete (8.5 + 8.6)
+- **Branch**: `feature/milestone-8.6-enhanced-akahu-data` (ready to merge to main)
 - **Status**: Feature complete, tested, and committed
-- **Next Phase**: Milestone 3 (Category System) OR Milestone 8.6 (Enhanced Akahu Data Display - Quick Wins)
+- **Next Phase**: Milestone 3 (Category System)
 
 ### Recent Decisions (Updated Jan 12, 2026)
 - Chose PostgreSQL over MySQL for better ACID compliance and JSON support
@@ -577,6 +578,16 @@ Color-coded balance status (green/yellow/red thresholds).
   - Retry delays: 1s, 2s, 4s for 429/500 errors
   - 500ms delay between pagination requests
   - 1-second delay between different accounts
+- **Enhanced Akahu Data Display (Jan 13, 2026)** - Improved visibility of bank sync data
+  - Available balance display for credit cards
+  - Account status indicators (ACTIVE/INACTIVE with visual badges)
+  - Foundation for future balance trend charts
+- **Development Tools (Jan 13, 2026)** - Database management interface for testing
+  - Development page with database statistics dashboard
+  - Granular reset operations (transactions, accounts, bank connections, or everything)
+  - Confirmation dialogs for safety
+  - Real-time statistics with refresh capability
+  - Categories preserved in all reset operations
 
 ### Known Issues
 None - All Docker build, runtime, and CSV import issues resolved
@@ -594,13 +605,9 @@ None - All Docker build, runtime, and CSV import issues resolved
 3. ✅ Implement CSV Transaction Import (Milestone 8 - Partial) (COMPLETE - Jan 6, 2026)
 4. ✅ Merge `feature/transaction-import` to `main` branch (COMPLETE - Jan 6, 2026)
 5. ✅ Implement Akahu Bank Synchronization (Milestone 8.5) (COMPLETE - Jan 12, 2026)
-6. Merge `feature/akahu-integration` to `main` branch
-7. OPTION A: Implement Enhanced Akahu Data Display (Milestone 8.6) - Quick Wins (2-4 hours)
-   - Available balance display (credit cards)
-   - Prominent merchant name display
-   - Account status indicators
-   - Foundation for balance trend charts
-8. OPTION B: Create feature plan for Category System (Milestone 3)
+6. ✅ Implement Enhanced Akahu Data Display (Milestone 8.6) (COMPLETE - Jan 13, 2026)
+7. Merge `feature/milestone-8.6-enhanced-akahu-data` to `main` branch
+8. Create feature plan for Category System (Milestone 3)
    - Hierarchical category data model (Prisma schema)
    - Default category seed data (Income, Housing, Transportation, Food & Dining, etc.)
    - Category CRUD API endpoints with validation
@@ -611,7 +618,7 @@ None - All Docker build, runtime, and CSV import issues resolved
    - Subcategory breakdown views
    - Category filtering in transaction lists
    - Auto-categorization using Akahu's category data (Milestone 3.5)
-9. Begin implementation of next chosen feature
+9. Begin implementation of Category System (Milestone 3)
 
 ## Project-Specific Notes
 
@@ -853,7 +860,7 @@ docker system prune -a --volumes  # Removes all stopped containers, unused image
 
 ---
 
-**Last Updated**: January 7, 2026
-**Current Phase**: Milestone 8.5 - Akahu Personal App Integration (Backend Complete - Phases 1-3) ✅
+**Last Updated**: January 13, 2026
+**Current Phase**: Milestone 8.6 - Enhanced Akahu Data Display ✅ COMPLETE
 **Framework/Platform**: React + Node.js + PostgreSQL (Full-Stack TypeScript)
-**Status**: Backend sync API complete with 10 endpoints, Postman collection created, ready for frontend integration (Phase 4)
+**Status**: Enhanced Akahu data display complete with available balance, account status indicators, and development tools page. Ready to merge and begin Milestone 3 (Category System).
