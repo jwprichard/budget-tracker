@@ -99,6 +99,7 @@ model Transaction {
   amount          Decimal           @db.Decimal(15, 2)
   date            DateTime
   description     String
+  merchant        String?           // Merchant name from bank
   notes           String?
   status          TransactionStatus @default(CLEARED)
   transferToAccountId String?       // Links to destination account for transfers
