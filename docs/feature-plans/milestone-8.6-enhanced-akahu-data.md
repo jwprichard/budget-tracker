@@ -1,8 +1,8 @@
 # Milestone 8.6 - Enhanced Akahu Data Display
 
-**Status:** Planning
+**Status:** ✅ Complete (January 12, 2026)
 **Priority:** Medium
-**Estimated Effort:** Small (2-4 hours)
+**Estimated Effort:** Small (6-7 hours actual)
 **Dependencies:** Milestone 8.5 (Akahu Sync) ✅ Complete
 
 ## Overview
@@ -218,10 +218,99 @@ Minimal - just expose additional fields in responses:
 ## Notes
 
 - **No breaking changes** - All enhancements are additive
-- **No additional API calls** - Uses existing data
+- **No additional API calls** - Uses existing data (except Phase 1 on-demand fetching)
 - **Quick wins first** - Start with high-value, low-effort items
 - **Mobile-first** - Ensure all displays work on small screens
 - **Graceful degradation** - Handle missing data elegantly
+
+---
+
+## Implementation Summary (January 12, 2026)
+
+All three phases successfully implemented and committed to `feature/milestone-8.6-enhanced-akahu-data` branch.
+
+### Phase 1: Available Balance Display ✅
+**Implementation:**
+- Backend: Added getAvailableBalance endpoint (GET /api/v1/accounts/:id/available-balance)
+- Service method queries Akahu API in real-time for linked accounts
+- Frontend: useAvailableBalance hook with 30s stale time, 60s auto-refresh
+- Display in AccountCard with border separator and "Credit Available" label
+- Display in AccountDetails page below initial balance
+- Graceful handling: only shows for linked accounts with available data
+
+**Commits:**
+- `17cf4eb` [Feature] Add available balance endpoint for linked accounts
+- `924d0b1` [Feature] Display available balance for linked accounts
+
+### Phase 2: Merchant Display Enhancement ✅
+**Implementation:**
+- Database: Added merchant field to Transaction model (nullable string)
+- Migration: 20260112164055_add_merchant_to_transactions
+- Backend: Updated TransactionMappingService to preserve both merchant and description
+- Frontend: Enhanced TransactionListItem with prominent merchant display (bold text)
+- Added "Bank" badge chip for synced transactions
+- Shows merchant as primary, description as secondary text
+- Fallback to description when no merchant available
+
+**Commits:**
+- `e88b0de` [Migration] Add merchant field to Transaction model
+- `cad038c` [Feature] Map merchant data to separate field in transactions
+- `a711f77` [Feature] Enhanced merchant display in transaction list
+
+### Phase 3: Account Status Indicators ✅
+**Implementation:**
+- Database: Added status field to LinkedAccount model (nullable string)
+- Migration: 20260112164421_add_status_to_linked_accounts
+- Backend: Updated SyncService to store account status during sync
+- Frontend: Enhanced AccountCard with color-coded status badges
+  - CLOSED: Red chip
+  - DORMANT: Orange/warning chip
+  - ERROR: Red chip with error icon
+  - ACTIVE: No badge (clean UI)
+- Added flexWrap for proper mobile layout
+
+**Commits:**
+- `381f974` [Migration] Add status field to LinkedAccount model
+- `ec18ec1` [Feature] Store account status during bank sync
+- `9884aad` [Feature] Display account status indicators
+
+### Files Modified:
+**Backend (6 files):**
+- backend/prisma/schema.prisma (merchant + status fields)
+- backend/src/services/account.service.ts (getAvailableBalance method)
+- backend/src/controllers/account.controller.ts (available balance controller)
+- backend/src/routes/account.routes.ts (new route)
+- backend/src/services/TransactionMappingService.ts (separate merchant field)
+- backend/src/services/SyncService.ts (store status)
+
+**Frontend (7 files):**
+- frontend/src/types/index.ts (Account + Transaction interfaces)
+- frontend/src/services/account.service.ts (getAvailableBalance API call)
+- frontend/src/hooks/useAccounts.ts (useAvailableBalance hook)
+- frontend/src/components/accounts/AccountCard.tsx (all three enhancements)
+- frontend/src/components/transactions/TransactionListItem.tsx (merchant display)
+- frontend/src/pages/AccountDetails.tsx (available balance)
+
+### Success Metrics:
+- ✅ All acceptance criteria met for all three phases
+- ✅ Mobile responsive across all components
+- ✅ Graceful degradation for missing data
+- ✅ No breaking changes to existing functionality
+- ✅ Database migrations applied successfully (2 migrations)
+- ✅ 8 logical commits following project conventions
+
+### Testing Notes:
+- Manual testing completed in Docker environment
+- All edge cases handled (null checks, missing data, non-linked accounts)
+- Available balance auto-refreshes every 60 seconds
+- Status badges display correctly for all status types
+- Merchant display falls back gracefully when no merchant data
+
+### Next Steps:
+- Merge feature branch to main
+- Test with real Akahu data (multiple account types)
+- Monitor API performance for available balance fetching
+- Consider caching strategy if API calls become frequent
 
 ---
 
