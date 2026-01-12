@@ -22,6 +22,7 @@ import {
   Receipt as TransactionsIcon,
   Category as CategoryIcon,
   Sync as SyncIcon,
+  Build as DevelopmentIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -31,6 +32,7 @@ const navigation = [
   { name: 'Transactions', path: '/transactions', icon: <TransactionsIcon /> },
   { name: 'Categories', path: '/categories', icon: <CategoryIcon /> },
   { name: 'Bank Sync', path: '/bank-sync', icon: <SyncIcon /> },
+  { name: 'Development', path: '/development', icon: <DevelopmentIcon /> },
 ];
 
 export const AppBar = () => {
