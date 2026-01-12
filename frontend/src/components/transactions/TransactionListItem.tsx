@@ -43,12 +43,36 @@ export const TransactionListItem = ({ transaction, onEdit, onDelete }: Transacti
       <TableCell>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           {isTransfer && <TransferIcon fontSize="small" color="action" />}
-          <Box>
-            <Typography variant="body2">{transaction.description}</Typography>
-            {transaction.notes && (
-              <Typography variant="caption" color="text.secondary">
-                {transaction.notes}
-              </Typography>
+          <Box sx={{ flex: 1 }}>
+            {transaction.merchant ? (
+              <>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    {transaction.merchant}
+                  </Typography>
+                  {transaction.isFromBank && (
+                    <Chip
+                      label="Bank"
+                      size="small"
+                      variant="outlined"
+                      color="primary"
+                      sx={{ height: 18, fontSize: '0.65rem' }}
+                    />
+                  )}
+                </Box>
+                <Typography variant="caption" color="text.secondary">
+                  {transaction.description}
+                </Typography>
+              </>
+            ) : (
+              <>
+                <Typography variant="body2">{transaction.description}</Typography>
+                {transaction.notes && (
+                  <Typography variant="caption" color="text.secondary">
+                    {transaction.notes}
+                  </Typography>
+                )}
+              </>
             )}
           </Box>
         </Box>

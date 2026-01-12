@@ -72,9 +72,11 @@ export interface Transaction {
   amount: string;
   date: string;
   description: string;
+  merchant: string | null;
   notes: string | null;
   status: TransactionStatus;
   transferToAccountId: string | null;
+  isFromBank: boolean;
   createdAt: string;
   updatedAt: string;
   account?: {
@@ -96,6 +98,7 @@ export interface CreateTransactionDto {
   amount: number;
   date: string;
   description: string;
+  merchant?: string;
   notes?: string;
   status?: TransactionStatus;
 }
@@ -107,6 +110,7 @@ export interface UpdateTransactionDto {
   amount?: number;
   date?: string;
   description?: string;
+  merchant?: string;
   notes?: string;
   status?: TransactionStatus;
 }
