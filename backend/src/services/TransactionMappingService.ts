@@ -35,11 +35,16 @@ export class TransactionMappingService {
     const type: TransactionType =
       externalTransaction.amount >= 0 ? TransactionType.INCOME : TransactionType.EXPENSE;
 
-    // Clean and format description
-    const description = this.cleanDescription(externalTransaction);
+    // Keep original bank description (don't collapse with merchant)
+    const description = this.cleanString(externalTransaction.description);
 
-    // Build notes with additional metadata
-    const notes = this.buildNotes(externalTransaction);
+    // Store merchant separately if available
+    const merchant = externalTransaction.merchant
+      ? this.cleanString(externalTransaction.merchant)
+      : null;
+
+    // Build notes with metadata (no need to include bank description anymore)
+    const notes = this.buildNotesWithMetadata(externalTransaction);
 
     return {
       accountId: localAccountId,
@@ -47,6 +52,7 @@ export class TransactionMappingService {
       amount: externalTransaction.amount,
       date: externalTransaction.date,
       description,
+      merchant,
       notes,
       status: TransactionStatus.CLEARED, // Bank transactions are already cleared
       categoryId: null, // Will be assigned by categorization rules later (Milestone 3.5)
@@ -55,60 +61,22 @@ export class TransactionMappingService {
   }
 
   /**
-   * Clean and format transaction description
-   *
-   * Priority:
-   * 1. Merchant name (if available and different from description)
-   * 2. Original description (cleaned)
-   *
-   * @param externalTransaction - Transaction from provider
-   * @returns Cleaned description
-   */
-  private cleanDescription(externalTransaction: {
-    description: string;
-    merchant?: string;
-  }): string {
-    // Use merchant name if available and different from description
-    if (externalTransaction.merchant) {
-      const merchantLower = externalTransaction.merchant.toLowerCase();
-      const descriptionLower = externalTransaction.description.toLowerCase();
-
-      // If merchant name is not contained in description, prefer merchant
-      if (!descriptionLower.includes(merchantLower)) {
-        return this.cleanString(externalTransaction.merchant);
-      }
-    }
-
-    // Otherwise, clean and use original description
-    return this.cleanString(externalTransaction.description);
-  }
-
-  /**
-   * Build notes field with additional metadata
+   * Build notes field with metadata
    *
    * Includes:
-   * - Original bank description (if different from cleaned description)
    * - Bank category (if available)
    * - Balance after transaction (if available)
+   *
+   * Note: Merchant is now stored in separate field, not in notes
    *
    * @param externalTransaction - Transaction from provider
    * @returns Notes string or null if no additional info
    */
-  private buildNotes(externalTransaction: {
-    description: string;
-    merchant?: string;
+  private buildNotesWithMetadata(externalTransaction: {
     category?: string;
     balance?: number;
   }): string | null {
     const notes: string[] = [];
-
-    // Add original bank description if merchant was used
-    if (
-      externalTransaction.merchant &&
-      externalTransaction.merchant !== externalTransaction.description
-    ) {
-      notes.push(`Bank description: ${externalTransaction.description}`);
-    }
 
     // Add bank category if available
     if (externalTransaction.category) {
