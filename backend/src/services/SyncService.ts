@@ -233,6 +233,7 @@ export class SyncService {
           externalType: extAccount.type,
           institution: extAccount.institution,
           accountNumber: extAccount.accountNumber,
+          status: extAccount.status,
           lastSync: new Date(),
         },
         create: {
@@ -242,6 +243,7 @@ export class SyncService {
           externalType: extAccount.type,
           institution: extAccount.institution,
           accountNumber: extAccount.accountNumber,
+          status: extAccount.status,
           syncEnabled: true,
         },
       });
