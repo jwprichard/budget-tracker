@@ -70,6 +70,20 @@ export const getAccountBalance = async (id: string): Promise<AccountBalance> => 
 };
 
 /**
+ * Get available balance from bank for linked account
+ * @param id - Account UUID
+ * @returns Balance data or null if not linked
+ */
+export const getAvailableBalance = async (
+  id: string
+): Promise<{ current: number; available: number | null } | null> => {
+  const response = await apiClient.get<
+    SuccessResponse<{ current: number; available: number | null } | null>
+  >(`${BASE_PATH}/${id}/available-balance`);
+  return response.data.data;
+};
+
+/**
  * Get transactions for an account (paginated)
  * @param id - Account UUID
  * @param page - Page number (default: 1)

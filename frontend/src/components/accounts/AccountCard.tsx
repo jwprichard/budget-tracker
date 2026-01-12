@@ -3,7 +3,7 @@ import { LinkOff as UnlinkIcon, Link as LinkIcon, Error as ErrorIcon } from '@mu
 import { Account } from '../../types';
 import { AccountTypeIcon } from './AccountTypeIcon';
 import { BalanceDisplay } from '../common/BalanceDisplay';
-import { useAccountBalance } from '../../hooks/useAccounts';
+import { useAccountBalance, useAvailableBalance } from '../../hooks/useAccounts';
 import { LoadingSpinner } from '../common/LoadingSpinner';
 import { unlinkAccount } from '../../services/sync.service';
 import { useState } from 'react';
@@ -16,6 +16,9 @@ interface AccountCardProps {
 
 export const AccountCard = ({ account, onClick, onUnlink }: AccountCardProps) => {
   const { data: balanceData, isLoading } = useAccountBalance(account.id);
+  const { data: availableBalance } = useAvailableBalance(
+    account.isLinkedToBank ? account.id : undefined
+  );
   const [unlinking, setUnlinking] = useState(false);
 
   const handleClick = () => {
@@ -146,6 +149,26 @@ export const AccountCard = ({ account, onClick, onUnlink }: AccountCardProps) =>
                 {balanceData?.transactionCount || 0} transaction
                 {balanceData?.transactionCount !== 1 ? 's' : ''}
               </Typography>
+
+              {availableBalance && availableBalance.available !== null && (
+                <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Available Balance
+                  </Typography>
+                  <Box>
+                    <BalanceDisplay
+                      amount={availableBalance.available}
+                      currency={account.currency}
+                      variant="body2"
+                    />
+                  </Box>
+                  {account.type === 'CREDIT_CARD' && (
+                    <Typography variant="caption" color="success.main" sx={{ display: 'block' }}>
+                      Credit Available
+                    </Typography>
+                  )}
+                </Box>
+              )}
             </Box>
           )}
         </CardContent>

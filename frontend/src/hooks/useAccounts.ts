@@ -6,6 +6,7 @@ import {
   updateAccount,
   deleteAccount,
   getAccountBalance,
+  getAvailableBalance,
   getAccountTransactions,
 } from '../services/account.service';
 import {
@@ -61,6 +62,22 @@ export const useAccountBalance = (id: string | undefined): UseQueryResult<Accoun
     queryKey: accountKeys.balance(id!),
     queryFn: () => getAccountBalance(id!),
     enabled: !!id,
+  });
+};
+
+/**
+ * Hook to fetch available balance from bank for linked account
+ * @param accountId - Account UUID
+ */
+export const useAvailableBalance = (
+  accountId: string | undefined
+): UseQueryResult<{ current: number; available: number | null } | null, Error> => {
+  return useQuery({
+    queryKey: ['availableBalance', accountId],
+    queryFn: () => getAvailableBalance(accountId!),
+    enabled: !!accountId,
+    staleTime: 30000, // 30 seconds - balance data is time-sensitive
+    refetchInterval: 60000, // Refetch every minute
   });
 };
 

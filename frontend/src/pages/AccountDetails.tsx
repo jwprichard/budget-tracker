@@ -21,6 +21,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   useAccount,
   useAccountBalance,
+  useAvailableBalance,
   useAccountTransactions,
   useUpdateAccount,
   useDeleteAccount,
@@ -53,6 +54,9 @@ export const AccountDetails = () => {
   // Queries
   const { data: account, isLoading: accountLoading, error: accountError } = useAccount(id);
   const { data: balance, isLoading: balanceLoading } = useAccountBalance(id);
+  const { data: availableBalance } = useAvailableBalance(
+    account?.isLinkedToBank ? id : undefined
+  );
   const {
     data: transactionsData,
     isLoading: transactionsLoading,
@@ -202,6 +206,12 @@ export const AccountDetails = () => {
             <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
               Initial Balance: {account.currency} {parseFloat(account.initialBalance).toFixed(2)}
             </Typography>
+            {availableBalance && availableBalance.available !== null && (
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                Available: {account.currency} {availableBalance.available.toFixed(2)}
+                {account.type === 'CREDIT_CARD' && ' (Credit Available)'}
+              </Typography>
+            )}
           </Grid>
         </Grid>
 
