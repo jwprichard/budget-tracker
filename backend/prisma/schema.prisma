@@ -174,6 +174,7 @@ model LinkedAccount {
 
   // Sync control
   syncEnabled       Boolean   @default(true)
+  status            String?   // Account status: ACTIVE, CLOSED, DORMANT, ERROR
   lastSync          DateTime?
 
   createdAt         DateTime  @default(now())
