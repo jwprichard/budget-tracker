@@ -1,5 +1,5 @@
 import { Card, CardContent, CardActionArea, Typography, Box, Chip, IconButton, Tooltip } from '@mui/material';
-import { LinkOff as UnlinkIcon, Link as LinkIcon } from '@mui/icons-material';
+import { LinkOff as UnlinkIcon, Link as LinkIcon, Error as ErrorIcon } from '@mui/icons-material';
 import { Account } from '../../types';
 import { AccountTypeIcon } from './AccountTypeIcon';
 import { BalanceDisplay } from '../common/BalanceDisplay';
@@ -74,7 +74,7 @@ export const AccountCard = ({ account, onClick, onUnlink }: AccountCardProps) =>
                 </Typography>
               </Box>
             </Box>
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
               {account.isLinkedToBank && (
                 <Tooltip title="Unlink from bank">
                   <IconButton
@@ -87,6 +87,23 @@ export const AccountCard = ({ account, onClick, onUnlink }: AccountCardProps) =>
                   </IconButton>
                 </Tooltip>
               )}
+
+              {/* Status badges */}
+              {account.linkedAccount?.status === 'CLOSED' && (
+                <Chip label="Closed" size="small" color="error" />
+              )}
+              {account.linkedAccount?.status === 'DORMANT' && (
+                <Chip label="Dormant" size="small" color="warning" />
+              )}
+              {account.linkedAccount?.status === 'ERROR' && (
+                <Chip
+                  label="Error"
+                  size="small"
+                  color="error"
+                  icon={<ErrorIcon fontSize="small" />}
+                />
+              )}
+
               {!account.isActive && (
                 <Chip label="Inactive" size="small" color="default" variant="outlined" />
               )}

@@ -34,6 +34,13 @@ export interface Account {
   currency: string;
   initialBalance: string;
   isActive: boolean;
+  isLinkedToBank: boolean;
+  lastBankSync: string | null;
+  linkedAccount?: {
+    status: string | null;
+    institution: string;
+    externalName: string;
+  };
   createdAt: string;
   updatedAt: string;
 }
