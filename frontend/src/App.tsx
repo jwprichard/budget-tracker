@@ -10,6 +10,7 @@ import { AccountDetails } from './pages/AccountDetails';
 import { Transactions } from './pages/Transactions';
 import { Categories } from './pages/Categories';
 import { BankSync } from './pages/BankSync';
+import { Analytics } from './pages/Analytics';
 import { Development } from './pages/Development';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -197,6 +198,7 @@ function App() {
                   <Route path="/transactions" element={<Transactions />} />
                   <Route path="/categories" element={<Categories />} />
                   <Route path="/bank-sync" element={<BankSync />} />
+                  <Route path="/analytics" element={<Analytics />} />
                   <Route path="/development" element={<Development />} />
                 </Route>
               </Route>

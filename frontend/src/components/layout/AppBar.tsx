@@ -26,6 +26,7 @@ import {
   Receipt as TransactionsIcon,
   Category as CategoryIcon,
   Sync as SyncIcon,
+  BarChart as AnalyticsIcon,
   Build as DevelopmentIcon,
   Logout as LogoutIcon,
   AccountCircle as AccountCircleIcon,
@@ -39,6 +40,7 @@ const navigation = [
   { name: 'Transactions', path: '/transactions', icon: <TransactionsIcon /> },
   { name: 'Categories', path: '/categories', icon: <CategoryIcon /> },
   { name: 'Bank Sync', path: '/bank-sync', icon: <SyncIcon /> },
+  { name: 'Analytics', path: '/analytics', icon: <AnalyticsIcon /> },
   { name: 'Development', path: '/development', icon: <DevelopmentIcon /> },
 ];
 
