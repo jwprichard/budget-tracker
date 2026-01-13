@@ -12,12 +12,15 @@ export class TransactionService {
 
   /**
    * Get all transactions with filtering and pagination
+   * @param userId - User UUID
    * @param query - Query parameters for filtering, sorting, and pagination
    */
-  async getAllTransactions(query: TransactionQuery) {
+  async getAllTransactions(userId: string, query: TransactionQuery) {
     const { accountId, type, status, startDate, endDate, page, pageSize, sortBy, sortOrder } = query;
 
-    const where: Prisma.TransactionWhereInput = {};
+    const where: Prisma.TransactionWhereInput = {
+      userId, // Filter by user
+    };
 
     if (accountId) where.accountId = accountId;
     if (type) where.type = type;
@@ -62,11 +65,12 @@ export class TransactionService {
   /**
    * Get transaction by ID with related account info
    * @param id - Transaction UUID
-   * @throws AppError if transaction not found
+   * @param userId - User UUID
+   * @throws AppError if transaction not found or doesn't belong to user
    */
-  async getTransactionById(id: string): Promise<Transaction> {
-    const transaction = await this.prisma.transaction.findUnique({
-      where: { id },
+  async getTransactionById(id: string, userId: string): Promise<Transaction> {
+    const transaction = await this.prisma.transaction.findFirst({
+      where: { id, userId },
       include: {
         account: {
           select: { id: true, name: true, type: true },
@@ -88,12 +92,13 @@ export class TransactionService {
    * Create a new transaction
    * Automatically converts amount to negative for expenses
    * @param data - Transaction creation data
-   * @throws AppError if account not found or inactive
+   * @param userId - User UUID
+   * @throws AppError if account not found, doesn't belong to user, or inactive
    */
-  async createTransaction(data: CreateTransactionDto): Promise<Transaction> {
-    // Verify account exists and is active
-    const account = await this.prisma.account.findUnique({
-      where: { id: data.accountId },
+  async createTransaction(data: CreateTransactionDto, userId: string): Promise<Transaction> {
+    // Verify account exists, belongs to user, and is active
+    const account = await this.prisma.account.findFirst({
+      where: { id: data.accountId, userId },
     });
 
     if (!account) {
@@ -114,6 +119,7 @@ export class TransactionService {
 
     return this.prisma.transaction.create({
       data: {
+        userId,
         accountId: data.accountId,
         categoryId: data.categoryId,
         type: data.type,
@@ -132,13 +138,14 @@ export class TransactionService {
    * Both transactions are linked via transferToAccountId
    * Uses database transaction to ensure atomicity
    * @param data - Transfer creation data
-   * @throws AppError if accounts not found, inactive, or same account
+   * @param userId - User UUID
+   * @throws AppError if accounts not found, don't belong to user, inactive, or same account
    */
-  async createTransfer(data: CreateTransferDto): Promise<{ fromTransaction: Transaction; toTransaction: Transaction }> {
-    // Verify both accounts exist and are active
+  async createTransfer(data: CreateTransferDto, userId: string): Promise<{ fromTransaction: Transaction; toTransaction: Transaction }> {
+    // Verify both accounts exist, belong to user, and are active
     const [fromAccount, toAccount] = await Promise.all([
-      this.prisma.account.findUnique({ where: { id: data.fromAccountId } }),
-      this.prisma.account.findUnique({ where: { id: data.toAccountId } }),
+      this.prisma.account.findFirst({ where: { id: data.fromAccountId, userId } }),
+      this.prisma.account.findFirst({ where: { id: data.toAccountId, userId } }),
     ]);
 
     if (!fromAccount) {
@@ -156,6 +163,7 @@ export class TransactionService {
       // Transaction 1: Expense from source account
       const fromTransaction = await tx.transaction.create({
         data: {
+          userId,
           accountId: data.fromAccountId,
           type: 'EXPENSE',
           amount: -Math.abs(data.amount), // Negative for expense
@@ -170,6 +178,7 @@ export class TransactionService {
       // Transaction 2: Income to destination account
       const toTransaction = await tx.transaction.create({
         data: {
+          userId,
           accountId: data.toAccountId,
           type: 'INCOME',
           amount: Math.abs(data.amount), // Positive for income
@@ -193,20 +202,21 @@ export class TransactionService {
    * Adjusts amount based on type if both are provided
    * @param id - Transaction UUID
    * @param data - Transaction update data
-   * @throws AppError if transaction not found, is a transfer, or account invalid
+   * @param userId - User UUID
+   * @throws AppError if transaction not found, doesn't belong to user, is a transfer, or account invalid
    */
-  async updateTransaction(id: string, data: UpdateTransactionDto): Promise<Transaction> {
-    const transaction = await this.getTransactionById(id);
+  async updateTransaction(id: string, data: UpdateTransactionDto, userId: string): Promise<Transaction> {
+    const transaction = await this.getTransactionById(id, userId);
 
     // Prevent direct updates to transfer transactions
     if (transaction.transferToAccountId) {
       throw new AppError('Cannot update transfer transactions directly. Delete and recreate instead.', 400);
     }
 
-    // If changing account, verify new account exists and is active
+    // If changing account, verify new account exists, belongs to user, and is active
     if (data.accountId && data.accountId !== transaction.accountId) {
-      const account = await this.prisma.account.findUnique({
-        where: { id: data.accountId },
+      const account = await this.prisma.account.findFirst({
+        where: { id: data.accountId, userId },
       });
       if (!account || !account.isActive) {
         throw new AppError('Invalid account', 400);
@@ -240,16 +250,18 @@ export class TransactionService {
    * If it's a transfer, deletes both linked transactions
    * Uses database transaction to ensure atomicity
    * @param id - Transaction UUID
-   * @throws AppError if transaction not found
+   * @param userId - User UUID
+   * @throws AppError if transaction not found or doesn't belong to user
    */
-  async deleteTransaction(id: string): Promise<void> {
-    const transaction = await this.getTransactionById(id);
+  async deleteTransaction(id: string, userId: string): Promise<void> {
+    const transaction = await this.getTransactionById(id, userId);
 
     // If it's a transfer, delete both transactions
     if (transaction.transferToAccountId) {
-      // Find the linked transaction
+      // Find the linked transaction (must also belong to same user)
       const linkedTransaction = await this.prisma.transaction.findFirst({
         where: {
+          userId,
           accountId: transaction.transferToAccountId,
           transferToAccountId: transaction.accountId,
           date: transaction.date,
@@ -277,17 +289,22 @@ export class TransactionService {
    * Find duplicate transactions
    * Checks for transactions with same date, amount, and description
    * @param accountId - Account ID to search within
+   * @param userId - User UUID
    * @param transactions - Array of transactions to check
    * @returns Array of indices that are duplicates
    */
   async findDuplicates(
     accountId: string,
+    userId: string,
     transactions: Array<{ date: Date; amount: number; description: string }>
   ): Promise<number[]> {
     const duplicateIndices: number[] = [];
 
     for (let i = 0; i < transactions.length; i++) {
-      const { date, amount, description } = transactions[i];
+      const transaction = transactions[i];
+      if (!transaction) continue;
+
+      const { date, amount, description } = transaction;
 
       // Normalize date to start of day for comparison
       const dateStart = new Date(date);
@@ -299,6 +316,7 @@ export class TransactionService {
       const existing = await this.prisma.transaction.findFirst({
         where: {
           accountId,
+          userId,
           date: {
             gte: dateStart,
             lte: dateEnd,
@@ -324,6 +342,7 @@ export class TransactionService {
    * @param accountId - Account ID to import into
    * @param transactions - Array of transactions to import
    * @param skipDuplicates - Whether to skip duplicate transactions
+   * @param userId - User UUID
    * @returns Import summary with counts and errors
    */
   async bulkImport(
@@ -336,15 +355,16 @@ export class TransactionService {
       notes?: string;
       status?: 'PENDING' | 'CLEARED' | 'RECONCILED';
     }>,
-    skipDuplicates = true
+    skipDuplicates = true,
+    userId: string
   ): Promise<{
     imported: number;
     skipped: number;
     errors: Array<{ row: number; message: string }>;
   }> {
-    // Verify account exists
-    const account = await this.prisma.account.findUnique({
-      where: { id: accountId },
+    // Verify account exists and belongs to user
+    const account = await this.prisma.account.findFirst({
+      where: { id: accountId, userId },
     });
 
     if (!account) {
@@ -365,7 +385,7 @@ export class TransactionService {
         amount: t.type === 'EXPENSE' ? -Math.abs(t.amount) : Math.abs(t.amount),
         description: t.description,
       }));
-      duplicateIndices = await this.findDuplicates(accountId, transactionsForDuplicateCheck);
+      duplicateIndices = await this.findDuplicates(accountId, userId, transactionsForDuplicateCheck);
     }
 
     // Process each transaction
@@ -378,6 +398,7 @@ export class TransactionService {
 
       try {
         const transaction = transactions[i];
+        if (!transaction) continue;
 
         // Convert amount based on type
         let amount = transaction.amount;
@@ -390,6 +411,7 @@ export class TransactionService {
         // Create transaction
         await this.prisma.transaction.create({
           data: {
+            userId,
             accountId,
             type: transaction.type,
             amount,

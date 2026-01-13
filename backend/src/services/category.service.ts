@@ -13,13 +13,20 @@ export class CategoryService {
   constructor(private prisma: PrismaClient) {}
 
   /**
-   * Get all categories
+   * Get all categories (system categories + user's own categories)
+   * @param userId - User UUID
    * @param parentId - Optional parent category ID to filter by
    * @param includeChildren - Whether to include child categories (default: false)
    */
-  async getAllCategories(parentId?: string, includeChildren: boolean = false): Promise<CategoryWithChildren[]> {
+  async getAllCategories(userId: string, parentId?: string, includeChildren: boolean = false): Promise<CategoryWithChildren[]> {
     const categories = await this.prisma.category.findMany({
-      where: parentId !== undefined ? { parentId } : { parentId: null },
+      where: {
+        ...(parentId !== undefined ? { parentId } : { parentId: null }),
+        OR: [
+          { userId: null }, // System categories
+          { userId }, // User's own categories
+        ],
+      },
       include: includeChildren
         ? {
             children: {
@@ -34,14 +41,21 @@ export class CategoryService {
   }
 
   /**
-   * Get category by ID
+   * Get category by ID (allows access to system categories + user's own)
    * @param id - Category UUID
+   * @param userId - User UUID
    * @param includeChildren - Whether to include child categories (default: false)
-   * @throws AppError if category not found
+   * @throws AppError if category not found or doesn't belong to user
    */
-  async getCategoryById(id: string, includeChildren: boolean = false): Promise<CategoryWithChildren> {
-    const category = await this.prisma.category.findUnique({
-      where: { id },
+  async getCategoryById(id: string, userId: string, includeChildren: boolean = false): Promise<CategoryWithChildren> {
+    const category = await this.prisma.category.findFirst({
+      where: {
+        id,
+        OR: [
+          { userId: null }, // System category
+          { userId }, // User's own category
+        ],
+      },
       include: includeChildren
         ? {
             children: {
@@ -62,16 +76,18 @@ export class CategoryService {
   /**
    * Create a new category
    * @param data - Category creation data
-   * @throws AppError if parent category not found
+   * @param userId - User UUID
+   * @throws AppError if parent category not found or doesn't belong to user
    */
-  async createCategory(data: CreateCategoryDto): Promise<Category> {
-    // If parentId is provided, verify parent exists
+  async createCategory(data: CreateCategoryDto, userId: string): Promise<Category> {
+    // If parentId is provided, verify parent exists and is accessible to user
     if (data.parentId) {
-      await this.getCategoryById(data.parentId);
+      await this.getCategoryById(data.parentId, userId);
     }
 
     return this.prisma.category.create({
       data: {
+        userId,
         name: data.name,
         color: data.color || '#757575',
         icon: data.icon,
@@ -84,11 +100,18 @@ export class CategoryService {
    * Update an existing category
    * @param id - Category UUID
    * @param data - Category update data
-   * @throws AppError if category not found or circular reference detected
+   * @param userId - User UUID
+   * @throws AppError if category not found, doesn't belong to user, is a system category, or circular reference detected
    */
-  async updateCategory(id: string, data: UpdateCategoryDto): Promise<Category> {
-    // Verify category exists
-    await this.getCategoryById(id);
+  async updateCategory(id: string, data: UpdateCategoryDto, userId: string): Promise<Category> {
+    // Verify category exists and belongs to user (cannot update system categories)
+    const category = await this.prisma.category.findFirst({
+      where: { id, userId }, // Must be user's own category
+    });
+
+    if (!category) {
+      throw new AppError('Category not found or cannot be updated', 404);
+    }
 
     // If updating parentId, check for circular reference
     if (data.parentId !== undefined) {
@@ -99,7 +122,7 @@ export class CategoryService {
 
       // If parentId is not null, check for circular reference
       if (data.parentId) {
-        await this.checkCircularReference(id, data.parentId);
+        await this.checkCircularReference(id, data.parentId, userId);
       }
     }
 
@@ -111,22 +134,32 @@ export class CategoryService {
 
   /**
    * Delete a category
-   * Cannot delete if category has children or is used in transactions
+   * Cannot delete system categories or categories with children or transactions
    * @param id - Category UUID
-   * @throws AppError if category not found, has children, or has transactions
+   * @param userId - User UUID
+   * @throws AppError if category not found, doesn't belong to user, is a system category, has children, or has transactions
    */
-  async deleteCategory(id: string): Promise<Category> {
-    // Verify category exists
-    const category = await this.getCategoryById(id, true);
+  async deleteCategory(id: string, userId: string): Promise<Category> {
+    // Verify category exists and belongs to user (cannot delete system categories)
+    const category = await this.prisma.category.findFirst({
+      where: { id, userId }, // Must be user's own category
+      include: {
+        children: true,
+      },
+    });
+
+    if (!category) {
+      throw new AppError('Category not found or cannot be deleted', 404);
+    }
 
     // Check if category has children
     if (category.children && category.children.length > 0) {
       throw new AppError('Cannot delete category with child categories', 400);
     }
 
-    // Check if category is used in transactions
+    // Check if category is used in user's transactions
     const transactionCount = await this.prisma.transaction.count({
-      where: { categoryId: id },
+      where: { categoryId: id, userId },
     });
 
     if (transactionCount > 0) {
@@ -139,12 +172,19 @@ export class CategoryService {
   }
 
   /**
-   * Get full category hierarchy as a tree
-   * Builds a hierarchical tree structure of all categories
+   * Get full category hierarchy as a tree (system categories + user's own)
+   * Builds a hierarchical tree structure of all accessible categories
+   * @param userId - User UUID
    */
-  async getCategoryHierarchy(): Promise<CategoryWithChildren[]> {
-    // Get all categories
+  async getCategoryHierarchy(userId: string): Promise<CategoryWithChildren[]> {
+    // Get all categories accessible to user (system + user's own)
     const allCategories = await this.prisma.category.findMany({
+      where: {
+        OR: [
+          { userId: null }, // System categories
+          { userId }, // User's own categories
+        ],
+      },
       orderBy: { name: 'asc' },
     });
 
@@ -174,21 +214,23 @@ export class CategoryService {
   }
 
   /**
-   * Get category with transaction count
+   * Get category with transaction count (filtered by user)
    * @param id - Category UUID
+   * @param userId - User UUID
    * @param includeChildren - Whether to count transactions in child categories (default: false)
-   * @throws AppError if category not found
+   * @throws AppError if category not found or doesn't belong to user
    */
-  async getCategoryWithTransactionCount(id: string, includeChildren: boolean = false): Promise<CategoryWithChildren> {
-    const category = await this.getCategoryById(id, includeChildren);
+  async getCategoryWithTransactionCount(id: string, userId: string, includeChildren: boolean = false): Promise<CategoryWithChildren> {
+    const category = await this.getCategoryById(id, userId, includeChildren);
 
     let transactionCount: number;
 
     if (includeChildren) {
       // Get all descendant category IDs
-      const descendantIds = await this.getDescendantIds(id);
+      const descendantIds = await this.getDescendantIds(id, userId);
       transactionCount = await this.prisma.transaction.count({
         where: {
+          userId, // Only count user's transactions
           categoryId: {
             in: [id, ...descendantIds],
           },
@@ -196,7 +238,7 @@ export class CategoryService {
       });
     } else {
       transactionCount = await this.prisma.transaction.count({
-        where: { categoryId: id },
+        where: { categoryId: id, userId }, // Only count user's transactions
       });
     }
 
@@ -212,14 +254,15 @@ export class CategoryService {
    * Check for circular reference in category hierarchy
    * @param categoryId - Category being updated
    * @param newParentId - New parent ID
+   * @param userId - User UUID
    * @throws AppError if circular reference detected
    */
-  private async checkCircularReference(categoryId: string, newParentId: string): Promise<void> {
-    // Verify new parent exists
-    await this.getCategoryById(newParentId);
+  private async checkCircularReference(categoryId: string, newParentId: string, userId: string): Promise<void> {
+    // Verify new parent exists and is accessible
+    await this.getCategoryById(newParentId, userId);
 
     // Check if newParentId is a descendant of categoryId
-    const descendants = await this.getDescendantIds(categoryId);
+    const descendants = await this.getDescendantIds(categoryId, userId);
 
     if (descendants.includes(newParentId)) {
       throw new AppError('Cannot create circular reference in category hierarchy', 400);
@@ -227,21 +270,28 @@ export class CategoryService {
   }
 
   /**
-   * Get all descendant category IDs recursively
+   * Get all descendant category IDs recursively (for accessible categories)
    * @param categoryId - Parent category ID
+   * @param userId - User UUID
    * @returns Array of descendant category IDs
    */
-  private async getDescendantIds(categoryId: string): Promise<string[]> {
+  private async getDescendantIds(categoryId: string, userId: string): Promise<string[]> {
     const descendants: string[] = [];
 
     const children = await this.prisma.category.findMany({
-      where: { parentId: categoryId },
+      where: {
+        parentId: categoryId,
+        OR: [
+          { userId: null }, // System categories
+          { userId }, // User's own categories
+        ],
+      },
       select: { id: true },
     });
 
     for (const child of children) {
       descendants.push(child.id);
-      const childDescendants = await this.getDescendantIds(child.id);
+      const childDescendants = await this.getDescendantIds(child.id, userId);
       descendants.push(...childDescendants);
     }
 

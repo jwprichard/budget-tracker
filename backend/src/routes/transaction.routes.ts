@@ -9,6 +9,7 @@ import {
   parseCSV,
   bulkImport,
 } from '../controllers/transaction.controller';
+import { authenticate } from '../middlewares/auth.middleware';
 import { validateBody, validateQuery } from '../middlewares/validation';
 import {
   createTransactionSchema,
@@ -20,6 +21,9 @@ import {
 import { uploadCSV } from '../middlewares/upload';
 
 const router = Router();
+
+// Apply authentication to all routes
+router.use(authenticate);
 
 // GET /api/v1/transactions - Get all transactions (filterable, paginated)
 router.get('/', validateQuery(transactionQuerySchema), getAllTransactions);

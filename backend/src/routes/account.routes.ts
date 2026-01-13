@@ -9,10 +9,14 @@ import {
   getAvailableBalance,
   getAccountTransactions,
 } from '../controllers/account.controller';
+import { authenticate } from '../middlewares/auth.middleware';
 import { validateBody, validateQuery } from '../middlewares/validation';
 import { createAccountSchema, updateAccountSchema, accountQuerySchema } from '../schemas/account.schema';
 
 const router = Router();
+
+// Apply authentication to all routes
+router.use(authenticate);
 
 // GET /api/v1/accounts - Get all accounts
 router.get('/', validateQuery(accountQuerySchema), getAllAccounts);

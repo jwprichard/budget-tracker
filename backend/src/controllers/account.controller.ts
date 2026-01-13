@@ -12,8 +12,9 @@ const accountService = new AccountService(prisma);
  */
 export const getAllAccounts = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
+    const userId = req.user!.userId;
     const includeInactive = req.query.includeInactive === 'true';
-    const accounts = await accountService.getAllAccounts(includeInactive);
+    const accounts = await accountService.getAllAccounts(userId, includeInactive);
 
     res.status(200).json({
       success: true,
@@ -30,7 +31,8 @@ export const getAllAccounts = async (req: Request, res: Response, next: NextFunc
  */
 export const getAccountById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const account = await accountService.getAccountById(req.params.id);
+    const userId = req.user!.userId;
+    const account = await accountService.getAccountById(req.params.id, userId);
 
     res.status(200).json({
       success: true,
@@ -47,7 +49,8 @@ export const getAccountById = async (req: Request, res: Response, next: NextFunc
  */
 export const createAccount = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const account = await accountService.createAccount(req.body as CreateAccountDto);
+    const userId = req.user!.userId;
+    const account = await accountService.createAccount(req.body as CreateAccountDto, userId);
 
     res.status(201).json({
       success: true,
@@ -66,7 +69,8 @@ export const createAccount = async (req: Request, res: Response, next: NextFunct
  */
 export const updateAccount = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const account = await accountService.updateAccount(req.params.id, req.body as UpdateAccountDto);
+    const userId = req.user!.userId;
+    const account = await accountService.updateAccount(req.params.id, req.body as UpdateAccountDto, userId);
 
     res.status(200).json({
       success: true,
@@ -85,7 +89,8 @@ export const updateAccount = async (req: Request, res: Response, next: NextFunct
  */
 export const deleteAccount = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const account = await accountService.deleteAccount(req.params.id);
+    const userId = req.user!.userId;
+    const account = await accountService.deleteAccount(req.params.id, userId);
 
     res.status(200).json({
       success: true,
@@ -104,7 +109,8 @@ export const deleteAccount = async (req: Request, res: Response, next: NextFunct
  */
 export const getAccountBalance = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const balance = await accountService.getAccountBalance(req.params.id);
+    const userId = req.user!.userId;
+    const balance = await accountService.getAccountBalance(req.params.id, userId);
 
     res.status(200).json({
       success: true,
@@ -122,7 +128,8 @@ export const getAccountBalance = async (req: Request, res: Response, next: NextF
  */
 export const getAvailableBalance = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const balance = await accountService.getAvailableBalance(req.params.id);
+    const userId = req.user!.userId;
+    const balance = await accountService.getAvailableBalance(req.params.id, userId);
 
     res.status(200).json({
       success: true,
@@ -140,10 +147,11 @@ export const getAvailableBalance = async (req: Request, res: Response, next: Nex
  */
 export const getAccountTransactions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
+    const userId = req.user!.userId;
     const page = parseInt(req.query.page as string) || 1;
     const pageSize = parseInt(req.query.pageSize as string) || 50;
 
-    const result = await accountService.getAccountTransactions(req.params.id, page, pageSize);
+    const result = await accountService.getAccountTransactions(req.params.id, userId, page, pageSize);
 
     res.status(200).json({
       success: true,
