@@ -9,12 +9,10 @@ import {
   Paper,
 } from '@mui/material';
 import {
-  CalendarMonth as CalendarIcon,
   PieChart as PieChartIcon,
   TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 import { AnalyticsFilters, AnalyticsFiltersState } from '../components/analytics/AnalyticsFilters';
-import { CalendarView } from '../components/analytics/CalendarView';
 import { CategoryPieChart } from '../components/analytics/CategoryPieChart';
 import { CategoryBarChart } from '../components/analytics/CategoryBarChart';
 import { SpendingTrendsChart } from '../components/analytics/SpendingTrendsChart';
@@ -94,7 +92,7 @@ export const Analytics: React.FC = () => {
         <AnalyticsFilters
           value={filters}
           onChange={handleFiltersChange}
-          showCategoryFilter={currentTab === 2} // Only show for trends tab
+          showCategoryFilter={currentTab === 1} // Only show for trends tab
         />
       </Box>
 
@@ -108,43 +106,25 @@ export const Analytics: React.FC = () => {
           scrollButtons="auto"
         >
           <Tab
-            icon={<CalendarIcon />}
-            iconPosition="start"
-            label="Calendar"
-            id="analytics-tab-0"
-            aria-controls="analytics-tabpanel-0"
-          />
-          <Tab
             icon={<PieChartIcon />}
             iconPosition="start"
             label="Categories"
-            id="analytics-tab-1"
-            aria-controls="analytics-tabpanel-1"
+            id="analytics-tab-0"
+            aria-controls="analytics-tabpanel-0"
           />
           <Tab
             icon={<TrendingUpIcon />}
             iconPosition="start"
             label="Trends"
-            id="analytics-tab-2"
-            aria-controls="analytics-tabpanel-2"
+            id="analytics-tab-1"
+            aria-controls="analytics-tabpanel-1"
           />
         </Tabs>
       </Paper>
 
       {/* Tab Panels */}
-      {/* Calendar View */}
-      <TabPanel value={currentTab} index={0}>
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <CalendarView
-              accountIds={accountIds.length > 0 ? accountIds : undefined}
-            />
-          </Grid>
-        </Grid>
-      </TabPanel>
-
       {/* Category View */}
-      <TabPanel value={currentTab} index={1}>
+      <TabPanel value={currentTab} index={0}>
         <Grid container spacing={3}>
           <Grid item xs={12} lg={6}>
             <CategoryPieChart
@@ -167,7 +147,7 @@ export const Analytics: React.FC = () => {
       </TabPanel>
 
       {/* Trends View */}
-      <TabPanel value={currentTab} index={2}>
+      <TabPanel value={currentTab} index={1}>
         <Grid container spacing={3}>
           <Grid item xs={12}>
             <IncomeVsExpenseChart
