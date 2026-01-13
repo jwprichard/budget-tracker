@@ -5,9 +5,12 @@ A self-hosted web-based budget tracking application that helps users monitor exp
 ## Features
 
 ### Currently Available ✅
+- **User Authentication**: JWT-based authentication with secure login/register flows and user data isolation
+- **Multi-User Support**: Each user has their own isolated accounts and transactions
 - **Multi-Account Management**: Create and manage checking, savings, credit card, cash, investment, and other accounts
 - **Transaction Tracking**: Record income, expenses, and transfers with validation
 - **CSV Import**: Bulk import transactions from bank CSV files with smart column mapping
+- **Bank Synchronization**: Automatic transaction import from New Zealand banks via Akahu Personal App
 - **Balance Calculation**: Real-time balance tracking across all accounts
 - **Balance Adjustment**: Update account balances with full audit trail via adjustment transactions
 - **Transaction History**: View and filter transactions per account or across all accounts

@@ -8,10 +8,14 @@ import {
   getCategoryHierarchy,
   getCategoryStats,
 } from '../controllers/category.controller';
+import { authenticate } from '../middlewares/auth.middleware';
 import { validateBody, validateQuery } from '../middlewares/validation';
 import { createCategorySchema, updateCategorySchema, categoryQuerySchema } from '../schemas/category.schema';
 
 const router = Router();
+
+// Apply authentication to all routes
+router.use(authenticate);
 
 // GET /api/v1/categories - Get all categories
 router.get('/', validateQuery(categoryQuerySchema), getAllCategories);

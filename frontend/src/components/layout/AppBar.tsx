@@ -14,6 +14,10 @@ import {
   Box,
   useTheme,
   useMediaQuery,
+  Menu,
+  MenuItem,
+  Avatar,
+  Divider,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -23,8 +27,11 @@ import {
   Category as CategoryIcon,
   Sync as SyncIcon,
   Build as DevelopmentIcon,
+  Logout as LogoutIcon,
+  AccountCircle as AccountCircleIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 const navigation = [
   { name: 'Dashboard', path: '/', icon: <DashboardIcon /> },
@@ -41,6 +48,8 @@ export const AppBar = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
+  const { user, logout } = useAuth();
 
   const handleNavigate = (path: string) => {
     navigate(path);
@@ -49,6 +58,34 @@ export const AppBar = () => {
 
   const isActive = (path: string) => {
     return location.pathname === path;
+  };
+
+  const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setUserMenuAnchor(event.currentTarget);
+  };
+
+  const handleUserMenuClose = () => {
+    setUserMenuAnchor(null);
+  };
+
+  const handleLogout = () => {
+    logout();
+    handleUserMenuClose();
+    navigate('/login');
+  };
+
+  const getUserInitials = () => {
+    if (!user?.name) return '?';
+    const nameParts = user.name.split(' ');
+    if (nameParts.length >= 2) {
+      const firstInitial = nameParts[0]?.[0];
+      const lastInitial = nameParts[nameParts.length - 1]?.[0];
+      if (firstInitial && lastInitial) {
+        return `${firstInitial}${lastInitial}`.toUpperCase();
+      }
+    }
+    const initial = user.name[0];
+    return initial ? initial.toUpperCase() : '?';
   };
 
   return (
@@ -77,7 +114,7 @@ export const AppBar = () => {
           </Typography>
 
           {!isMobile && (
-            <Box sx={{ display: 'flex', gap: 1 }}>
+            <Box sx={{ display: 'flex', gap: 1, flexGrow: 1 }}>
               {navigation.map((item) => (
                 <Button
                   key={item.path}
@@ -95,8 +132,57 @@ export const AppBar = () => {
               ))}
             </Box>
           )}
+
+          {/* User Menu */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 'auto' }}>
+            {!isMobile && user && (
+              <Typography variant="body2" sx={{ color: 'white', mr: 1 }}>
+                {user.name}
+              </Typography>
+            )}
+            <IconButton
+              onClick={handleUserMenuOpen}
+              size="small"
+              sx={{ ml: 1 }}
+              aria-controls={userMenuAnchor ? 'user-menu' : undefined}
+              aria-haspopup="true"
+              aria-expanded={userMenuAnchor ? 'true' : undefined}
+            >
+              <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
+                {getUserInitials()}
+              </Avatar>
+            </IconButton>
+          </Box>
         </Toolbar>
       </MuiAppBar>
+
+      {/* User Menu */}
+      <Menu
+        id="user-menu"
+        anchorEl={userMenuAnchor}
+        open={Boolean(userMenuAnchor)}
+        onClose={handleUserMenuClose}
+        onClick={handleUserMenuClose}
+        transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+      >
+        <MenuItem disabled>
+          <ListItemIcon>
+            <AccountCircleIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText
+            primary={user?.name}
+            secondary={user?.email}
+          />
+        </MenuItem>
+        <Divider />
+        <MenuItem onClick={handleLogout}>
+          <ListItemIcon>
+            <LogoutIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Logout</ListItemText>
+        </MenuItem>
+      </Menu>
 
       {/* Mobile Drawer */}
       <Drawer

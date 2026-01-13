@@ -500,6 +500,16 @@ export class SyncService {
     linkedAccount: any,
     externalTransaction: any
   ): Promise<void> {
+    // Get userId from linked account's connection
+    const connection = await prisma.bankConnection.findUnique({
+      where: { id: linkedAccount.connectionId },
+      select: { userId: true },
+    });
+
+    if (!connection) {
+      throw new Error('Bank connection not found');
+    }
+
     // Map external transaction to local transaction format
     const mappedTransaction = this.transactionMapping.mapToLocalTransaction(
       {
@@ -514,9 +524,12 @@ export class SyncService {
       linkedAccount.localAccountId
     );
 
-    // Create local transaction
+    // Create local transaction with userId
     const localTransaction = await prisma.transaction.create({
-      data: mappedTransaction,
+      data: {
+        ...mappedTransaction,
+        userId: connection.userId,
+      },
     });
 
     // Link external transaction to local transaction

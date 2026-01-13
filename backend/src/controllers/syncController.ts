@@ -30,13 +30,14 @@ export const testConnection = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const userId = req.user!.userId;
     const { connectionId } = req.body;
 
-    logger.info('[SyncController] Testing connection', { connectionId });
+    logger.info('[SyncController] Testing connection', { connectionId, userId });
 
-    // Get connection from database
-    const connection = await prisma.bankConnection.findUnique({
-      where: { id: connectionId },
+    // Get connection from database (must belong to user)
+    const connection = await prisma.bankConnection.findFirst({
+      where: { id: connectionId, userId },
     });
 
     if (!connection) {
@@ -85,9 +86,10 @@ export const setupConnection = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const userId = req.user!.userId;
     const { provider, appToken, userToken, metadata } = req.body;
 
-    logger.info('[SyncController] Setting up connection', { provider });
+    logger.info('[SyncController] Setting up connection', { provider, userId });
 
     // Encrypt both tokens
     const encryptedAppToken = encrypt(appToken);
@@ -96,6 +98,7 @@ export const setupConnection = async (
     // Create bank connection
     const connection = await prisma.bankConnection.create({
       data: {
+        userId,
         provider,
         appToken: encryptedAppToken,
         userToken: encryptedUserToken,
@@ -131,12 +134,24 @@ export const linkAccount = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const userId = req.user!.userId;
     const { linkedAccountId, localAccountId } = req.body;
 
     logger.info('[SyncController] Linking account', {
       linkedAccountId,
       localAccountId,
+      userId,
     });
+
+    // Verify local account belongs to user
+    const localAccount = await prisma.account.findFirst({
+      where: { id: localAccountId, userId },
+    });
+
+    if (!localAccount) {
+      res.status(404).json({ error: 'Local account not found' });
+      return;
+    }
 
     // Check if this local account is already linked to another external account
     const existingLink = await prisma.linkedAccount.findUnique({
@@ -210,11 +225,23 @@ export const unlinkAccount = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const userId = req.user!.userId;
     const { localAccountId } = req.body;
 
     logger.info('[SyncController] Unlinking account', {
       localAccountId,
+      userId,
     });
+
+    // Verify local account belongs to user
+    const localAccount = await prisma.account.findFirst({
+      where: { id: localAccountId, userId },
+    });
+
+    if (!localAccount) {
+      res.status(404).json({ error: 'Local account not found' });
+      return;
+    }
 
     // Find the linked account by local account ID
     const linkedAccount = await prisma.linkedAccount.findUnique({
@@ -270,9 +297,20 @@ export const triggerSync = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const userId = req.user!.userId;
     const { connectionId, options } = req.body;
 
-    logger.info('[SyncController] Triggering sync', { connectionId, options });
+    logger.info('[SyncController] Triggering sync', { connectionId, options, userId });
+
+    // Verify connection belongs to user
+    const connection = await prisma.bankConnection.findFirst({
+      where: { id: connectionId, userId },
+    });
+
+    if (!connection) {
+      res.status(404).json({ error: 'Connection not found' });
+      return;
+    }
 
     // Parse options
     const syncOptions = options
@@ -332,12 +370,18 @@ export const getSyncStatus = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const userId = req.user!.userId;
     const { syncHistoryId } = req.params;
 
-    logger.debug('[SyncController] Getting sync status', { syncHistoryId });
+    logger.debug('[SyncController] Getting sync status', { syncHistoryId, userId });
 
-    const syncHistory = await prisma.syncHistory.findUnique({
-      where: { id: syncHistoryId },
+    // Get sync history and verify connection belongs to user
+    const syncHistory = await prisma.syncHistory.findFirst({
+      where: {
+        id: syncHistoryId,
+        connection: { userId },
+      },
+      include: { connection: true },
     });
 
     if (!syncHistory) {
@@ -374,15 +418,20 @@ export const getSyncHistory = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const userId = req.user!.userId;
     const { connectionId, page = 1, pageSize = 20 } = req.query;
 
     logger.debug('[SyncController] Getting sync history', {
       connectionId,
       page,
       pageSize,
+      userId,
     });
 
-    const where = connectionId ? { connectionId: connectionId as string } : {};
+    const where = {
+      connection: { userId },
+      ...(connectionId ? { connectionId: connectionId as string } : {}),
+    };
 
     const [items, total] = await Promise.all([
       prisma.syncHistory.findMany({
@@ -428,15 +477,17 @@ export const getReviewTransactions = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const userId = req.user!.userId;
     const { connectionId } = req.query;
 
-    logger.debug('[SyncController] Getting review transactions', { connectionId });
+    logger.debug('[SyncController] Getting review transactions', { connectionId, userId });
 
     const transactions = await prisma.externalTransaction.findMany({
       where: {
         needsReview: true,
         linkedAccount: {
           connectionId: connectionId as string,
+          connection: { userId },
         },
       },
       include: {
@@ -514,12 +565,19 @@ export const approveTransaction = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const userId = req.user!.userId;
     const { externalTransactionId } = req.params;
 
-    logger.info('[SyncController] Approving transaction', { externalTransactionId });
+    logger.info('[SyncController] Approving transaction', { externalTransactionId, userId });
 
-    const externalTx = await prisma.externalTransaction.findUnique({
-      where: { id: externalTransactionId },
+    // Get external transaction and verify it belongs to user's connection
+    const externalTx = await prisma.externalTransaction.findFirst({
+      where: {
+        id: externalTransactionId,
+        linkedAccount: {
+          connection: { userId },
+        },
+      },
       include: {
         linkedAccount: true,
       },
@@ -551,7 +609,10 @@ export const approveTransaction = async (
     );
 
     const localTransaction = await prisma.transaction.create({
-      data: mappedTransaction,
+      data: {
+        ...mappedTransaction,
+        userId, // Add userId to transaction
+      },
     });
 
     // Update external transaction
@@ -593,9 +654,25 @@ export const rejectTransaction = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const userId = req.user!.userId;
     const { externalTransactionId } = req.params;
 
-    logger.info('[SyncController] Rejecting transaction', { externalTransactionId });
+    logger.info('[SyncController] Rejecting transaction', { externalTransactionId, userId });
+
+    // Verify transaction belongs to user's connection
+    const externalTx = await prisma.externalTransaction.findFirst({
+      where: {
+        id: externalTransactionId,
+        linkedAccount: {
+          connection: { userId },
+        },
+      },
+    });
+
+    if (!externalTx) {
+      res.status(404).json({ error: 'External transaction not found' });
+      return;
+    }
 
     await prisma.externalTransaction.update({
       where: { id: externalTransactionId },
@@ -624,13 +701,40 @@ export const linkTransaction = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const userId = req.user!.userId;
     const { externalTransactionId } = req.params;
     const { localTransactionId } = req.body;
 
     logger.info('[SyncController] Linking transaction', {
       externalTransactionId,
       localTransactionId,
+      userId,
     });
+
+    // Verify external transaction belongs to user's connection
+    const externalTx = await prisma.externalTransaction.findFirst({
+      where: {
+        id: externalTransactionId,
+        linkedAccount: {
+          connection: { userId },
+        },
+      },
+    });
+
+    if (!externalTx) {
+      res.status(404).json({ error: 'External transaction not found' });
+      return;
+    }
+
+    // Verify local transaction belongs to user
+    const localTx = await prisma.transaction.findFirst({
+      where: { id: localTransactionId, userId },
+    });
+
+    if (!localTx) {
+      res.status(404).json({ error: 'Local transaction not found' });
+      return;
+    }
 
     // Update external transaction
     await prisma.externalTransaction.update({
@@ -670,9 +774,12 @@ export const getConnections = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    logger.debug('[SyncController] Getting connections');
+    const userId = req.user!.userId;
+
+    logger.debug('[SyncController] Getting connections', { userId });
 
     const connections = await prisma.bankConnection.findMany({
+      where: { userId },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -702,9 +809,20 @@ export const getConnectedAccounts = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const userId = req.user!.userId;
     const { connectionId } = req.query;
 
-    logger.debug('[SyncController] Getting connected accounts', { connectionId });
+    logger.debug('[SyncController] Getting connected accounts', { connectionId, userId });
+
+    // Verify connection belongs to user
+    const connection = await prisma.bankConnection.findFirst({
+      where: { id: connectionId as string, userId },
+    });
+
+    if (!connection) {
+      res.status(404).json({ error: 'Connection not found' });
+      return;
+    }
 
     const accounts = await prisma.linkedAccount.findMany({
       where: { connectionId: connectionId as string },

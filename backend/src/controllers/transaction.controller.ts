@@ -13,8 +13,9 @@ const transactionService = new TransactionService(prisma);
  */
 export const getAllTransactions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
+    const userId = req.user!.userId;
     const query = req.query as unknown as TransactionQuery;
-    const result = await transactionService.getAllTransactions(query);
+    const result = await transactionService.getAllTransactions(userId, query);
 
     res.status(200).json({
       success: true,
@@ -32,7 +33,8 @@ export const getAllTransactions = async (req: Request, res: Response, next: Next
  */
 export const getTransactionById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const transaction = await transactionService.getTransactionById(req.params.id);
+    const userId = req.user!.userId;
+    const transaction = await transactionService.getTransactionById(req.params.id, userId);
 
     res.status(200).json({
       success: true,
@@ -49,7 +51,8 @@ export const getTransactionById = async (req: Request, res: Response, next: Next
  */
 export const createTransaction = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const transaction = await transactionService.createTransaction(req.body as CreateTransactionDto);
+    const userId = req.user!.userId;
+    const transaction = await transactionService.createTransaction(req.body as CreateTransactionDto, userId);
 
     res.status(201).json({
       success: true,
@@ -67,7 +70,8 @@ export const createTransaction = async (req: Request, res: Response, next: NextF
  */
 export const createTransfer = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const result = await transactionService.createTransfer(req.body as CreateTransferDto);
+    const userId = req.user!.userId;
+    const result = await transactionService.createTransfer(req.body as CreateTransferDto, userId);
 
     res.status(201).json({
       success: true,
@@ -86,7 +90,8 @@ export const createTransfer = async (req: Request, res: Response, next: NextFunc
  */
 export const updateTransaction = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const transaction = await transactionService.updateTransaction(req.params.id, req.body as UpdateTransactionDto);
+    const userId = req.user!.userId;
+    const transaction = await transactionService.updateTransaction(req.params.id, req.body as UpdateTransactionDto, userId);
 
     res.status(200).json({
       success: true,
@@ -105,7 +110,8 @@ export const updateTransaction = async (req: Request, res: Response, next: NextF
  */
 export const deleteTransaction = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    await transactionService.deleteTransaction(req.params.id);
+    const userId = req.user!.userId;
+    await transactionService.deleteTransaction(req.params.id, userId);
 
     res.status(200).json({
       success: true,
@@ -175,9 +181,10 @@ export const parseCSV = async (req: Request, res: Response, next: NextFunction):
  */
 export const bulkImport = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
+    const userId = req.user!.userId;
     const { accountId, transactions, skipDuplicates } = req.body;
 
-    const result = await transactionService.bulkImport(accountId, transactions, skipDuplicates);
+    const result = await transactionService.bulkImport(accountId, transactions, skipDuplicates, userId);
 
     res.status(201).json({
       success: true,

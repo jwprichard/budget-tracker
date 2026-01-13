@@ -10,17 +10,23 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User model (placeholder for future authentication)
+// User model - Authentication and user management
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  username      String    @unique
-  passwordHash  String
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String   // bcrypt hashed (12 rounds)
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  accounts        Account[]
+  transactions    Transaction[]
+  categories      Category[]
+  bankConnections BankConnection[]
 
   @@index([email])
-  @@index([username])
+  @@map("users")
 }
 
 // Enums for Account and Transaction models
@@ -48,6 +54,7 @@ enum TransactionStatus {
 // Account model - Represents financial accounts (checking, savings, credit cards, etc.)
 model Account {
   id              String       @id @default(uuid())
+  userId          String
   name            String
   type            AccountType
   category        String?      // Custom categorization (e.g., "Personal", "Business")
@@ -63,10 +70,12 @@ model Account {
   updatedAt       DateTime     @updatedAt
 
   // Relations
+  user                 User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions         Transaction[]  @relation("AccountTransactions")
   transferTransactions Transaction[]  @relation("TransferDestination")
   linkedAccount        LinkedAccount? // One-to-one with external account
 
+  @@index([userId])
   @@index([isActive])
   @@index([createdAt])
 }
@@ -74,6 +83,7 @@ model Account {
 // Category model - Represents transaction categories with hierarchical structure
 model Category {
   id          String    @id @default(uuid())
+  userId      String?   // Nullable for system categories
   name        String
   color       String    @default("#757575")  // Hex color code
   icon        String?                         // Optional Material-UI icon name
@@ -82,10 +92,12 @@ model Category {
   updatedAt   DateTime  @updatedAt
 
   // Relations
+  user         User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
   parent       Category?      @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
   children     Category[]     @relation("CategoryHierarchy")
   transactions Transaction[]
 
+  @@index([userId])
   @@index([parentId])
   @@index([name])
 }
@@ -93,6 +105,7 @@ model Category {
 // Transaction model - Represents income, expenses, and transfers
 model Transaction {
   id              String            @id @default(uuid())
+  userId          String
   accountId       String
   categoryId      String?           // Nullable - links to Category
   type            TransactionType
@@ -111,11 +124,13 @@ model Transaction {
   updatedAt       DateTime          @updatedAt
 
   // Relations
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   account            Account              @relation("AccountTransactions", fields: [accountId], references: [id], onDelete: Cascade)
   category           Category?            @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   transferAccount    Account?             @relation("TransferDestination", fields: [transferToAccountId], references: [id], onDelete: SetNull)
   externalTransaction ExternalTransaction? // One-to-one with external transaction
 
+  @@index([userId])
   @@index([accountId])
   @@index([categoryId])
   @@index([date])
@@ -131,6 +146,7 @@ model Transaction {
 // BankConnection - Stores connection to banking provider (Akahu, Plaid, etc.)
 model BankConnection {
   id              String    @id @default(uuid())
+  userId          String
   provider        String    @default("AKAHU_PERSONAL") // AKAHU_PERSONAL, AKAHU_OAUTH, PLAID, etc.
   status          String    @default("ACTIVE") // ACTIVE, INACTIVE, ERROR
   lastSync        DateTime?
@@ -150,9 +166,11 @@ model BankConnection {
   updatedAt       DateTime  @updatedAt
 
   // Relations
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   linkedAccounts  LinkedAccount[]
   syncHistory     SyncHistory[]
 
+  @@index([userId])
   @@index([provider])
   @@index([status])
 }

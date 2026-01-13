@@ -14,6 +14,7 @@ import {
   getConnections,
   getConnectedAccounts,
 } from '../controllers/syncController';
+import { authenticate } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validate';
 import {
   testConnectionSchema,
@@ -31,6 +32,9 @@ import {
 } from '../validators/syncValidators';
 
 const router = Router();
+
+// Apply authentication to all routes
+router.use(authenticate);
 
 /**
  * Sync Routes

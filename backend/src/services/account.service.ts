@@ -8,24 +8,29 @@ export class AccountService {
   constructor(private prisma: PrismaClient) {}
 
   /**
-   * Get all accounts
+   * Get all accounts for a user
+   * @param userId - User UUID
    * @param includeInactive - Whether to include inactive accounts (default: false)
    */
-  async getAllAccounts(includeInactive: boolean = false): Promise<Account[]> {
+  async getAllAccounts(userId: string, includeInactive: boolean = false): Promise<Account[]> {
     return this.prisma.account.findMany({
-      where: includeInactive ? undefined : { isActive: true },
+      where: {
+        userId,
+        ...(includeInactive ? {} : { isActive: true }),
+      },
       orderBy: { createdAt: 'asc' },
     });
   }
 
   /**
-   * Get account by ID
+   * Get account by ID for a specific user
    * @param id - Account UUID
-   * @throws AppError if account not found
+   * @param userId - User UUID
+   * @throws AppError if account not found or doesn't belong to user
    */
-  async getAccountById(id: string): Promise<Account> {
-    const account = await this.prisma.account.findUnique({
-      where: { id },
+  async getAccountById(id: string, userId: string): Promise<Account> {
+    const account = await this.prisma.account.findFirst({
+      where: { id, userId },
     });
 
     if (!account) {
@@ -36,12 +41,14 @@ export class AccountService {
   }
 
   /**
-   * Create a new account
+   * Create a new account for a user
    * @param data - Account creation data
+   * @param userId - User UUID
    */
-  async createAccount(data: CreateAccountDto): Promise<Account> {
+  async createAccount(data: CreateAccountDto, userId: string): Promise<Account> {
     return this.prisma.account.create({
       data: {
+        userId,
         name: data.name,
         type: data.type,
         category: data.category,
@@ -55,11 +62,12 @@ export class AccountService {
    * Update an existing account
    * @param id - Account UUID
    * @param data - Account update data
-   * @throws AppError if account not found
+   * @param userId - User UUID
+   * @throws AppError if account not found or doesn't belong to user
    */
-  async updateAccount(id: string, data: UpdateAccountDto): Promise<Account> {
-    // Verify account exists
-    await this.getAccountById(id);
+  async updateAccount(id: string, data: UpdateAccountDto, userId: string): Promise<Account> {
+    // Verify account exists and belongs to user
+    await this.getAccountById(id, userId);
 
     return this.prisma.account.update({
       where: { id },
@@ -72,15 +80,16 @@ export class AccountService {
    * Soft delete (set isActive=false) if account has transactions
    * Hard delete if account has no transactions
    * @param id - Account UUID
-   * @throws AppError if account not found
+   * @param userId - User UUID
+   * @throws AppError if account not found or doesn't belong to user
    */
-  async deleteAccount(id: string): Promise<Account> {
-    // Verify account exists
-    await this.getAccountById(id);
+  async deleteAccount(id: string, userId: string): Promise<Account> {
+    // Verify account exists and belongs to user
+    await this.getAccountById(id, userId);
 
     // Check if account has transactions
     const transactionCount = await this.prisma.transaction.count({
-      where: { accountId: id },
+      where: { accountId: id, userId },
     });
 
     if (transactionCount > 0) {
@@ -102,15 +111,17 @@ export class AccountService {
    * Calculates current balance by summing all transactions
    * Formula: currentBalance = initialBalance + sum(transactions.amount)
    * @param id - Account UUID
-   * @throws AppError if account not found
+   * @param userId - User UUID
+   * @throws AppError if account not found or doesn't belong to user
    */
   async getAccountBalance(
-    id: string
+    id: string,
+    userId: string
   ): Promise<{ accountId: string; currentBalance: number; transactionCount: number }> {
-    const account = await this.getAccountById(id);
+    const account = await this.getAccountById(id, userId);
 
     const aggregation = await this.prisma.transaction.aggregate({
-      where: { accountId: id },
+      where: { accountId: id, userId },
       _sum: {
         amount: true,
       },
@@ -130,25 +141,26 @@ export class AccountService {
   /**
    * Get transactions for a specific account (paginated)
    * @param id - Account UUID
+   * @param userId - User UUID
    * @param page - Page number (default: 1)
    * @param pageSize - Number of items per page (default: 50)
-   * @throws AppError if account not found
+   * @throws AppError if account not found or doesn't belong to user
    */
-  async getAccountTransactions(id: string, page: number = 1, pageSize: number = 50) {
-    // Verify account exists
-    await this.getAccountById(id);
+  async getAccountTransactions(id: string, userId: string, page: number = 1, pageSize: number = 50) {
+    // Verify account exists and belongs to user
+    await this.getAccountById(id, userId);
 
     const skip = (page - 1) * pageSize;
 
     const [transactions, totalCount] = await Promise.all([
       this.prisma.transaction.findMany({
-        where: { accountId: id },
+        where: { accountId: id, userId },
         orderBy: { date: 'desc' },
         skip,
         take: pageSize,
       }),
       this.prisma.transaction.count({
-        where: { accountId: id },
+        where: { accountId: id, userId },
       }),
     ]);
 
@@ -167,15 +179,17 @@ export class AccountService {
    * Get available balance from bank for linked account
    * Fetches real-time balance data from Akahu API
    * @param id - Account UUID
+   * @param userId - User UUID
    * @returns Balance data or null if not linked
-   * @throws AppError if account not found
+   * @throws AppError if account not found or doesn't belong to user
    */
   async getAvailableBalance(
-    id: string
+    id: string,
+    userId: string
   ): Promise<{ current: number; available: number | null } | null> {
-    // Check if account exists and is linked to bank
-    const account = await this.prisma.account.findUnique({
-      where: { id },
+    // Check if account exists, belongs to user, and is linked to bank
+    const account = await this.prisma.account.findFirst({
+      where: { id, userId },
       include: {
         linkedAccount: {
           include: {
