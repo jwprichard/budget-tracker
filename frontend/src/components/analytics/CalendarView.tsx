@@ -23,34 +23,50 @@ import { Close as CloseIcon } from '@mui/icons-material';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { DayCellContentArg } from '@fullcalendar/core';
+import { DayCellContentArg, DatesSetArg } from '@fullcalendar/core';
 import { DateClickArg } from '@fullcalendar/interaction';
 import { useDailyBalances } from '../../hooks/useAnalytics';
 import { DailyBalance, AccountDailyBalance } from '../../types/analytics.types';
-import { formatCurrency } from '../../utils/formatters';
+import { formatCurrency, formatDateForInput } from '../../utils/formatters';
 
 interface CalendarViewProps {
-  startDate: string;
-  endDate: string;
   accountIds?: string[];
 }
 
 /**
  * CalendarView Component
  * Displays daily balances in a calendar format with color-coded indicators
+ * Automatically loads transactions for the displayed month
  */
 export const CalendarView: React.FC<CalendarViewProps> = ({
-  startDate,
-  endDate,
   accountIds,
 }) => {
   const [selectedDate, setSelectedDate] = useState<DailyBalance | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // Fetch daily balances
+  // Track the current calendar date range
+  const [calendarRange, setCalendarRange] = useState(() => {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return {
+      startDate: formatDateForInput(firstDay),
+      endDate: formatDateForInput(lastDay),
+    };
+  });
+
+  // Handle calendar date range changes (when user navigates months)
+  const handleDatesSet = useCallback((arg: DatesSetArg) => {
+    setCalendarRange({
+      startDate: formatDateForInput(arg.start),
+      endDate: formatDateForInput(new Date(arg.end.getTime() - 1)), // Subtract 1 day since end is exclusive
+    });
+  }, []);
+
+  // Fetch daily balances for the current calendar range
   const { data, isLoading, error } = useDailyBalances({
-    startDate,
-    endDate,
+    startDate: calendarRange.startDate,
+    endDate: calendarRange.endDate,
     accountIds,
   });
 
@@ -67,7 +83,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   // Handle date click
   const handleDateClick = useCallback(
     (arg: DateClickArg) => {
-      const dateStr = arg.dateStr;
+      // Format date as YYYY-MM-DD using local timezone
+      const year = arg.date.getFullYear();
+      const month = String(arg.date.getMonth() + 1).padStart(2, '0');
+      const day = String(arg.date.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
       const balance = balanceMap.get(dateStr);
       if (balance) {
         setSelectedDate(balance);
@@ -86,13 +106,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   // Custom day cell content renderer
   const dayCellContent = useCallback(
     (arg: DayCellContentArg) => {
-      const isoString = arg.date.toISOString();
-      const dateStr = isoString.split('T')[0] || isoString;
+      // Format date as YYYY-MM-DD using local timezone
+      const year = arg.date.getFullYear();
+      const month = String(arg.date.getMonth() + 1).padStart(2, '0');
+      const day = String(arg.date.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
       const balance = balanceMap.get(dateStr);
 
       if (!balance) {
         return (
-          <Box sx={{ textAlign: 'center', p: 1 }}>
+          <Box sx={{ textAlign: 'center', p: 0.5 }}>
             <Typography variant="body2">{arg.dayNumberText || ''}</Typography>
           </Box>
         );
@@ -105,38 +128,140 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         return '#f44336'; // Red
       };
 
+      // Get transaction color based on type
+      const getTransactionColor = (type: string): string => {
+        switch (type) {
+          case 'INCOME':
+            return '#4caf50';
+          case 'EXPENSE':
+            return '#f44336';
+          case 'TRANSFER':
+            return '#2196f3';
+          default:
+            return '#757575';
+        }
+      };
+
       const balanceColor = getBalanceColor(balance.balance);
+
+      // Collect all transactions across all accounts for this day
+      const allTransactions = balance.accounts.flatMap((account) =>
+        account.transactions.map((tx) => ({
+          ...tx,
+          accountName: account.accountName,
+        }))
+      );
 
       return (
         <Box
           sx={{
-            textAlign: 'center',
-            p: 1,
-            height: '100%',
+            height: '180px',
+            p: 0.5,
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'space-between',
-            backgroundColor: `${balanceColor}15`,
-            borderLeft: `4px solid ${balanceColor}`,
             cursor: 'pointer',
-            '&:hover': {
-              backgroundColor: `${balanceColor}25`,
-            },
+            boxSizing: 'border-box',
           }}
         >
-          <Typography variant="body2" fontWeight="bold">
-            {arg.dayNumberText || ''}
-          </Typography>
+          {/* Day number */}
           <Typography
             variant="caption"
+            fontWeight="bold"
+            sx={{ textAlign: 'right', mb: 0.5, fontSize: '0.75rem', flexShrink: 0 }}
+          >
+            {arg.dayNumberText || ''}
+          </Typography>
+
+          {/* Transaction bars */}
+          <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.25, overflow: 'auto', minHeight: 0 }}>
+            {allTransactions.slice(0, 4).map((tx, index) => {
+              const txColor = getTransactionColor(tx.type);
+              return (
+                <Box
+                  key={index}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    backgroundColor: `${txColor}20`,
+                    borderLeft: `2px solid ${txColor}`,
+                    px: 0.5,
+                    py: 0.2,
+                    // borderRadius: 0.5,
+                    minHeight: '16px',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontSize: '0.65rem',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      flex: 1,
+                      mr: 0.5,
+                    }}
+                  >
+                    {tx.description.length > 20
+                      ? `${tx.description.substring(0, 19)}...`
+                      : tx.description}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontSize: '0.65rem',
+                      fontWeight: 'bold',
+                      color: txColor,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {formatCurrency(Math.abs(tx.amount))}
+                  </Typography>
+                </Box>
+              );
+            })}
+            {allTransactions.length > 4 && (
+              <Typography
+                variant="caption"
+                sx={{
+                  fontSize: '0.6rem',
+                  textAlign: 'center',
+                  color: 'text.secondary',
+                  fontStyle: 'italic',
+                  flexShrink: 0,
+                }}
+              >
+                +{allTransactions.length - 4} more
+              </Typography>
+            )}
+          </Box>
+
+          {/* Final balance at bottom */}
+          <Box
             sx={{
-              color: balanceColor,
-              fontWeight: 'bold',
-              fontSize: '0.7rem',
+              mt: 0.5,
+              pt: 0.5,
+              px: 0.5,
+              pb: 0.5,
+              textAlign: 'right',
+              flexShrink: 0,
+            //   backgroundColor: `${balanceColor}20`,
+            //   borderLeft: `3px solid ${balanceColor}`,
+            //   borderRadius: 0.5,
             }}
           >
-            {formatCurrency(balance.balance)}
-          </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                color: balanceColor,
+                fontWeight: 'bold',
+                fontSize: '0.7rem',
+              }}
+            >
+              {formatCurrency(balance.balance)}
+            </Typography>
+          </Box>
         </Box>
       );
     },
@@ -184,7 +309,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             Click on any date to view detailed transactions
           </Typography>
 
-          <Box sx={{ mt: 2 }}>
+          <Box sx={{
+            mt: 2,
+            '& .fc-daygrid-day': {
+              height: '180px !important',
+            },
+            '& .fc-daygrid-day-frame': {
+              height: '180px !important',
+              minHeight: '180px !important',
+            },
+            '& .fc-daygrid-event-harness': {
+              display: 'none',
+            },
+            '& .fc-daygrid-day-bottom': {
+              display: 'none',
+            },
+          }}>
             <FullCalendar
               plugins={[dayGridPlugin, interactionPlugin]}
               initialView="dayGridMonth"
@@ -195,51 +335,95 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               }}
               dateClick={handleDateClick}
               dayCellContent={dayCellContent}
+              datesSet={handleDatesSet}
               height="auto"
               fixedWeekCount={false}
-              validRange={{
-                start: startDate,
-                end: endDate,
-              }}
+              dayMaxEvents={false}
+              navLinks={false}
+              selectable={false}
             />
           </Box>
 
           {/* Legend */}
-          <Stack direction="row" spacing={2} sx={{ mt: 2, justifyContent: 'center' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Box
-                sx={{
-                  width: 20,
-                  height: 20,
-                  backgroundColor: '#4caf50',
-                  borderRadius: 0.5,
-                }}
-              />
-              <Typography variant="caption">Healthy ≥ $1,000</Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Box
-                sx={{
-                  width: 20,
-                  height: 20,
-                  backgroundColor: '#ff9800',
-                  borderRadius: 0.5,
-                }}
-              />
-              <Typography variant="caption">Low $0-$999</Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Box
-                sx={{
-                  width: 20,
-                  height: 20,
-                  backgroundColor: '#f44336',
-                  borderRadius: 0.5,
-                }}
-              />
-              <Typography variant="caption">Negative &lt; $0</Typography>
-            </Box>
-          </Stack>
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="caption" fontWeight="bold" display="block" gutterBottom>
+              Balance Status:
+            </Typography>
+            <Stack direction="row" spacing={2} sx={{ mb: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box
+                  sx={{
+                    width: 20,
+                    height: 20,
+                    backgroundColor: '#4caf50',
+                    borderRadius: 0.5,
+                  }}
+                />
+                <Typography variant="caption">Healthy ≥ $1,000</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box
+                  sx={{
+                    width: 20,
+                    height: 20,
+                    backgroundColor: '#ff9800',
+                    borderRadius: 0.5,
+                  }}
+                />
+                <Typography variant="caption">Low $0-$999</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box
+                  sx={{
+                    width: 20,
+                    height: 20,
+                    backgroundColor: '#f44336',
+                    borderRadius: 0.5,
+                  }}
+                />
+                <Typography variant="caption">Negative &lt; $0</Typography>
+              </Box>
+            </Stack>
+
+            <Typography variant="caption" fontWeight="bold" display="block" gutterBottom>
+              Transaction Types:
+            </Typography>
+            <Stack direction="row" spacing={2} sx={{ justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box
+                  sx={{
+                    width: 20,
+                    height: 20,
+                    backgroundColor: '#4caf50',
+                    borderRadius: 0.5,
+                  }}
+                />
+                <Typography variant="caption">Income</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box
+                  sx={{
+                    width: 20,
+                    height: 20,
+                    backgroundColor: '#f44336',
+                    borderRadius: 0.5,
+                  }}
+                />
+                <Typography variant="caption">Expense</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box
+                  sx={{
+                    width: 20,
+                    height: 20,
+                    backgroundColor: '#2196f3',
+                    borderRadius: 0.5,
+                  }}
+                />
+                <Typography variant="caption">Transfer</Typography>
+              </Box>
+            </Stack>
+          </Box>
         </CardContent>
       </Card>
 

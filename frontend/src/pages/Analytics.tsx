@@ -137,8 +137,6 @@ export const Analytics: React.FC = () => {
         <Grid container spacing={3}>
           <Grid item xs={12}>
             <CalendarView
-              startDate={dateRange.startDate}
-              endDate={dateRange.endDate}
               accountIds={accountIds.length > 0 ? accountIds : undefined}
             />
           </Grid>
