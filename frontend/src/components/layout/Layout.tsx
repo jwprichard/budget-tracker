@@ -1,17 +1,13 @@
 import { Box } from '@mui/material';
-import { ReactNode } from 'react';
+import { Outlet } from 'react-router-dom';
 import { AppBar } from './AppBar';
 
-interface LayoutProps {
-  children: ReactNode;
-}
-
-export const Layout = ({ children }: LayoutProps) => {
+export const Layout = () => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <AppBar />
       <Box component="main" sx={{ flexGrow: 1, bgcolor: 'background.default' }}>
-        {children}
+        <Outlet />
       </Box>
     </Box>
   );
