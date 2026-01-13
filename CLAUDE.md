@@ -16,17 +16,18 @@ Full-Stack Web Application (Self-Hosted)
 
 ## Current Status
 
-- **Current Branch**: `feature/milestone-8.6-enhanced-akahu-data`
-- **Phase**: Milestone 8.6 - Enhanced Akahu Data Display ✅ COMPLETE
-- **Last Feature Completed**: Enhanced Akahu Data Display + Development Tools (January 13, 2026) ✓
+- **Current Branch**: `feature/authentication-multi-user`
+- **Phase**: Milestone 1.5 - Authentication & Multi-User Support ✅ COMPLETE
+- **Last Feature Completed**: JWT Authentication with User Data Isolation (January 13, 2026) ✓
 - **Completed Milestones**:
   - Milestone 1 - Foundation & Core Setup ✅
+  - Milestone 1.5 - Authentication & Multi-User Support ✅
   - Milestone 2 - Account & Transaction Management ✅
   - Milestone 8 (Partial) - CSV Import ✅
   - Milestone 8.5 - Akahu Bank Synchronization ✅
   - Milestone 8.6 - Enhanced Akahu Data Display ✅
-- **Next Milestone**: Milestone 3 - Category System (Ready to start)
-- **Current Focus**: Ready to merge feature branch and begin category system implementation
+- **Next Milestone**: Milestone 3 - Category System (Ready to start after merge)
+- **Current Focus**: Ready to merge authentication branch to main
 - **Tests**: Not yet implemented (testing infrastructure planned for Milestone 11)
 
 ## Technology Stack
@@ -516,7 +517,7 @@ Color-coded balance status (green/yellow/red thresholds).
 - **Status**: Feature complete, tested, and committed
 - **Next Phase**: Milestone 3 (Category System)
 
-### Recent Decisions (Updated Jan 12, 2026)
+### Recent Decisions (Updated Jan 13, 2026)
 - Chose PostgreSQL over MySQL for better ACID compliance and JSON support
 - Selected Material-UI over other UI libraries for comprehensive component set
 - Using Prisma ORM for database abstraction and future flexibility
@@ -529,7 +530,7 @@ Color-coded balance status (green/yellow/red thresholds).
 - **Added tslib as runtime dependency** - Required by TypeScript's `importHelpers` feature
 - **Added OpenSSL to Alpine base image** - Prisma requires OpenSSL for database connections
 - **Configured Prisma binary targets** - Set `linux-musl-openssl-3.0.x` for Alpine Linux compatibility
-- **ARCHITECTURAL DECISION: Single-User Mode (Dec 29, 2025)** - Authentication deferred to future enhancement. App will be designed for single-user/personal deployment initially. No userId foreign keys or authentication middleware required for MVP. Multi-user support will be added later when needed.
+- **ARCHITECTURAL DECISION REVERSED: Multi-User Mode (Jan 13, 2026)** - Implemented full JWT authentication with user data isolation. All data models now include userId foreign keys. Authentication middleware protects all API endpoints. Frontend includes login/register flows with protected routes.
 - **Balance Calculation Strategy (Jan 5, 2026)** - On-the-fly calculation using aggregate queries instead of stored balance field. Formula: `currentBalance = initialBalance + sum(transactions.amount)`
 - **Transfer Pattern (Jan 5, 2026)** - Two-transaction pattern with `transferToAccountId` linking. Creates expense from source + income to destination in a single database transaction.
 - **Amount Storage Convention (Jan 5, 2026)** - INCOME stored as positive, EXPENSE as negative, simplifies balance calculation
@@ -588,6 +589,16 @@ Color-coded balance status (green/yellow/red thresholds).
   - Confirmation dialogs for safety
   - Real-time statistics with refresh capability
   - Categories preserved in all reset operations
+- **Authentication & Multi-User Support (Jan 13, 2026)** - Complete JWT authentication implementation
+  - JWT tokens: 15-minute access tokens, 7-day refresh tokens
+  - Password hashing with bcrypt (12 rounds minimum)
+  - User data isolation: All queries filtered by userId at service layer
+  - Authentication middleware on all protected API endpoints
+  - Frontend: Login/register pages, protected routes, user menu with logout
+  - Token management: Automatic refresh on 401 with request queuing
+  - Critical fix: React Query cache clearing on login/logout prevents data leakage between users
+  - User table mapping: Prisma model `User` → database table `users` (avoids SQL reserved keyword)
+  - Security: Backend data isolation verified, frontend cache management prevents cross-user data visibility
 
 ### Known Issues
 None - All Docker build, runtime, and CSV import issues resolved
@@ -606,8 +617,9 @@ None - All Docker build, runtime, and CSV import issues resolved
 4. ✅ Merge `feature/transaction-import` to `main` branch (COMPLETE - Jan 6, 2026)
 5. ✅ Implement Akahu Bank Synchronization (Milestone 8.5) (COMPLETE - Jan 12, 2026)
 6. ✅ Implement Enhanced Akahu Data Display (Milestone 8.6) (COMPLETE - Jan 13, 2026)
-7. Merge `feature/milestone-8.6-enhanced-akahu-data` to `main` branch
-8. Create feature plan for Category System (Milestone 3)
+7. ✅ Implement Authentication & Multi-User Support (Milestone 1.5) (COMPLETE - Jan 13, 2026)
+8. Merge `feature/authentication-multi-user` to `main` branch
+9. Create feature plan for Category System (Milestone 3)
    - Hierarchical category data model (Prisma schema)
    - Default category seed data (Income, Housing, Transportation, Food & Dining, etc.)
    - Category CRUD API endpoints with validation
@@ -861,6 +873,6 @@ docker system prune -a --volumes  # Removes all stopped containers, unused image
 ---
 
 **Last Updated**: January 13, 2026
-**Current Phase**: Milestone 8.6 - Enhanced Akahu Data Display ✅ COMPLETE
+**Current Phase**: Milestone 1.5 - Authentication & Multi-User Support ✅ COMPLETE
 **Framework/Platform**: React + Node.js + PostgreSQL (Full-Stack TypeScript)
-**Status**: Enhanced Akahu data display complete with available balance, account status indicators, and development tools page. Ready to merge and begin Milestone 3 (Category System).
+**Status**: JWT authentication complete with full user data isolation. Backend: userId filtering on all queries, authentication middleware on all endpoints. Frontend: Login/register pages, protected routes, automatic token refresh, React Query cache clearing prevents data leakage. Ready to merge `feature/authentication-multi-user` to main and begin Milestone 3 (Category System).
