@@ -15,7 +15,7 @@ import {
  */
 
 class AnalyticsService {
-  private readonly baseUrl = '/analytics';
+  private readonly baseUrl = '/v1/analytics';
 
   /**
    * Convert array parameters to comma-separated string for query params
