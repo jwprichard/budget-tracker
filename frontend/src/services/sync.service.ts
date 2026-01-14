@@ -113,17 +113,38 @@ export interface ExternalTransaction {
   description: string;
   merchant?: string;
   category?: string;
+  type?: string;
+  balance?: number;
+  isDuplicate?: boolean;
   duplicateConfidence?: number;
+  needsReview?: boolean;
   potentialDuplicate?: {
     id: string;
     date: string;
     description: string;
     confidence: number;
   };
-  account: {
+  account?: {
     externalName: string;
     localName?: string;
   };
+  linkedAccount?: {
+    id: string;
+    externalName: string;
+    institution: string;
+    localAccount?: {
+      id: string;
+      name: string;
+      type: string;
+    };
+  };
+  localTransaction?: {
+    id: string;
+    description: string;
+    amount: number;
+    date: string;
+  };
+  createdAt?: string;
 }
 
 /**
@@ -203,6 +224,16 @@ export const getSyncHistory = async (
   const response = await apiClient.get<SyncHistoryResponse>(`${BASE_PATH}/history`, {
     params: { connectionId, page, pageSize },
   });
+  return response.data;
+};
+
+/**
+ * Get transactions for a specific sync history
+ */
+export const getSyncTransactions = async (syncHistoryId: string): Promise<{ items: ExternalTransaction[]; syncHistory: any }> => {
+  const response = await apiClient.get<{ items: ExternalTransaction[]; syncHistory: any }>(
+    `${BASE_PATH}/history/${syncHistoryId}/transactions`
+  );
   return response.data;
 };
 

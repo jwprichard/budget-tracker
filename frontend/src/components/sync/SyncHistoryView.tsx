@@ -14,12 +14,22 @@ import {
   Chip,
   CircularProgress,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  List,
+  ListItem,
+  ListItemText,
+  Divider,
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
 import SyncIcon from '@mui/icons-material/Sync';
 import PendingIcon from '@mui/icons-material/Pending';
-import { getSyncHistory, type SyncHistory } from '../../services/sync.service';
+import { getSyncHistory, getSyncTransactions, type SyncHistory, type ExternalTransaction } from '../../services/sync.service';
+import { formatCurrency } from '../../utils/formatters';
 
 interface SyncHistoryViewProps {
   connectionId?: string;
@@ -49,6 +59,13 @@ export const SyncHistoryView: React.FC<SyncHistoryViewProps> = ({
   const [pageSize, setPageSize] = useState(20);
   const [totalPages, setTotalPages] = useState(0);
   const [total, setTotal] = useState(0);
+
+  // Dialog state for viewing transactions
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedSyncId, setSelectedSyncId] = useState<string | null>(null);
+  const [transactions, setTransactions] = useState<ExternalTransaction[]>([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
+  const [transactionsError, setTransactionsError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchHistory();
@@ -84,6 +101,30 @@ export const SyncHistoryView: React.FC<SyncHistoryViewProps> = ({
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
     setPageSize(parseInt(event.target.value, 10));
     setPage(0);
+  };
+
+  const handleRowClick = async (syncHistoryId: string) => {
+    setSelectedSyncId(syncHistoryId);
+    setDialogOpen(true);
+    setLoadingTransactions(true);
+    setTransactionsError(null);
+
+    try {
+      const response = await getSyncTransactions(syncHistoryId);
+      setTransactions(response.items);
+    } catch (err) {
+      console.error('Failed to fetch sync transactions:', err);
+      setTransactionsError('Failed to load transactions');
+    } finally {
+      setLoadingTransactions(false);
+    }
+  };
+
+  const handleCloseDialog = () => {
+    setDialogOpen(false);
+    setSelectedSyncId(null);
+    setTransactions([]);
+    setTransactionsError(null);
   };
 
   const getStatusIcon = (status: string) => {
@@ -175,7 +216,12 @@ export const SyncHistoryView: React.FC<SyncHistoryViewProps> = ({
                 </TableHead>
                 <TableBody>
                   {history.map((item) => (
-                    <TableRow key={item.id} hover>
+                    <TableRow
+                      key={item.id}
+                      hover
+                      onClick={() => handleRowClick(item.id)}
+                      sx={{ cursor: 'pointer' }}
+                    >
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           {getStatusIcon(item.status)}
@@ -240,6 +286,94 @@ export const SyncHistoryView: React.FC<SyncHistoryViewProps> = ({
           </>
         )}
       </CardContent>
+
+      {/* Transactions Dialog */}
+      <Dialog
+        open={dialogOpen}
+        onClose={handleCloseDialog}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Sync Transactions</DialogTitle>
+        <DialogContent>
+          {loadingTransactions ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : transactionsError ? (
+            <Alert severity="error">{transactionsError}</Alert>
+          ) : transactions.length === 0 ? (
+            <Typography color="text.secondary" align="center" sx={{ p: 4 }}>
+              No transactions found for this sync
+            </Typography>
+          ) : (
+            <List>
+              {transactions.map((tx, index) => (
+                <React.Fragment key={tx.id}>
+                  <ListItem>
+                    <ListItemText
+                      primary={
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Typography variant="body1">{tx.description}</Typography>
+                          <Typography
+                            variant="body1"
+                            fontWeight="bold"
+                            color={tx.amount < 0 ? 'error.main' : 'success.main'}
+                          >
+                            {formatCurrency(tx.amount)}
+                          </Typography>
+                        </Box>
+                      }
+                      secondary={
+                        <Box>
+                          <Typography variant="body2" color="text.secondary">
+                            {new Date(tx.date).toLocaleDateString('en-NZ', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                            {' • '}
+                            {tx.linkedAccount?.externalName}
+                            {tx.merchant && ` • ${tx.merchant}`}
+                          </Typography>
+                          {tx.isDuplicate && (
+                            <Chip
+                              label="Duplicate"
+                              size="small"
+                              color="warning"
+                              sx={{ mt: 0.5 }}
+                            />
+                          )}
+                          {tx.needsReview && (
+                            <Chip
+                              label="Needs Review"
+                              size="small"
+                              color="error"
+                              sx={{ mt: 0.5, ml: 0.5 }}
+                            />
+                          )}
+                          {tx.localTransaction && (
+                            <Chip
+                              label="Imported"
+                              size="small"
+                              color="success"
+                              sx={{ mt: 0.5, ml: 0.5 }}
+                            />
+                          )}
+                        </Box>
+                      }
+                    />
+                  </ListItem>
+                  {index < transactions.length - 1 && <Divider />}
+                </React.Fragment>
+              ))}
+            </List>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </Card>
   );
 };

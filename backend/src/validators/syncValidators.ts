@@ -108,6 +108,16 @@ export const getSyncHistorySchema = z.object({
 });
 
 /**
+ * Get sync transactions request
+ * GET /api/v1/sync/history/:syncHistoryId/transactions
+ */
+export const getSyncTransactionsSchema = z.object({
+  params: z.object({
+    syncHistoryId: z.string().uuid('Invalid sync history ID'),
+  }),
+});
+
+/**
  * Get transactions needing review
  * GET /api/v1/sync/review
  */
