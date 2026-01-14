@@ -16,9 +16,9 @@ Full-Stack Web Application (Self-Hosted)
 
 ## Current Status
 
-- **Current Branch**: `feature/authentication-multi-user`
-- **Phase**: Milestone 1.5 - Authentication & Multi-User Support ✅ COMPLETE
-- **Last Feature Completed**: JWT Authentication with User Data Isolation (January 13, 2026) ✓
+- **Current Branch**: `feature/milestone-4-visualization-analytics`
+- **Phase**: Milestone 4 - Visualization & Analytics (In Progress)
+- **Last Feature Completed**: Sync Transaction Debugging View (January 14, 2026) ✓
 - **Completed Milestones**:
   - Milestone 1 - Foundation & Core Setup ✅
   - Milestone 1.5 - Authentication & Multi-User Support ✅
@@ -26,8 +26,9 @@ Full-Stack Web Application (Self-Hosted)
   - Milestone 8 (Partial) - CSV Import ✅
   - Milestone 8.5 - Akahu Bank Synchronization ✅
   - Milestone 8.6 - Enhanced Akahu Data Display ✅
-- **Next Milestone**: Milestone 3 - Category System (Ready to start after merge)
-- **Current Focus**: Ready to merge authentication branch to main
+  - Milestone 4 - Visualization & Analytics (Partial - Calendar, Category Charts, Trends) ✅
+- **Next Milestone**: Milestone 3 - Category System (after Milestone 4 completion)
+- **Current Focus**: Milestone 4 - Analytics dashboard with charts and calendar view
 - **Tests**: Not yet implemented (testing infrastructure planned for Milestone 11)
 
 ## Technology Stack
@@ -511,11 +512,18 @@ Color-coded balance status (green/yellow/red thresholds).
 ## Current Development Context
 
 ### What We're Working On
-- **Phase**: Milestone 8.6 - Enhanced Akahu Data Display ✅ COMPLETE (Jan 13, 2026)
-- **Current Task**: All milestones complete (8.5 + 8.6)
-- **Branch**: `feature/milestone-8.6-enhanced-akahu-data` (ready to merge to main)
-- **Status**: Feature complete, tested, and committed
-- **Next Phase**: Milestone 3 (Category System)
+- **Phase**: Milestone 4 - Visualization & Analytics (In Progress - Jan 14, 2026)
+- **Current Task**: Analytics dashboard with calendar view and charts
+- **Branch**: `feature/milestone-4-visualization-analytics`
+- **Status**: Calendar view complete, category charts complete, trends charts complete
+- **Completed Features**:
+  - Calendar view with daily balances and transaction display
+  - Category pie charts and bar charts
+  - Spending trends over time
+  - Income vs expense comparison charts
+  - Standalone calendar page with navigation
+  - Sync transaction debugging view
+- **Next Phase**: Complete remaining Milestone 4 features or start Milestone 3 (Category System)
 
 ### Recent Decisions (Updated Jan 13, 2026)
 - Chose PostgreSQL over MySQL for better ACID compliance and JSON support
@@ -586,9 +594,34 @@ Color-coded balance status (green/yellow/red thresholds).
 - **Development Tools (Jan 13, 2026)** - Database management interface for testing
   - Development page with database statistics dashboard
   - Granular reset operations (transactions, accounts, bank connections, or everything)
-  - Confirmation dialogs for safety
-  - Real-time statistics with refresh capability
-  - Categories preserved in all reset operations
+- **Analytics Backend (Jan 14, 2026)** - Complete analytics API implementation
+  - Daily balances endpoint: `/api/v1/analytics/daily-balances` (aggregates transactions by date)
+  - Category totals endpoint: `/api/v1/analytics/category-totals` (aggregates by category)
+  - Spending trends endpoint: `/api/v1/analytics/spending-trends` (time-series grouping)
+  - Income vs expense endpoint: `/api/v1/analytics/income-vs-expense` (comparison over time)
+  - Array parameters passed as comma-separated strings in query params
+  - All endpoints support date range filtering and account filtering
+- **Calendar View (Jan 14, 2026)** - FullCalendar integration with custom rendering
+  - Transaction bars display inside calendar cells (up to 4 transactions visible)
+  - Color-coded transaction types (green=income, red=expense, blue=transfer)
+  - Daily balance shown at bottom of each cell with color coding
+  - Dialog view for full transaction details on date click
+  - Dynamic month loading (fetches data only for displayed month)
+  - Fixed timezone issue using local date values instead of UTC
+  - Description truncation (20 characters max with ellipsis)
+  - Fixed height cells (180px) with flex layout for consistent sizing
+- **Calendar Navigation (Jan 14, 2026)** - Standalone page for calendar
+  - Moved calendar from Analytics tabs to dedicated /calendar route
+  - Added Calendar navigation link in AppBar with CalendarMonth icon
+  - Simplified filters (account selection only, no date range needed)
+  - Calendar manages its own date range based on month navigation
+  - Analytics page now only has Categories and Trends tabs
+- **Sync Transaction Debugging (Jan 14, 2026)** - View transactions fetched during sync
+  - New endpoint: `GET /api/v1/sync/history/:syncHistoryId/transactions`
+  - Clickable sync history rows open dialog with transaction list
+  - Shows fetched transactions with status indicators (imported, duplicate, needs review)
+  - Displays merchant names, account info, amounts, and dates
+  - Useful for debugging sync operations and duplicate detection behavior
 - **Authentication & Multi-User Support (Jan 13, 2026)** - Complete JWT authentication implementation
   - JWT tokens: 15-minute access tokens, 7-day refresh tokens
   - Password hashing with bcrypt (12 rounds minimum)
@@ -618,19 +651,28 @@ None - All Docker build, runtime, and CSV import issues resolved
 5. ✅ Implement Akahu Bank Synchronization (Milestone 8.5) (COMPLETE - Jan 12, 2026)
 6. ✅ Implement Enhanced Akahu Data Display (Milestone 8.6) (COMPLETE - Jan 13, 2026)
 7. ✅ Implement Authentication & Multi-User Support (Milestone 1.5) (COMPLETE - Jan 13, 2026)
-8. Merge `feature/authentication-multi-user` to `main` branch
-9. Create feature plan for Category System (Milestone 3)
-   - Hierarchical category data model (Prisma schema)
-   - Default category seed data (Income, Housing, Transportation, Food & Dining, etc.)
-   - Category CRUD API endpoints with validation
-   - Category management UI (create, edit, delete, reorganize)
-   - Parent-child category relationships
-   - Category assignment to transactions (update TransactionForm)
-   - Category colors and visual identification
-   - Subcategory breakdown views
-   - Category filtering in transaction lists
-   - Auto-categorization using Akahu's category data (Milestone 3.5)
-9. Begin implementation of Category System (Milestone 3)
+8. ✅ Merge `feature/authentication-multi-user` to `main` branch (COMPLETE - Jan 13, 2026)
+9. ✅ Implement Analytics & Visualization (Milestone 4 - Partial) (IN PROGRESS - Jan 14, 2026)
+   - ✅ Backend analytics API endpoints (daily balances, category totals, trends)
+   - ✅ Calendar view with transaction display and dynamic month loading
+   - ✅ Category pie charts and bar charts
+   - ✅ Spending trends over time (line/area charts)
+   - ✅ Income vs expense comparison charts
+   - ✅ Standalone calendar page with navigation
+   - ✅ Sync transaction debugging view
+10. Complete remaining Milestone 4 features or merge to main
+11. Create feature plan for Category System (Milestone 3)
+    - Hierarchical category data model (Prisma schema)
+    - Default category seed data (Income, Housing, Transportation, Food & Dining, etc.)
+    - Category CRUD API endpoints with validation
+    - Category management UI (create, edit, delete, reorganize)
+    - Parent-child category relationships
+    - Category assignment to transactions (update TransactionForm)
+    - Category colors and visual identification
+    - Subcategory breakdown views
+    - Category filtering in transaction lists
+    - Auto-categorization using Akahu's category data (Milestone 3.5)
+12. Begin implementation of Category System (Milestone 3)
 
 ## Project-Specific Notes
 
@@ -872,7 +914,7 @@ docker system prune -a --volumes  # Removes all stopped containers, unused image
 
 ---
 
-**Last Updated**: January 13, 2026
-**Current Phase**: Milestone 1.5 - Authentication & Multi-User Support ✅ COMPLETE
+**Last Updated**: January 14, 2026
+**Current Phase**: Milestone 4 - Visualization & Analytics (In Progress)
 **Framework/Platform**: React + Node.js + PostgreSQL (Full-Stack TypeScript)
-**Status**: JWT authentication complete with full user data isolation. Backend: userId filtering on all queries, authentication middleware on all endpoints. Frontend: Login/register pages, protected routes, automatic token refresh, React Query cache clearing prevents data leakage. Ready to merge `feature/authentication-multi-user` to main and begin Milestone 3 (Category System).
+**Status**: Analytics implementation in progress on `feature/milestone-4-visualization-analytics` branch. Completed: Backend analytics API (daily balances, category totals, trends), calendar view with FullCalendar integration, category charts (pie/bar), spending trends charts, income vs expense comparison, standalone calendar page, sync transaction debugging view. Charts visualized with Recharts. Next: Complete Milestone 4 or begin Milestone 3 (Category System).

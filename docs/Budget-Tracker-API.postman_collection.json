@@ -978,6 +978,34 @@
 					"response": []
 				},
 				{
+					"name": "Get Sync Transactions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/sync/history/:syncHistoryId/transactions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sync",
+								"history",
+								":syncHistoryId",
+								"transactions"
+							],
+							"variable": [
+								{
+									"key": "syncHistoryId",
+									"value": "{{syncHistoryId}}",
+									"description": "Sync history UUID"
+								}
+							]
+						},
+						"description": "Get all transactions fetched during a specific sync (for debugging)"
+					},
+					"response": []
+				},
+				{
 					"name": "Get Transactions for Review",
 					"request": {
 						"method": "GET",
