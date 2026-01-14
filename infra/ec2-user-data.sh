@@ -218,8 +218,15 @@ cat > /opt/deploy-app.sh << 'DEPLOY_SCRIPT'
 #!/bin/bash
 set -e
 
+# Log to file and console
+LOGFILE="/var/log/deploy-app.log"
+exec > >(tee -a "$LOGFILE")
+exec 2>&1
+
+echo ""
 echo "========================================="
 echo "Budget Tracker - Redeployment"
+echo "Started at: $(date)"
 echo "========================================="
 
 # Get AWS info
@@ -263,8 +270,16 @@ docker run -d \
   -p 80:80 \
   $FRONTEND_IMAGE
 
-echo "Deployment complete!"
+echo ""
+echo "========================================="
+echo "✓ Deployment complete!"
+echo "Finished at: $(date)"
+echo "========================================="
+echo ""
+echo "Running containers:"
 docker ps
+echo ""
+echo "Logs saved to: $LOGFILE"
 DEPLOY_SCRIPT
 
 chmod +x /opt/deploy-app.sh
