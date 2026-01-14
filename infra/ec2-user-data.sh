@@ -165,7 +165,7 @@ echo "Running migrations using temporary container..."
 docker run --rm \
   -e DATABASE_URL="$DATABASE_URL" \
   $BACKEND_IMAGE \
-  npx prisma migrate deploy
+  sh -c "npx prisma migrate deploy --skip-seed"
 
 if [ $? -eq 0 ]; then
   echo "✓ Migrations completed successfully"
@@ -267,7 +267,7 @@ echo "Running database migrations..."
 docker run --rm \
   -e DATABASE_URL="$DATABASE_URL" \
   $BACKEND_IMAGE \
-  npx prisma migrate deploy
+  sh -c "npx prisma migrate deploy --skip-seed"
 
 # Start backend
 echo "Starting backend container..."
