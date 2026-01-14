@@ -468,6 +468,128 @@ export const getSyncHistory = async (
 };
 
 /**
+ * Get transactions for a specific sync history
+ * GET /api/v1/sync/history/:syncHistoryId/transactions
+ */
+export const getSyncTransactions = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const userId = req.user!.userId;
+    const { syncHistoryId } = req.params;
+
+    logger.debug('[SyncController] Getting sync transactions', { syncHistoryId, userId });
+
+    // Get sync history and verify connection belongs to user
+    const syncHistory = await prisma.syncHistory.findFirst({
+      where: {
+        id: syncHistoryId,
+        connection: { userId },
+      },
+      include: {
+        connection: {
+          include: {
+            linkedAccounts: {
+              include: {
+                localAccount: {
+                  select: {
+                    id: true,
+                    name: true,
+                    type: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!syncHistory) {
+      res.status(404).json({ error: 'Sync history not found' });
+      return;
+    }
+
+    // Get external transactions created during this sync
+    // We'll query transactions created between sync start and completion (or now if not completed)
+    const endTime = syncHistory.completedAt || new Date();
+    const startTime = syncHistory.startedAt;
+
+    const externalTransactions = await prisma.externalTransaction.findMany({
+      where: {
+        linkedAccount: {
+          connectionId: syncHistory.connectionId,
+        },
+        createdAt: {
+          gte: startTime,
+          lte: endTime,
+        },
+      },
+      include: {
+        linkedAccount: {
+          include: {
+            localAccount: {
+              select: {
+                id: true,
+                name: true,
+                type: true,
+              },
+            },
+          },
+        },
+        localTransaction: {
+          select: {
+            id: true,
+            description: true,
+            amount: true,
+            date: true,
+          },
+        },
+      },
+      orderBy: { date: 'desc' },
+    });
+
+    res.json({
+      items: externalTransactions.map((tx) => ({
+        id: tx.id,
+        externalTransactionId: tx.externalTransactionId,
+        date: tx.date,
+        amount: tx.amount,
+        description: tx.description,
+        merchant: tx.merchant,
+        category: tx.category,
+        type: tx.type,
+        balance: tx.balance,
+        isDuplicate: tx.isDuplicate,
+        duplicateConfidence: tx.duplicateConfidence,
+        needsReview: tx.needsReview,
+        linkedAccount: {
+          id: tx.linkedAccount.id,
+          externalName: tx.linkedAccount.externalName,
+          institution: tx.linkedAccount.institution,
+          localAccount: tx.linkedAccount.localAccount,
+        },
+        localTransaction: tx.localTransaction,
+        createdAt: tx.createdAt,
+      })),
+      syncHistory: {
+        id: syncHistory.id,
+        type: syncHistory.type,
+        status: syncHistory.status,
+        startedAt: syncHistory.startedAt,
+        completedAt: syncHistory.completedAt,
+        transactionsFetched: syncHistory.transactionsFetched,
+      },
+    });
+  } catch (error) {
+    logger.error('[SyncController] Failed to get sync transactions', { error });
+    next(error);
+  }
+};
+
+/**
  * Get transactions needing review
  * GET /api/v1/sync/review
  */

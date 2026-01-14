@@ -7,6 +7,7 @@ import {
   triggerSync,
   getSyncStatus,
   getSyncHistory,
+  getSyncTransactions,
   getReviewTransactions,
   approveTransaction,
   rejectTransaction,
@@ -24,6 +25,7 @@ import {
   triggerSyncSchema,
   getSyncStatusSchema,
   getSyncHistorySchema,
+  getSyncTransactionsSchema,
   getReviewTransactionsSchema,
   approveTransactionSchema,
   rejectTransactionSchema,
@@ -61,6 +63,7 @@ router.get('/accounts', validate(getConnectedAccountsSchema), getConnectedAccoun
 router.post('/trigger', validate(triggerSyncSchema), triggerSync);
 router.get('/status/:syncHistoryId', validate(getSyncStatusSchema), getSyncStatus);
 router.get('/history', validate(getSyncHistorySchema), getSyncHistory);
+router.get('/history/:syncHistoryId/transactions', validate(getSyncTransactionsSchema), getSyncTransactions);
 
 // Transaction review
 router.get('/review', validate(getReviewTransactionsSchema), getReviewTransactions);
