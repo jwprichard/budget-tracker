@@ -21,38 +21,50 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      # 3. Log in to ECR
-      - name: Login to Amazon ECR
-        run: |
-          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
-          | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+      # 3. Setup Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
 
-      # 4. Build Docker images
-      - name: Build backend and frontend Docker images
-        run: |
-          docker build -t backend ./backend
-          docker build -t frontend ./frontend
-
-      # 5. Tag Docker images for ECR
-      - name: Tag Docker images
-        run: |
-          docker tag backend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/budget-backend:latest
-          docker tag frontend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/budget-frontend:latest
-
-      # 6. Push Docker images to ECR
-      - name: Push Docker images to ECR
-        run: |
-          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/budget-backend:latest
-          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/budget-frontend:latest
-
-      # 7. Terraform init and apply
+      # 4. Terraform init and apply (creates ECR repos and all infrastructure)
       - name: Terraform init and apply
         run: |
           cd infra
           terraform init -input=false
           terraform apply -auto-approve -input=false
 
-      # 8. Run Prisma Migrations
+      # 5. Log in to ECR (after ECR repos are created by Terraform)
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
+          | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+      # 6. Build Docker images
+      - name: Build backend and frontend Docker images
+        run: |
+          docker build -t backend ./backend
+          docker build -t frontend ./frontend
+
+      # 7. Tag Docker images for ECR
+      - name: Tag Docker images
+        run: |
+          docker tag backend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/budget-backend:latest
+          docker tag frontend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/budget-frontend:latest
+
+      # 8. Push Docker images to ECR
+      - name: Push Docker images to ECR
+        run: |
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/budget-backend:latest
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/budget-frontend:latest
+
+      # 9. Force ECS service update to deploy new images
+      - name: Update ECS services
+        run: |
+          aws ecs update-service --cluster budget-tracker --service budget-api --force-new-deployment --region ${{ secrets.AWS_REGION }} || true
+          aws ecs update-service --cluster budget-tracker --service budget-frontend --force-new-deployment --region ${{ secrets.AWS_REGION }} || true
+
+      # 10. Run Prisma Migrations
       - name: Run Prisma Migrations
         run: |
           cd backend
