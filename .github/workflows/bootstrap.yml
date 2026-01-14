@@ -17,4 +17,4 @@ jobs:
 
     - name: Create Terraform state bucket
       run: |
-        aws s3 mb s3://budget-tracker-terraform-state || true
+        aws s3 mb s3://budget-tracker-terraform-state-068410980785 || true
