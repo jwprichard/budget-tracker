@@ -60,31 +60,59 @@ jobs:
 
       # 9. Trigger container update on EC2 (if instance exists)
       - name: Update containers on EC2
+        continue-on-error: true  # Don't fail the workflow if SSM fails
         run: |
           cd infra
           INSTANCE_ID=$(terraform output -raw ec2_instance_id 2>/dev/null || echo "")
 
           if [ -n "$INSTANCE_ID" ]; then
-            echo "Triggering container update on EC2 instance: $INSTANCE_ID"
+            echo "================================================"
+            echo "Attempting automated container update via SSM..."
+            echo "================================================"
+            echo "Instance ID: $INSTANCE_ID"
 
-            # Use SSM to run the deploy script
+            # Check if instance is registered with SSM
+            echo "Checking SSM agent status..."
+            SSM_STATUS=$(aws ssm describe-instance-information \
+              --filters "Key=InstanceIds,Values=$INSTANCE_ID" \
+              --query "InstanceInformationList[0].PingStatus" \
+              --output text 2>/dev/null || echo "Unknown")
+
+            echo "SSM Agent Status: $SSM_STATUS"
+
+            if [ "$SSM_STATUS" != "Online" ]; then
+              echo "⚠️  SSM agent not online. SSM updates won't work yet."
+              echo "The agent may still be initializing on first boot."
+              echo ""
+              echo "Manual update required:"
+              echo "  ssh ec2-user@$(terraform output -raw ec2_public_ip) 'sudo /opt/deploy-app.sh'"
+              exit 0
+            fi
+
+            # Try to send SSM command
+            echo "Sending SSM command..."
             COMMAND_ID=$(aws ssm send-command \
               --instance-ids "$INSTANCE_ID" \
               --document-name "AWS-RunShellScript" \
               --parameters 'commands=["/opt/deploy-app.sh"]' \
               --output text \
-              --query "Command.CommandId")
+              --query "Command.CommandId" 2>&1)
 
-            echo "SSM Command ID: $COMMAND_ID"
-            echo "Waiting 5 seconds for command to start..."
-            sleep 5
-
-            # Check command status
-            aws ssm get-command-invocation \
-              --command-id "$COMMAND_ID" \
-              --instance-id "$INSTANCE_ID" \
-              --query '[Status,StatusDetails]' \
-              --output text || echo "Command still running..."
+            if [ $? -eq 0 ]; then
+              echo "✓ SSM Command sent successfully"
+              echo "Command ID: $COMMAND_ID"
+              echo ""
+              echo "The deploy script is running in the background."
+              echo "It will pull new images and restart containers (~2-3 minutes)."
+              echo ""
+              echo "To monitor progress:"
+              echo "  aws ssm get-command-invocation --command-id $COMMAND_ID --instance-id $INSTANCE_ID"
+            else
+              echo "⚠️  SSM command failed: $COMMAND_ID"
+              echo ""
+              echo "Manual update required:"
+              echo "  ssh ec2-user@$(terraform output -raw ec2_public_ip) 'sudo /opt/deploy-app.sh'"
+            fi
           else
             echo "No existing EC2 instance - this is a new deployment."
             echo "Containers will be deployed automatically via user_data."
