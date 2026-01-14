@@ -15,10 +15,7 @@ import {
   Divider,
   Stack,
 } from '@mui/material';
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { Circle as CircleIcon } from '@mui/icons-material';
-import { useCategoryTotals } from '../../hooks/useAnalytics';
-import { CategoryTotal, TransactionTypeFilter } from '../../types/analytics.types';
 import { formatCurrency, formatPercentage } from '../../utils/formatters';
 
 interface CategoryPieChartProps {

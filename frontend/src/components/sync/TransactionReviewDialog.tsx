@@ -7,7 +7,6 @@ import {
   Button,
   List,
   ListItem,
-  ListItemText,
   Typography,
   Box,
   Chip,
@@ -19,7 +18,6 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
-import LinkIcon from '@mui/icons-material/Link';
 import {
   getReviewTransactions,
   approveTransaction,

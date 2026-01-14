@@ -21,7 +21,6 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
-  Legend,
 } from 'recharts';
 import { useCategoryTotals } from '../../hooks/useAnalytics';
 import { TransactionTypeFilter } from '../../types/analytics.types';

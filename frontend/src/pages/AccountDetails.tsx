@@ -6,7 +6,6 @@ import {
   Button,
   Paper,
   Grid,
-  IconButton,
   Chip,
   Fab,
 } from '@mui/material';

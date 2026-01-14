@@ -1,5 +1,4 @@
 import apiClient from './api';
-import { SuccessResponse } from '../types';
 
 const BASE_PATH = '/v1/sync';
 

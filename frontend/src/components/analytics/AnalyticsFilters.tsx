@@ -18,6 +18,7 @@ import {
 import { DateRangePicker, DateRange } from './DateRangePicker';
 import { useAccounts } from '../../hooks/useAccounts';
 import { useCategories } from '../../hooks/useCategories';
+import { Account, Category } from '../../types';
 
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
@@ -56,8 +57,8 @@ export const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
   const { data: accountsData } = useAccounts();
   const { data: categoriesData } = useCategories();
 
-  const accounts = accountsData?.accounts || [];
-  const categories = categoriesData?.categories || [];
+  const accounts = accountsData || [];
+  const categories = categoriesData || [];
 
   // Handle date range change
   const handleDateRangeChange = (dateRange: DateRange) => {
@@ -89,16 +90,16 @@ export const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
   const getSelectedAccountNames = (): string[] => {
     if (value.accountIds.length === 0) return [];
     return accounts
-      .filter((account) => value.accountIds.includes(account.id))
-      .map((account) => account.name);
+      .filter((account: Account) => value.accountIds.includes(account.id))
+      .map((account: Account) => account.name);
   };
 
   // Get selected category names
   const getSelectedCategoryNames = (): string[] => {
     if (value.categoryIds.length === 0) return [];
     return categories
-      .filter((category) => value.categoryIds.includes(category.id))
-      .map((category) => category.name);
+      .filter((category: Category) => value.categoryIds.includes(category.id))
+      .map((category: Category) => category.name);
   };
 
   return (
@@ -140,12 +141,12 @@ export const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
               <MenuItem value="">
                 <em>All accounts</em>
               </MenuItem>
-              {accounts.map((account) => (
+              {accounts.map((account: Account) => (
                 <MenuItem key={account.id} value={account.id}>
                   <Checkbox checked={value.accountIds.indexOf(account.id) > -1} />
                   <ListItemText
                     primary={account.name}
-                    secondary={account.accountType}
+                    secondary={account.type}
                   />
                 </MenuItem>
               ))}
@@ -181,8 +182,8 @@ export const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
                   <em>All categories</em>
                 </MenuItem>
                 {categories
-                  .filter((cat) => !cat.parentId) // Only show parent categories
-                  .map((category) => (
+                  .filter((cat: Category) => !cat.parentId) // Only show parent categories
+                  .map((category: Category) => (
                     <MenuItem key={category.id} value={category.id}>
                       <Checkbox checked={value.categoryIds.indexOf(category.id) > -1} />
                       <ListItemText

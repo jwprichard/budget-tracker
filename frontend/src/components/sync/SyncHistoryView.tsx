@@ -57,12 +57,12 @@ export const SyncHistoryView: React.FC<SyncHistoryViewProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(20);
-  const [totalPages, setTotalPages] = useState(0);
+  const [_totalPages, setTotalPages] = useState(0);
   const [total, setTotal] = useState(0);
 
   // Dialog state for viewing transactions
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedSyncId, setSelectedSyncId] = useState<string | null>(null);
+  const [_selectedSyncId, setSelectedSyncId] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<ExternalTransaction[]>([]);
   const [loadingTransactions, setLoadingTransactions] = useState(false);
   const [transactionsError, setTransactionsError] = useState<string | null>(null);

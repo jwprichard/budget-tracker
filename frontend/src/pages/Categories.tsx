@@ -15,7 +15,7 @@ import {
   ViewList as ListViewIcon,
   AccountTree as TreeViewIcon,
 } from '@mui/icons-material';
-import { useCategories, useCategoryStats } from '../hooks/useCategories';
+import { useCategories } from '../hooks/useCategories';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { ErrorAlert } from '../components/common/ErrorAlert';
 import { EmptyState } from '../components/common/EmptyState';
