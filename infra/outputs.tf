@@ -30,17 +30,17 @@ output "ecr_frontend_url" {
   value       = aws_ecr_repository.frontend.repository_url
 }
 
-output "ecs_cluster_name" {
-  description = "ECS cluster name"
-  value       = aws_ecs_cluster.main.name
-}
+# output "ecs_cluster_name" {
+#   description = "ECS cluster name"
+#   value       = aws_ecs_cluster.main.name
+# }
 
-output "api_service_name" {
-  description = "ECS service name for API"
-  value       = aws_ecs_service.api.name
-}
+# output "api_service_name" {
+#   description = "ECS service name for API"
+#   value       = aws_ecs_service.api.name
+# }
 
-output "frontend_service_name" {
-  description = "ECS service name for frontend"
-  value       = aws_ecs_service.frontend.name
-}
+# output "frontend_service_name" {
+#   description = "ECS service name for frontend"
+#   value       = aws_ecs_service.frontend.name
+# }
