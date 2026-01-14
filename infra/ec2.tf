@@ -88,6 +88,24 @@ resource "aws_instance" "app" {
               # You'll need to set this up via SSH after initial deployment
               EOF
 
+ # ---- REMOTE EXEC BLOCK ----
+  provisioner "remote-exec" {
+    connection {
+      type        = "ssh"
+      host        = self.public_ip          # Must be reachable
+      user        = "ec2-user"
+      private_key = file("~/.ssh/id_rsa")   # Path to your key
+    }
+
+    # Commands to run after instance is up
+    inline = [
+      "docker --version",
+      "docker-compose --version",
+      "cd /home/ec2-user/app && docker-compose up -d",
+      "cd /home/ec2-user/app/backend && npx prisma migrate deploy"
+    ]
+  }
+
   tags = {
     Name = "budget-tracker-app"
   }
