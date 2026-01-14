@@ -94,7 +94,9 @@ resource "aws_iam_role_policy" "ec2_ecr_policy" {
           "ecr:GetAuthorizationToken",
           "ecr:BatchCheckLayerAvailability",
           "ecr:GetDownloadUrlForLayer",
-          "ecr:BatchGetImage"
+          "ecr:BatchGetImage",
+          "ecr:DescribeImages",
+          "ecr:DescribeRepositories"
         ]
         Resource = "*"
       },
@@ -109,6 +111,12 @@ resource "aws_iam_role_policy" "ec2_ecr_policy" {
       }
     ]
   })
+}
+
+# Attach AWS managed policy for SSM (allows remote command execution)
+resource "aws_iam_role_policy_attachment" "ec2_ssm_policy" {
+  role       = aws_iam_role.ec2_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
 # Instance profile to attach the role to EC2
