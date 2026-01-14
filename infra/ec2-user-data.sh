@@ -236,25 +236,9 @@ echo "Budget Tracker - Redeployment"
 echo "Started at: $(date)"
 echo "========================================="
 
-# Get AWS info using IMDSv2
-TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600" -s)
-AWS_REGION=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/placement/region)
-
-# Fallback if IMDSv2 fails
-if [ -z "$AWS_REGION" ]; then
-  AWS_REGION=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone | sed 's/[a-z]$//')
-fi
-
-# Still empty? Use default
-if [ -z "$AWS_REGION" ]; then
-  AWS_REGION="ap-southeast-2"
-  echo "WARNING: Could not detect region, using default: $AWS_REGION"
-fi
-
-echo "AWS Region: $AWS_REGION"
-
+# Get AWS info
+AWS_REGION=$(curl -s http://169.254.169.254/latest/meta-data/placement/region)
 AWS_ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
-echo "AWS Account: $AWS_ACCOUNT"
 
 # Login to ECR
 echo "Logging into ECR..."
