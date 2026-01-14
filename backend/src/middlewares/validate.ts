@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { AnyZodObject, ZodError } from 'zod';
+import { ZodTypeAny, ZodError } from 'zod';
 import logger from '../utils/logger';
 
 /**
@@ -8,10 +8,10 @@ import logger from '../utils/logger';
  * Creates Express middleware that validates request data using Zod schemas.
  * Validates params, query, and body based on schema definition.
  *
- * @param schema - Zod schema object
+ * @param schema - Zod schema (supports all Zod types including ZodEffects from .refine()/.transform())
  * @returns Express middleware function
  */
-export const validate = (schema: AnyZodObject) => {
+export const validate = (schema: ZodTypeAny) => {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       // Validate request data against schema
