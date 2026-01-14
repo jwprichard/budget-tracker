@@ -21,7 +21,7 @@ app.use(helmet());
 // CORS configuration
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: process.env['CORS_ORIGIN'] || 'http://localhost:5173',
     credentials: true,
   })
 );
@@ -42,7 +42,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(requestLogger);
 
 // API routes
-const API_VERSION = process.env.API_VERSION || 'v1';
+const API_VERSION = process.env['API_VERSION'] || 'v1';
 app.use(`/api/${API_VERSION}/auth`, authRoutes); // Auth routes (public)
 app.use(`/api/${API_VERSION}`, healthRoutes);
 app.use(`/api/${API_VERSION}/accounts`, accountRoutes);
