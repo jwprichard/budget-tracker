@@ -21,7 +21,7 @@ export FRONTEND_IMAGE="${frontend_image}"
 
 echo "AWS Region: $AWS_REGION"
 echo "AWS Account: $AWS_ACCOUNT"
-echo "Database URL: ${DATABASE_URL%%@*}@***"  # Hide password in logs
+echo "Database URL: $${DATABASE_URL%%@*}@***"  # Hide password in logs
 
 # ==========================================
 # 0. Wait for IAM instance profile
