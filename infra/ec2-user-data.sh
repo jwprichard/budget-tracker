@@ -10,18 +10,18 @@ exec 2>&1
 echo "========================================="
 echo "Budget Tracker - EC2 Bootstrap"
 echo "========================================="
-echo "Started at: $$(date)"
+echo "Started at: $(date)"
 
 # Terraform-injected variables
-AWS_REGION="${aws_region}"
-AWS_ACCOUNT="${aws_account}"
-DATABASE_URL="${database_url}"
-BACKEND_IMAGE="${backend_image}"
-FRONTEND_IMAGE="${frontend_image}"
+export AWS_REGION="${aws_region}"
+export AWS_ACCOUNT="${aws_account}"
+export DATABASE_URL="${database_url}"
+export BACKEND_IMAGE="${backend_image}"
+export FRONTEND_IMAGE="${frontend_image}"
 
-echo "AWS Region: $$AWS_REGION"
-echo "AWS Account: $$AWS_ACCOUNT"
-echo "Database URL: $${DATABASE_URL%%@*}@***"  # Hide password in logs
+echo "AWS Region: $AWS_REGION"
+echo "AWS Account: $AWS_ACCOUNT"
+echo "Database URL: ${DATABASE_URL%%@*}@***"  # Hide password in logs
 
 # ==========================================
 # 0. Wait for IAM instance profile
@@ -30,17 +30,17 @@ echo ""
 echo "Step 0: Waiting for IAM credentials..."
 MAX_WAIT=300  # 5 minutes
 WAIT_COUNT=0
-while [ $$WAIT_COUNT -lt $$MAX_WAIT ]; do
+while [ $WAIT_COUNT -lt $MAX_WAIT ]; do
   if aws sts get-caller-identity > /dev/null 2>&1; then
     echo "✓ IAM credentials available!"
     aws sts get-caller-identity
     break
   fi
-  echo "Waiting for IAM credentials... ($${WAIT_COUNT}s elapsed)"
+  echo "Waiting for IAM credentials... ($WAIT_COUNT s elapsed)"
   sleep 10
-  WAIT_COUNT=$$((WAIT_COUNT + 10))
+  WAIT_COUNT=$((WAIT_COUNT + 10))
 
-  if [ $$WAIT_COUNT -ge $$MAX_WAIT ]; then
+  if [ $WAIT_COUNT -ge $MAX_WAIT ]; then
     echo "ERROR: Timeout waiting for IAM credentials"
     echo "Instance profile may not be attached properly"
     exit 1
@@ -67,8 +67,8 @@ aws --version
 # ==========================================
 echo ""
 echo "Step 2: Logging into ECR..."
-if aws ecr get-login-password --region $$AWS_REGION | \
-  docker login --username AWS --password-stdin $$AWS_ACCOUNT.dkr.ecr.$$AWS_REGION.amazonaws.com; then
+if aws ecr get-login-password --region $AWS_REGION | \
+  docker login --username AWS --password-stdin $AWS_ACCOUNT.dkr.ecr.$AWS_REGION.amazonaws.com; then
   echo "✓ Successfully logged into ECR"
 else
   echo "ERROR: Failed to login to ECR"
@@ -81,24 +81,24 @@ fi
 # ==========================================
 echo ""
 echo "Step 3: Waiting for images in ECR..."
-echo "Backend image: $$BACKEND_IMAGE"
-echo "Frontend image: $$FRONTEND_IMAGE"
+echo "Backend image: $BACKEND_IMAGE"
+echo "Frontend image: $FRONTEND_IMAGE"
 
 # Function to check if image exists
 check_image() {
-  local image=$$1
-  local repo_name=$$(echo $$image | cut -d'/' -f2 | cut -d':' -f1)
-  echo "  Checking repository: $$repo_name"
+  local image=$1
+  local repo_name=$(echo $image | cut -d'/' -f2 | cut -d':' -f1)
+  echo "  Checking repository: $repo_name"
 
   if aws ecr describe-images \
-    --repository-name $$repo_name \
+    --repository-name $repo_name \
     --image-ids imageTag=latest \
-    --region $$AWS_REGION \
+    --region $AWS_REGION \
     --output text > /dev/null 2>&1; then
-    echo "  ✓ Found image in $$repo_name"
+    echo "  ✓ Found image in $repo_name"
     return 0
   else
-    echo "  ✗ Image not found in $$repo_name"
+    echo "  ✗ Image not found in $repo_name"
     return 1
   fi
 }
@@ -108,16 +108,16 @@ MAX_WAIT=600  # 10 minutes
 WAIT_COUNT=0
 WAIT_INTERVAL=30  # Check every 30 seconds
 
-while [ $$WAIT_COUNT -lt $$MAX_WAIT ]; do
-  echo "Checking if images are available in ECR... ($$($$WAIT_COUNT / 60))min elapsed)"
+while [ $WAIT_COUNT -lt $MAX_WAIT ]; do
+  echo "Checking if images are available in ECR... ($($WAIT_COUNT / 60))min elapsed)"
 
-  if check_image "$$BACKEND_IMAGE" && check_image "$$FRONTEND_IMAGE"; then
+  if check_image "$BACKEND_IMAGE" && check_image "$FRONTEND_IMAGE"; then
     echo "✓ Both images found in ECR!"
     break
   fi
 
-  if [ $$WAIT_COUNT -ge $$MAX_WAIT ]; then
-    echo "ERROR: Timeout waiting for images in ECR after $$MAX_WAIT seconds"
+  if [ $WAIT_COUNT -ge $MAX_WAIT ]; then
+    echo "ERROR: Timeout waiting for images in ECR after $MAX_WAIT seconds"
     echo "This usually means GitHub Actions hasn't pushed the images yet."
     echo ""
     echo "You can check the GitHub Actions workflow at:"
@@ -127,9 +127,9 @@ while [ $$WAIT_COUNT -lt $$MAX_WAIT ]; do
     exit 1
   fi
 
-  echo "Images not ready yet, sleeping $$WAIT_INTERVAL seconds..."
-  sleep $$WAIT_INTERVAL
-  WAIT_COUNT=$$((WAIT_COUNT + WAIT_INTERVAL))
+  echo "Images not ready yet, sleeping $WAIT_INTERVAL seconds..."
+  sleep $WAIT_INTERVAL
+  WAIT_COUNT=$((WAIT_COUNT + WAIT_INTERVAL))
 done
 
 # ==========================================
@@ -137,16 +137,16 @@ done
 # ==========================================
 echo ""
 echo "Step 4: Pulling Docker images..."
-echo "Pulling backend: $$BACKEND_IMAGE"
-if docker pull $$BACKEND_IMAGE; then
+echo "Pulling backend: $BACKEND_IMAGE"
+if docker pull $BACKEND_IMAGE; then
   echo "✓ Backend image pulled successfully"
 else
   echo "ERROR: Failed to pull backend image"
   exit 1
 fi
 
-echo "Pulling frontend: $$FRONTEND_IMAGE"
-if docker pull $$FRONTEND_IMAGE; then
+echo "Pulling frontend: $FRONTEND_IMAGE"
+if docker pull $FRONTEND_IMAGE; then
   echo "✓ Frontend image pulled successfully"
 else
   echo "ERROR: Failed to pull frontend image"
@@ -165,10 +165,10 @@ docker run -d \
   --name budget-backend \
   --restart unless-stopped \
   -p 3000:3000 \
-  -e DATABASE_URL="$$DATABASE_URL" \
+  -e DATABASE_URL="$DATABASE_URL" \
   -e NODE_ENV=production \
   -e PORT=3000 \
-  $$BACKEND_IMAGE
+  $BACKEND_IMAGE
 
 # Wait for backend to be healthy
 echo "Waiting for backend to be healthy..."
@@ -179,7 +179,7 @@ for i in {1..30}; do
     echo "✓ Backend is healthy!"
     break
   fi
-  if [ $$i -eq 30 ]; then
+  if [ $i -eq 30 ]; then
     echo "WARNING: Backend health check failed after 30 attempts"
     echo "Backend logs:"
     docker logs budget-backend
@@ -207,7 +207,7 @@ docker run -d \
   --name budget-frontend \
   --restart unless-stopped \
   -p 80:80 \
-  $$FRONTEND_IMAGE
+  $FRONTEND_IMAGE
 
 # ==========================================
 # 8. Create deployment script for updates
@@ -298,7 +298,7 @@ echo ""
 echo "========================================="
 echo "✓ Deployment Complete!"
 echo "========================================="
-echo "Finished at: $$(date)"
+echo "Finished at: $(date)"
 echo ""
 echo "Running containers:"
 docker ps
