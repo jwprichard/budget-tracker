@@ -12,7 +12,7 @@ exec 2>&1
 echo "========================================="
 echo "Budget Tracker - EC2 Bootstrap"
 echo "========================================="
-echo "Started at: $(date)"
+echo "Started at: $$(date)"
 
 # Terraform-injected variables
 AWS_REGION="${aws_region}"
@@ -21,9 +21,9 @@ DATABASE_URL="${database_url}"
 BACKEND_IMAGE="${backend_image}"
 FRONTEND_IMAGE="${frontend_image}"
 
-echo "AWS Region: $AWS_REGION"
-echo "AWS Account: $AWS_ACCOUNT"
-echo "Database URL: ${DATABASE_URL%%@*}@***"  # Hide password in logs
+echo "AWS Region: $$AWS_REGION"
+echo "AWS Account: $$AWS_ACCOUNT"
+echo "Database URL: $${DATABASE_URL%%@*}@***"  # Hide password in logs
 
 # ==========================================
 # 1. Install Docker
@@ -44,8 +44,8 @@ docker --version
 # ==========================================
 echo ""
 echo "Step 2: Logging into ECR..."
-aws ecr get-login-password --region $AWS_REGION | \
-  docker login --username AWS --password-stdin $AWS_ACCOUNT.dkr.ecr.$AWS_REGION.amazonaws.com
+aws ecr get-login-password --region $$AWS_REGION | \
+  docker login --username AWS --password-stdin $$AWS_ACCOUNT.dkr.ecr.$$AWS_REGION.amazonaws.com
 
 # ==========================================
 # 3. Wait for images to be available in ECR
@@ -55,13 +55,13 @@ echo "Step 3: Waiting for images in ECR..."
 
 # Function to check if image exists
 check_image() {
-  local image=$1
+  local image=$$1
   aws ecr describe-images \
-    --repository-name $(echo $image | cut -d'/' -f2 | cut -d':' -f1) \
+    --repository-name $$(echo $$image | cut -d'/' -f2 | cut -d':' -f1) \
     --image-ids imageTag=latest \
-    --region $AWS_REGION \
+    --region $$AWS_REGION \
     --output text > /dev/null 2>&1
-  return $?
+  return $$?
 }
 
 # Wait up to 10 minutes for images
@@ -69,23 +69,23 @@ MAX_WAIT=600  # 10 minutes
 WAIT_COUNT=0
 WAIT_INTERVAL=30  # Check every 30 seconds
 
-while [ $WAIT_COUNT -lt $MAX_WAIT ]; do
-  echo "Checking if images are available in ECR... ($(($WAIT_COUNT / 60))min elapsed)"
+while [ $$WAIT_COUNT -lt $$MAX_WAIT ]; do
+  echo "Checking if images are available in ECR... ($$($$WAIT_COUNT / 60))min elapsed)"
 
-  if check_image "$BACKEND_IMAGE" && check_image "$FRONTEND_IMAGE"; then
+  if check_image "$$BACKEND_IMAGE" && check_image "$$FRONTEND_IMAGE"; then
     echo "✓ Both images found in ECR!"
     break
   fi
 
-  if [ $WAIT_COUNT -ge $MAX_WAIT ]; then
-    echo "ERROR: Timeout waiting for images in ECR after $MAX_WAIT seconds"
+  if [ $$WAIT_COUNT -ge $$MAX_WAIT ]; then
+    echo "ERROR: Timeout waiting for images in ECR after $$MAX_WAIT seconds"
     echo "This usually means GitHub Actions hasn't pushed the images yet."
     echo "To deploy manually later, SSH in and run: sudo /opt/deploy-app.sh"
     exit 1
   fi
 
-  sleep $WAIT_INTERVAL
-  WAIT_COUNT=$((WAIT_COUNT + WAIT_INTERVAL))
+  sleep $$WAIT_INTERVAL
+  WAIT_COUNT=$$((WAIT_COUNT + WAIT_INTERVAL))
 done
 
 # ==========================================
@@ -93,8 +93,8 @@ done
 # ==========================================
 echo ""
 echo "Step 4: Pulling Docker images..."
-docker pull $BACKEND_IMAGE
-docker pull $FRONTEND_IMAGE
+docker pull $$BACKEND_IMAGE
+docker pull $$FRONTEND_IMAGE
 
 # ==========================================
 # 5. Start Backend Container
@@ -105,10 +105,10 @@ docker run -d \
   --name budget-backend \
   --restart unless-stopped \
   -p 3000:3000 \
-  -e DATABASE_URL="$DATABASE_URL" \
+  -e DATABASE_URL="$$DATABASE_URL" \
   -e NODE_ENV=production \
   -e PORT=3000 \
-  $BACKEND_IMAGE
+  $$BACKEND_IMAGE
 
 # Wait for backend to be healthy
 echo "Waiting for backend to be healthy..."
@@ -119,7 +119,7 @@ for i in {1..30}; do
     echo "✓ Backend is healthy!"
     break
   fi
-  if [ $i -eq 30 ]; then
+  if [ $$i -eq 30 ]; then
     echo "WARNING: Backend health check failed after 30 attempts"
     echo "Backend logs:"
     docker logs budget-backend
@@ -147,7 +147,7 @@ docker run -d \
   --name budget-frontend \
   --restart unless-stopped \
   -p 80:80 \
-  $FRONTEND_IMAGE
+  $$FRONTEND_IMAGE
 
 # ==========================================
 # 8. Create deployment script for updates
@@ -223,7 +223,7 @@ echo ""
 echo "========================================="
 echo "✓ Deployment Complete!"
 echo "========================================="
-echo "Finished at: $(date)"
+echo "Finished at: $$(date)"
 echo ""
 echo "Running containers:"
 docker ps
