@@ -1,0 +1,65 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Configure AWS credentials
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # 3. Log in to ECR
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
+          | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+      # 4. Build Docker images
+      - name: Build backend and frontend Docker images
+        run: |
+          docker build -t backend ./backend
+          docker build -t frontend ./frontend
+
+      # 5. Tag Docker images for ECR
+      - name: Tag Docker images
+        run: |
+          docker tag backend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/budget-backend:latest
+          docker tag frontend:latest ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/budget-frontend:latest
+
+      # 6. Push Docker images to ECR
+      - name: Push Docker images to ECR
+        run: |
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/budget-backend:latest
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/budget-frontend:latest
+
+      # 7. Terraform init and apply
+      - name: Terraform init and apply
+        run: |
+          cd infra
+          terraform init -input=false
+          terraform apply -auto-approve -input=false
+
+      # 8. Run Prisma Migrations
+      - name: Run Prisma Migrations
+        run: |
+          cd backend
+          npm ci
+
+          # Get RDS endpoint dynamically from Terraform
+          export DATABASE_URL="postgresql://budget_user:budget_password@$(cd ../infra && terraform output -raw db_address):5432/budget_tracker"
+
+          echo "Running migrations on $DATABASE_URL"
+          npx prisma migrate deploy
