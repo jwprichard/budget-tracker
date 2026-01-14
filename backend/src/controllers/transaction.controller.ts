@@ -34,7 +34,7 @@ export const getAllTransactions = async (req: Request, res: Response, next: Next
 export const getTransactionById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.userId;
-    const transaction = await transactionService.getTransactionById(req.params.id, userId);
+    const transaction = await transactionService.getTransactionById(req.params["id"] ?? '', userId);
 
     res.status(200).json({
       success: true,
@@ -91,7 +91,7 @@ export const createTransfer = async (req: Request, res: Response, next: NextFunc
 export const updateTransaction = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.userId;
-    const transaction = await transactionService.updateTransaction(req.params.id, req.body as UpdateTransactionDto, userId);
+    const transaction = await transactionService.updateTransaction(req.params["id"] ?? '', req.body as UpdateTransactionDto, userId);
 
     res.status(200).json({
       success: true,
@@ -111,7 +111,7 @@ export const updateTransaction = async (req: Request, res: Response, next: NextF
 export const deleteTransaction = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.userId;
-    await transactionService.deleteTransaction(req.params.id, userId);
+    await transactionService.deleteTransaction(req.params["id"] ?? '', userId);
 
     res.status(200).json({
       success: true,

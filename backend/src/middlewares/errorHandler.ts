@@ -19,7 +19,7 @@ export class AppError extends Error {
 // Global error handler middleware
 export const errorHandler = (
   err: Error,
-  req: Request,
+  _req: Request,
   res: Response,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _next: NextFunction
@@ -57,7 +57,7 @@ export const errorHandler = (
     success: false,
     error: {
       code: 'INTERNAL_SERVER_ERROR',
-      message: process.env.NODE_ENV === 'production'
+      message: process.env["NODE_ENV"] === 'production'
         ? 'An unexpected error occurred'
         : err.message,
     },

@@ -88,7 +88,7 @@ export const login = async (
 export const refresh = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ): Promise<void> => {
   try {
     // Validate input

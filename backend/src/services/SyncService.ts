@@ -135,11 +135,11 @@ export class SyncService {
             await this.delay(1000); // 1 second delay between accounts
           }
         } catch (error) {
-          const errorMsg = `Account ${linkedAccount.externalName}: ${
+          const errorMsg = `Account ${linkedAccount?.externalName ?? 'Uknown Account'}: ${
             error instanceof Error ? error.message : 'Unknown error'
           }`;
           logger.error('[SyncService] Failed to sync account', {
-            linkedAccountId: linkedAccount.id,
+            linkedAccountId: linkedAccount?.id ?? 'Uknown Account',
             error,
           });
           result.errors.push(errorMsg);

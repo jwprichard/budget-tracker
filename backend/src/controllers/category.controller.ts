@@ -13,8 +13,8 @@ const categoryService = new CategoryService(prisma);
 export const getAllCategories = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.userId;
-    const parentId = req.query.parentId as string | undefined;
-    const includeChildren = req.query.includeChildren === 'true';
+    const parentId = req.query['parentId'] as string | undefined;
+    const includeChildren = req.query['includeChildren'] === 'true';
 
     const categories = await categoryService.getAllCategories(userId, parentId, includeChildren);
 
@@ -35,8 +35,8 @@ export const getAllCategories = async (req: Request, res: Response, next: NextFu
 export const getCategoryById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.userId;
-    const includeChildren = req.query.includeChildren === 'true';
-    const category = await categoryService.getCategoryById(req.params.id, userId, includeChildren);
+    const includeChildren = req.query['includeChildren'] === 'true';
+    const category = await categoryService.getCategoryById(req.params['id'] ?? '', userId, includeChildren);
 
     res.status(200).json({
       success: true,
@@ -74,7 +74,7 @@ export const createCategory = async (req: Request, res: Response, next: NextFunc
 export const updateCategory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.userId;
-    const category = await categoryService.updateCategory(req.params.id, req.body as UpdateCategoryDto, userId);
+    const category = await categoryService.updateCategory(req.params['id'] ?? '', req.body as UpdateCategoryDto, userId);
 
     res.status(200).json({
       success: true,
@@ -94,7 +94,7 @@ export const updateCategory = async (req: Request, res: Response, next: NextFunc
 export const deleteCategory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.userId;
-    const category = await categoryService.deleteCategory(req.params.id, userId);
+    const category = await categoryService.deleteCategory(req.params['id'] ?? '', userId);
 
     res.status(200).json({
       success: true,
@@ -131,8 +131,8 @@ export const getCategoryHierarchy = async (req: Request, res: Response, next: Ne
 export const getCategoryStats = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const userId = req.user!.userId;
-    const includeChildren = req.query.includeChildren === 'true';
-    const categoryStats = await categoryService.getCategoryWithTransactionCount(req.params.id, userId, includeChildren);
+    const includeChildren = req.query['includeChildren'] === 'true';
+    const categoryStats = await categoryService.getCategoryWithTransactionCount(req.params['id'] ?? '', userId, includeChildren);
 
     res.status(200).json({
       success: true,

@@ -56,7 +56,7 @@ export const testConnection = async (
     const userToken = decrypt(connection.userToken);
 
     // Create provider and test
-    const provider = await BankingProviderFactory.createProvider(connectionId);
+    //const provider = await BankingProviderFactory.createProvider(connectionId);
     const { AkahuApiClient } = await import('../services/akahu/AkahuApiClient');
     const apiClient = new AkahuApiClient();
 

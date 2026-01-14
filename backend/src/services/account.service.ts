@@ -210,8 +210,8 @@ export class AccountService {
 
     // Get connection and decrypt tokens
     const connection = account.linkedAccount.connection;
-    const appToken = decrypt(connection.appToken);
-    const userToken = decrypt(connection.userToken);
+    const appToken = decrypt(connection.appToken ?? '');
+    const userToken = decrypt(connection.userToken ?? '');
 
     // Use AkahuApiClient to fetch account details
     const apiClient = new AkahuApiClient();

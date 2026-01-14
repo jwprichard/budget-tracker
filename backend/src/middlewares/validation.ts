@@ -1,12 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
-import { AnyZodObject, ZodError } from 'zod';
+import { AnyZodObject } from 'zod';
 
 /**
  * Validation middleware for validating request body, query, and params
  * Uses Zod schemas to validate and parse incoming requests
  */
 export const validate = (schema: AnyZodObject) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
     try {
       await schema.parseAsync({
         body: req.body,
@@ -26,7 +26,7 @@ export const validate = (schema: AnyZodObject) => {
  * Parses and replaces req.body with validated data
  */
 export const validateBody = (schema: AnyZodObject) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
     try {
       req.body = await schema.parseAsync(req.body);
       next();
@@ -41,7 +41,7 @@ export const validateBody = (schema: AnyZodObject) => {
  * Parses and replaces req.query with validated data
  */
 export const validateQuery = (schema: AnyZodObject) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
     try {
       req.query = await schema.parseAsync(req.query);
       next();
@@ -56,7 +56,7 @@ export const validateQuery = (schema: AnyZodObject) => {
  * Parses and replaces req.params with validated data
  */
 export const validateParams = (schema: AnyZodObject) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
     try {
       req.params = await schema.parseAsync(req.params);
       next();

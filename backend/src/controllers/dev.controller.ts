@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
  * Reset all transactions (manual and bank-synced)
  * Deletes all Transaction and ExternalTransaction records
  */
-export const resetTransactions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const resetTransactions = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     // Delete in correct order to handle foreign keys
     await prisma.externalTransaction.deleteMany();
@@ -26,7 +26,7 @@ export const resetTransactions = async (req: Request, res: Response, next: NextF
  * Reset all accounts
  * Deletes all accounts (which cascades to transactions)
  */
-export const resetAccounts = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const resetAccounts = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     // Transactions will cascade delete
     await prisma.account.deleteMany();
@@ -44,7 +44,7 @@ export const resetAccounts = async (req: Request, res: Response, next: NextFunct
  * Reset bank connections and synced data
  * Deletes all bank connections, linked accounts, and external transactions
  */
-export const resetBankConnections = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const resetBankConnections = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     // Delete in order: external transactions → linked accounts → connections
     await prisma.externalTransaction.deleteMany();
@@ -71,7 +71,7 @@ export const resetBankConnections = async (req: Request, res: Response, next: Ne
  * Reset everything (nuclear option)
  * Deletes all data except categories (which are seed data)
  */
-export const resetEverything = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const resetEverything = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     // Delete in correct order to handle foreign keys
     await prisma.externalTransaction.deleteMany();
@@ -95,7 +95,7 @@ export const resetEverything = async (req: Request, res: Response, next: NextFun
  * Get database statistics
  * Shows counts of records in each table
  */
-export const getDatabaseStats = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const getDatabaseStats = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const [
       accountCount,

@@ -13,14 +13,14 @@ export const healthCheck = async (_req: Request, res: Response): Promise<void> =
       status: 'ok',
       timestamp: new Date().toISOString(),
       database: 'connected',
-      version: process.env.npm_package_version || '1.0.0',
+      version: process.env['npm_package_version'] || '1.0.0',
     });
   } catch (error) {
     res.status(503).json({
       status: 'error',
       timestamp: new Date().toISOString(),
       database: 'disconnected',
-      version: process.env.npm_package_version || '1.0.0',
+      version: process.env['npm_package_version'] || '1.0.0',
     });
   }
 };

@@ -6,13 +6,13 @@ import { PrismaClient } from '@prisma/client';
 // Load environment variables
 dotenv.config();
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env['PORT'] || 3000;
 const prisma = new PrismaClient();
 
 // Start server
 const server = app.listen(PORT, () => {
   logger.info(`🚀 Server running on port ${PORT}`);
-  logger.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.info(`📊 Environment: ${process.env['NODE_ENV'] || 'development'}`);
   logger.info(`🔗 API: http://localhost:${PORT}/api/health`);
 });
 
@@ -45,7 +45,7 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 process.on('unhandledRejection', (reason, promise) => {
   logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
   // Don't exit in development
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env['NODE_ENV'] === 'production') {
     gracefulShutdown('Unhandled Rejection');
   }
 });
