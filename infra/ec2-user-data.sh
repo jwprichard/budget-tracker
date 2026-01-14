@@ -157,10 +157,28 @@ echo "✓ All images pulled successfully"
 docker images | grep budget
 
 # ==========================================
-# 5. Start Backend Container
+# 5. Run Database Migrations (BEFORE starting backend)
 # ==========================================
 echo ""
-echo "Step 5: Starting backend container..."
+echo "Step 5: Running database migrations..."
+echo "Running migrations using temporary container..."
+docker run --rm \
+  -e DATABASE_URL="$DATABASE_URL" \
+  $BACKEND_IMAGE \
+  npx prisma migrate deploy
+
+if [ $? -eq 0 ]; then
+  echo "✓ Migrations completed successfully"
+else
+  echo "WARNING: Migration failed or had errors"
+  echo "Backend may not start correctly without migrations"
+fi
+
+# ==========================================
+# 6. Start Backend Container
+# ==========================================
+echo ""
+echo "Step 6: Starting backend container..."
 docker run -d \
   --name budget-backend \
   --restart unless-stopped \
@@ -186,17 +204,6 @@ for i in {1..30}; do
   fi
   sleep 2
 done
-
-# ==========================================
-# 6. Run Database Migrations
-# ==========================================
-echo ""
-echo "Step 6: Running database migrations..."
-docker exec budget-backend npx prisma migrate deploy || {
-  echo "WARNING: Migration failed. This might be okay if migrations were already applied."
-  echo "Migration logs:"
-  docker logs budget-backend
-}
 
 # ==========================================
 # 7. Start Frontend Container
@@ -246,14 +253,24 @@ echo "Pulling latest images..."
 docker pull $BACKEND_IMAGE
 docker pull $FRONTEND_IMAGE
 
-echo "Restarting containers..."
-docker stop budget-backend budget-frontend
-docker rm budget-backend budget-frontend
+echo "Stopping existing containers..."
+docker stop budget-backend budget-frontend || true
 
-# Get DATABASE_URL from stopped container
+# Get DATABASE_URL from stopped container (before removing it)
 DATABASE_URL=$(docker inspect budget-backend --format='{{range .Config.Env}}{{println .}}{{end}}' | grep DATABASE_URL | cut -d= -f2-)
 
+echo "Removing old containers..."
+docker rm budget-backend budget-frontend || true
+
+# Run migrations before starting backend
+echo "Running database migrations..."
+docker run --rm \
+  -e DATABASE_URL="$DATABASE_URL" \
+  $BACKEND_IMAGE \
+  npx prisma migrate deploy
+
 # Start backend
+echo "Starting backend container..."
 docker run -d \
   --name budget-backend \
   --restart unless-stopped \
@@ -263,7 +280,11 @@ docker run -d \
   -e PORT=3000 \
   $BACKEND_IMAGE
 
+# Wait a moment for backend to start
+sleep 3
+
 # Start frontend
+echo "Starting frontend container..."
 docker run -d \
   --name budget-frontend \
   --restart unless-stopped \
