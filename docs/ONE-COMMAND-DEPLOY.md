@@ -119,7 +119,7 @@ docker logs -f budget-frontend
 
 ## Updating Your App
 
-### Just push to GitHub!
+### Just push to GitHub! ✅ **FULLY AUTOMATED**
 
 ```bash
 git add -A
@@ -130,31 +130,42 @@ git push origin main
 GitHub Actions will:
 1. Build new images
 2. Push to ECR
-3. ✅ **Automatically trigger EC2 to pull and restart**
+3. ✅ **Automatically trigger EC2 to pull and restart** (via AWS SSM)
 
-Wait, how does EC2 know to update?
+**No manual steps needed!**
 
-**Option 1:** Manual (for now)
+### How It Works
+
+The workflow uses **AWS Systems Manager (SSM)** to remotely execute `/opt/deploy-app.sh` on your EC2 instance:
+
+1. GitHub Actions detects existing EC2 instance
+2. Sends SSM command to run the deploy script
+3. Script pulls latest images from ECR
+4. Restarts containers with new images
+5. Done!
+
+**No SSH keys needed!** SSM uses the IAM role attached to the instance.
+
+### When Do You Need to Recreate the Instance?
+
+**You ONLY need to destroy/recreate the EC2 instance if:**
+- ❌ You change the `user_data` script itself
+- ❌ You change IAM role permissions
+- ❌ You change security groups or networking
+
+**You DO NOT need to recreate for:**
+- ✅ Code changes in your app
+- ✅ Container updates
+- ✅ Database migrations
+- ✅ Environment variable changes (edit docker run commands in deploy script)
+
+### Manual Update (if SSM fails)
+
+If SSM doesn't work for some reason:
 ```bash
 ssh ec2-user@$EC2_IP
 sudo /opt/deploy-app.sh
 ```
-
-**Option 2:** Add to GitHub Actions (automated)
-```yaml
-# Add this step to .github/workflows/main.yml after pushing images
-- name: Trigger EC2 update
-  run: |
-    aws ssm send-command \
-      --instance-ids $(terraform output -raw ec2_instance_id) \
-      --document-name "AWS-RunShellScript" \
-      --parameters 'commands=["/opt/deploy-app.sh"]'
-```
-
-**Option 3:** Use AWS Systems Manager (recommended)
-- Requires SSM agent on EC2 (pre-installed on Amazon Linux 2023)
-- No SSH needed
-- See: `docs/EC2-SSM-DEPLOYMENT.md` (TODO)
 
 ---
 
