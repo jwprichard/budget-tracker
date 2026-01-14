@@ -3,8 +3,6 @@
 # This script is templated by Terraform with all necessary variables
 # NO SSH OR MANUAL STEPS REQUIRED!
 
-set -e
-
 # Log everything to file and console
 exec > >(tee /var/log/user-data.log)
 exec 2>&1
@@ -26,42 +24,83 @@ echo "AWS Account: $$AWS_ACCOUNT"
 echo "Database URL: $${DATABASE_URL%%@*}@***"  # Hide password in logs
 
 # ==========================================
-# 1. Install Docker
+# 0. Wait for IAM instance profile
 # ==========================================
 echo ""
-echo "Step 1: Installing Docker..."
+echo "Step 0: Waiting for IAM credentials..."
+MAX_WAIT=300  # 5 minutes
+WAIT_COUNT=0
+while [ $$WAIT_COUNT -lt $$MAX_WAIT ]; do
+  if aws sts get-caller-identity > /dev/null 2>&1; then
+    echo "✓ IAM credentials available!"
+    aws sts get-caller-identity
+    break
+  fi
+  echo "Waiting for IAM credentials... ($${WAIT_COUNT}s elapsed)"
+  sleep 10
+  WAIT_COUNT=$$((WAIT_COUNT + 10))
+
+  if [ $$WAIT_COUNT -ge $$MAX_WAIT ]; then
+    echo "ERROR: Timeout waiting for IAM credentials"
+    echo "Instance profile may not be attached properly"
+    exit 1
+  fi
+done
+
+# ==========================================
+# 1. Install Docker and AWS CLI
+# ==========================================
+echo ""
+echo "Step 1: Installing Docker and AWS CLI..."
 yum update -y
-yum install -y docker
+yum install -y docker aws-cli
 systemctl start docker
 systemctl enable docker
 usermod -a -G docker ec2-user
 
-# Verify Docker
+# Verify installations
 docker --version
+aws --version
 
 # ==========================================
 # 2. Login to ECR (using IAM role - no credentials!)
 # ==========================================
 echo ""
 echo "Step 2: Logging into ECR..."
-aws ecr get-login-password --region $$AWS_REGION | \
-  docker login --username AWS --password-stdin $$AWS_ACCOUNT.dkr.ecr.$$AWS_REGION.amazonaws.com
+if aws ecr get-login-password --region $$AWS_REGION | \
+  docker login --username AWS --password-stdin $$AWS_ACCOUNT.dkr.ecr.$$AWS_REGION.amazonaws.com; then
+  echo "✓ Successfully logged into ECR"
+else
+  echo "ERROR: Failed to login to ECR"
+  echo "Check IAM role permissions and ECR repository existence"
+  exit 1
+fi
 
 # ==========================================
 # 3. Wait for images to be available in ECR
 # ==========================================
 echo ""
 echo "Step 3: Waiting for images in ECR..."
+echo "Backend image: $$BACKEND_IMAGE"
+echo "Frontend image: $$FRONTEND_IMAGE"
 
 # Function to check if image exists
 check_image() {
   local image=$$1
-  aws ecr describe-images \
-    --repository-name $$(echo $$image | cut -d'/' -f2 | cut -d':' -f1) \
+  local repo_name=$$(echo $$image | cut -d'/' -f2 | cut -d':' -f1)
+  echo "  Checking repository: $$repo_name"
+
+  if aws ecr describe-images \
+    --repository-name $$repo_name \
     --image-ids imageTag=latest \
     --region $$AWS_REGION \
-    --output text > /dev/null 2>&1
-  return $$?
+    --output text > /dev/null 2>&1; then
+    echo "  ✓ Found image in $$repo_name"
+    return 0
+  else
+    echo "  ✗ Image not found in $$repo_name"
+    return 1
+  fi
 }
 
 # Wait up to 10 minutes for images
@@ -80,10 +119,15 @@ while [ $$WAIT_COUNT -lt $$MAX_WAIT ]; do
   if [ $$WAIT_COUNT -ge $$MAX_WAIT ]; then
     echo "ERROR: Timeout waiting for images in ECR after $$MAX_WAIT seconds"
     echo "This usually means GitHub Actions hasn't pushed the images yet."
+    echo ""
+    echo "You can check the GitHub Actions workflow at:"
+    echo "https://github.com/YOUR_USERNAME/budget-tracker/actions"
+    echo ""
     echo "To deploy manually later, SSH in and run: sudo /opt/deploy-app.sh"
     exit 1
   fi
 
+  echo "Images not ready yet, sleeping $$WAIT_INTERVAL seconds..."
   sleep $$WAIT_INTERVAL
   WAIT_COUNT=$$((WAIT_COUNT + WAIT_INTERVAL))
 done
@@ -93,8 +137,24 @@ done
 # ==========================================
 echo ""
 echo "Step 4: Pulling Docker images..."
-docker pull $$BACKEND_IMAGE
-docker pull $$FRONTEND_IMAGE
+echo "Pulling backend: $$BACKEND_IMAGE"
+if docker pull $$BACKEND_IMAGE; then
+  echo "✓ Backend image pulled successfully"
+else
+  echo "ERROR: Failed to pull backend image"
+  exit 1
+fi
+
+echo "Pulling frontend: $$FRONTEND_IMAGE"
+if docker pull $$FRONTEND_IMAGE; then
+  echo "✓ Frontend image pulled successfully"
+else
+  echo "ERROR: Failed to pull frontend image"
+  exit 1
+fi
+
+echo "✓ All images pulled successfully"
+docker images | grep budget
 
 # ==========================================
 # 5. Start Backend Container
