@@ -81,8 +81,8 @@ export const CategoryForm = ({ open, onClose, category }: CategoryFormProps) => 
         const updateData: UpdateCategoryDto = {
           name: name.trim(),
           color,
-          icon: icon.trim() || null,
-          parentId: parentId || null,
+          icon: icon.trim() || undefined,
+          parentId: parentId || undefined,
         };
         await updateMutation.mutateAsync({ id: category.id, data: updateData });
       } else {

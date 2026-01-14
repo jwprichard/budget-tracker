@@ -23,7 +23,7 @@ import { AccountForm } from '../components/accounts/AccountForm';
 import { TransactionForm } from '../components/transactions/TransactionForm';
 import { useCreateAccount } from '../hooks/useAccounts';
 import { useCreateTransaction, useUpdateTransaction, useDeleteTransaction } from '../hooks/useTransactions';
-import { Account, CreateAccountDto, CreateTransactionDto, UpdateTransactionDto, Transaction } from '../types';
+import { Account, CreateAccountDto, UpdateAccountDto, CreateTransactionDto, UpdateTransactionDto, Transaction } from '../types';
 import { DeleteTransactionDialog } from '../components/transactions/DeleteTransactionDialog';
 
 export const Dashboard = () => {
@@ -53,14 +53,13 @@ export const Dashboard = () => {
     let total = 0;
     let loaded = 0;
 
-    const balances = activeAccounts.map((account) => {
+    activeAccounts.forEach((account) => {
       // eslint-disable-next-line react-hooks/rules-of-hooks
       const { data } = useAccountBalance(account.id);
       if (data) {
         total += data.currentBalance;
         loaded++;
       }
-      return data;
     });
 
     if (loaded < activeAccounts.length) {
@@ -74,28 +73,28 @@ export const Dashboard = () => {
     navigate(`/accounts/${account.id}`);
   };
 
-  const handleCreateAccount = async (data: CreateAccountDto) => {
+  const handleCreateAccount = async (data: CreateAccountDto | UpdateAccountDto, _balanceChanged?: number) => {
     try {
-      await createAccountMutation.mutateAsync(data);
+      await createAccountMutation.mutateAsync(data as CreateAccountDto);
       setAccountFormOpen(false);
     } catch (error) {
       console.error('Failed to create account:', error);
     }
   };
 
-  const handleCreateTransaction = async (data: CreateTransactionDto) => {
+  const handleCreateTransaction = async (data: CreateTransactionDto | UpdateTransactionDto) => {
     try {
-      await createTransactionMutation.mutateAsync(data);
+      await createTransactionMutation.mutateAsync(data as CreateTransactionDto);
       setTransactionFormOpen(false);
     } catch (error) {
       console.error('Failed to create transaction:', error);
     }
   };
 
-  const handleUpdateTransaction = async (data: UpdateTransactionDto) => {
+  const handleUpdateTransaction = async (data: CreateTransactionDto | UpdateTransactionDto) => {
     if (!editTransaction) return;
     try {
-      await updateTransactionMutation.mutateAsync({ id: editTransaction.id, data });
+      await updateTransactionMutation.mutateAsync({ id: editTransaction.id, data: data as UpdateTransactionDto });
       setEditTransaction(null);
     } catch (error) {
       console.error('Failed to update transaction:', error);
@@ -113,7 +112,11 @@ export const Dashboard = () => {
   const handleDeleteConfirm = async () => {
     if (!deleteTransaction) return;
     try {
-      await deleteTransactionMutation.mutateAsync(deleteTransaction.id);
+      await deleteTransactionMutation.mutateAsync({
+        id: deleteTransaction.id,
+        accountId: deleteTransaction.accountId,
+        transferAccountId: deleteTransaction.transferToAccountId,
+      });
       setDeleteTransaction(null);
     } catch (error) {
       console.error('Failed to delete transaction:', error);

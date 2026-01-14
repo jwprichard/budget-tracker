@@ -106,9 +106,9 @@ export const AccountDetails = () => {
     }
   };
 
-  const handleCreateTransaction = async (data: CreateTransactionDto) => {
+  const handleCreateTransaction = async (data: CreateTransactionDto | UpdateTransactionDto) => {
     try {
-      await createTransactionMutation.mutateAsync(data);
+      await createTransactionMutation.mutateAsync(data as CreateTransactionDto);
       setTransactionFormOpen(false);
     } catch (error) {
       console.error('Failed to create transaction:', error);
@@ -136,7 +136,11 @@ export const AccountDetails = () => {
   const handleDeleteConfirm = async () => {
     if (!deleteTransaction) return;
     try {
-      await deleteTransactionMutation.mutateAsync(deleteTransaction.id);
+      await deleteTransactionMutation.mutateAsync({
+        id: deleteTransaction.id,
+        accountId: deleteTransaction.accountId,
+        transferAccountId: deleteTransaction.transferToAccountId,
+      });
       setDeleteTransaction(null);
     } catch (error) {
       console.error('Failed to delete transaction:', error);

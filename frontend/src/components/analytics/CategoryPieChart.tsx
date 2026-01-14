@@ -16,6 +16,15 @@ import {
   Stack,
 } from '@mui/material';
 import { Circle as CircleIcon } from '@mui/icons-material';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  ResponsiveContainer,
+} from 'recharts';
+import { useCategoryTotals } from '../../hooks/useAnalytics';
+import { TransactionTypeFilter } from '../../types/analytics.types';
 import { formatCurrency, formatPercentage } from '../../utils/formatters';
 
 interface CategoryPieChartProps {
@@ -96,7 +105,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
   const pieData = getPieChartData();
 
   // Custom tooltip
-  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number; payload: { percentage: number; count: number } }> }) => {
+  const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0];
       return (
@@ -211,7 +220,7 @@ export const CategoryPieChart: React.FC<CategoryPieChartProps> = ({
                 outerRadius={100}
                 paddingAngle={2}
                 dataKey="value"
-                label={({ name, percentage }) => `${name} (${percentage.toFixed(1)}%)`}
+                label={(entry: any) => `${entry.name} (${entry.percentage.toFixed(1)}%)`}
                 labelLine={false}
               >
                 {pieData.map((entry, index) => (

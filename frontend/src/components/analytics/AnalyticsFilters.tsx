@@ -189,8 +189,8 @@ export const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
                       <ListItemText
                         primary={category.name}
                         secondary={
-                          category.subcategories && category.subcategories.length > 0
-                            ? `${category.subcategories.length} subcategories`
+                          category.children && category.children.length > 0
+                            ? `${category.children.length} subcategories`
                             : undefined
                         }
                       />

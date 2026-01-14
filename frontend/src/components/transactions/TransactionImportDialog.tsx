@@ -130,7 +130,7 @@ export const TransactionImportDialog = ({ open, onClose, accountId }: Transactio
     const dateFormat = (mapping.dateFormat || 'YYYY-MM-DD') as keyof typeof DATE_FORMATS;
     const amountSign = (mapping.amountSign || 'negative-expense') as 'negative-expense' | 'all-positive';
 
-    return csvRows.map((row, index) => {
+    return csvRows.map((row) => {
       try {
         // Get values from mapped columns
         const dateValue = row[csvHeaders.indexOf(mapping.date)]?.trim();
@@ -180,14 +180,12 @@ export const TransactionImportDialog = ({ open, onClose, accountId }: Transactio
         }
 
         // Determine transaction type
-        let type: 'INCOME' | 'EXPENSE' | 'TRANSFER';
+        let type: 'INCOME' | 'EXPENSE';
         if (typeValue) {
           const lowerType = typeValue.toLowerCase();
           if (lowerType.includes('income') || lowerType.includes('credit') || lowerType.includes('deposit') || lowerType.includes('dc'))  {
             type = 'INCOME';
-          } else if (lowerType.includes('other')) {
-			type = 'TRANSFER';
-		  } else {
+          } else {
             type = 'EXPENSE';
           }
         } else {

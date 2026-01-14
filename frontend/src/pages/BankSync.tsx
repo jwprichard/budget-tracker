@@ -86,7 +86,7 @@ export const BankSync = () => {
   const fetchExistingConnections = async () => {
     try {
       const connections = await getConnections();
-      if (connections.length > 0) {
+      if (connections.length > 0 && connections[0]) {
         // Use the most recent connection
         setConnection(connections[0]);
         setActiveStep(3); // Skip wizard, go to connected state

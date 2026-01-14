@@ -16,7 +16,7 @@ import { ErrorAlert } from '../components/common/ErrorAlert';
 import { EmptyState } from '../components/common/EmptyState';
 import { AccountList } from '../components/accounts/AccountList';
 import { AccountForm } from '../components/accounts/AccountForm';
-import { Account, CreateAccountDto } from '../types';
+import { Account, CreateAccountDto, UpdateAccountDto } from '../types';
 import { AccountBalance as AccountIcon } from '@mui/icons-material';
 
 export const Accounts = () => {
@@ -31,9 +31,9 @@ export const Accounts = () => {
     navigate(`/accounts/${account.id}`);
   };
 
-  const handleCreateAccount = async (data: CreateAccountDto) => {
+  const handleCreateAccount = async (data: CreateAccountDto | UpdateAccountDto, _balanceChanged?: number) => {
     try {
-      await createAccountMutation.mutateAsync(data);
+      await createAccountMutation.mutateAsync(data as CreateAccountDto);
       setFormOpen(false);
     } catch (error) {
       console.error('Failed to create account:', error);

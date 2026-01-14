@@ -28,7 +28,7 @@ import {
 } from '@mui/icons-material';
 import { useSpendingTrends } from '../../hooks/useAnalytics';
 import { GroupByPeriod } from '../../types/analytics.types';
-import { formatCurrency, formatNumber } from '../../utils/formatters';
+import { formatCurrency } from '../../utils/formatters';
 
 interface SpendingTrendsChartProps {
   startDate: string;
@@ -114,7 +114,7 @@ export const SpendingTrendsChart: React.FC<SpendingTrendsChartProps> = ({
       payload: { fullPeriod: string; count: number };
     }>;
   }) => {
-    if (active && payload && payload.length) {
+    if (active && payload && payload.length && payload[0]) {
       const data = payload[0].payload;
       return (
         <Box

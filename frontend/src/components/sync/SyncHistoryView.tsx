@@ -76,6 +76,7 @@ export const SyncHistoryView: React.FC<SyncHistoryViewProps> = ({
       const intervalId = setInterval(fetchHistory, refreshInterval);
       return () => clearInterval(intervalId);
     }
+    return undefined;
   }, [connectionId, page, pageSize, autoRefresh, refreshInterval]);
 
   const fetchHistory = async () => {

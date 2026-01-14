@@ -180,7 +180,7 @@ export const TransactionReviewDialog: React.FC<TransactionReviewDialogProps> = (
                         {transaction.description}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {formatDate(transaction.date)} • {transaction.account.externalName}
+                        {formatDate(transaction.date)} • {transaction.account?.externalName}
                       </Typography>
                       {transaction.merchant && (
                         <Typography variant="caption" color="text.secondary">

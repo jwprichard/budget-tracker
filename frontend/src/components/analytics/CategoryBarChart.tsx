@@ -98,6 +98,7 @@ export const CategoryBarChart: React.FC<CategoryBarChartProps> = ({
   }) => {
     if (active && payload && payload.length) {
       const data = payload[0];
+      if (!data) return null;
       return (
         <Box
           sx={{

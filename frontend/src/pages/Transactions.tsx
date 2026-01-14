@@ -60,9 +60,9 @@ export const Transactions = () => {
     setFilters({ ...filters, page: 1, pageSize });
   };
 
-  const handleCreateTransaction = async (data: CreateTransactionDto) => {
+  const handleCreateTransaction = async (data: CreateTransactionDto | UpdateTransactionDto) => {
     try {
-      await createTransactionMutation.mutateAsync(data);
+      await createTransactionMutation.mutateAsync(data as CreateTransactionDto);
       setTransactionFormOpen(false);
     } catch (error) {
       console.error('Failed to create transaction:', error);

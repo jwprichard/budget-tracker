@@ -65,15 +65,15 @@ export const ColumnMapper = ({ headers, rows, onMappingChange }: ColumnMapperPro
       const lowerHeader = header.toLowerCase();
 
       if (lowerHeader.includes('date') || lowerHeader.includes('time')) {
-        detected.date = header;
+        detected['date'] = header;
       } else if (lowerHeader.includes('description') || lowerHeader.includes('desc') || lowerHeader.includes('memo')) {
-        detected.description = header;
+        detected['description'] = header;
       } else if (lowerHeader.includes('amount') || lowerHeader.includes('value') || lowerHeader.includes('total')) {
-        detected.amount = header;
+        detected['amount'] = header;
       } else if (lowerHeader.includes('type') || lowerHeader.includes('category')) {
-        detected.type = header;
+        detected['type'] = header;
       } else if (lowerHeader.includes('note') || lowerHeader.includes('comment')) {
-        detected.notes = header;
+        detected['notes'] = header;
       }
     });
 
@@ -128,7 +128,7 @@ export const ColumnMapper = ({ headers, rows, onMappingChange }: ColumnMapperPro
 
   const getPreviewValue = (rowIndex: number, header: string): string => {
     const columnIndex = headers.indexOf(header);
-    return columnIndex >= 0 && rows[rowIndex] ? rows[rowIndex][columnIndex] : '';
+    return columnIndex >= 0 && rows[rowIndex] ? (rows[rowIndex][columnIndex] || '') : '';
   };
 
   const getMappedPreview = (rowIndex: number): Record<string, string> => {
@@ -267,11 +267,11 @@ export const ColumnMapper = ({ headers, rows, onMappingChange }: ColumnMapperPro
                   const preview = getMappedPreview(rowIndex);
                   return (
                     <TableRow key={rowIndex}>
-                      <TableCell>{preview.date || '-'}</TableCell>
-                      <TableCell>{preview.description || '-'}</TableCell>
-                      <TableCell align="right">{preview.amount || '-'}</TableCell>
-                      <TableCell>{preview.type || 'Auto'}</TableCell>
-                      <TableCell>{preview.notes || '-'}</TableCell>
+                      <TableCell>{preview['date'] || '-'}</TableCell>
+                      <TableCell>{preview['description'] || '-'}</TableCell>
+                      <TableCell align="right">{preview['amount'] || '-'}</TableCell>
+                      <TableCell>{preview['type'] || 'Auto'}</TableCell>
+                      <TableCell>{preview['notes'] || '-'}</TableCell>
                     </TableRow>
                   );
                 })}

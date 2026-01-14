@@ -119,7 +119,7 @@ export const IncomeVsExpenseChart: React.FC<IncomeVsExpenseChartProps> = ({
       payload: { fullPeriod: string; net: number; count: number };
     }>;
   }) => {
-    if (active && payload && payload.length) {
+    if (active && payload && payload.length && payload[0]) {
       const data = payload[0].payload;
       const income = payload.find((p) => p.dataKey === 'income');
       const expense = payload.find((p) => p.dataKey === 'expense');
