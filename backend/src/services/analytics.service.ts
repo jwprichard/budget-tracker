@@ -89,7 +89,7 @@ export class AnalyticsService {
     // Group transactions by date
     const transactionsByDate = new Map<string, typeof transactions>();
     transactions.forEach((tx) => {
-      const dateKey = tx.date.toISOString().split('T')[0];
+      const dateKey = tx.date.toISOString().split('T')[0]!;
       if (!transactionsByDate.has(dateKey)) {
         transactionsByDate.set(dateKey, []);
       }
@@ -102,7 +102,7 @@ export class AnalyticsService {
     const accountBalances = new Map<string, number>(priorBalanceMap);
 
     while (currentDate <= endDate) {
-      const dateKey = currentDate.toISOString().split('T')[0];
+      const dateKey = currentDate.toISOString().split('T')[0]!;
       const dayTransactions = transactionsByDate.get(dateKey) || [];
 
       // Update balances for transactions on this day
@@ -134,7 +134,7 @@ export class AnalyticsService {
       );
 
       dailyBalances.push({
-        date: dateKey,
+        date: dateKey!,
         balance: totalBalance,
         accounts: accountDailyBalances,
       });

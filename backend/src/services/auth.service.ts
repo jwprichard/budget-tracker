@@ -5,8 +5,8 @@ import { JWTPayload, AuthTokens, RegisterRequest, LoginRequest, UserResponse } f
 
 const prisma = new PrismaClient();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-change-in-production';
+const JWT_SECRET = process.env['JWT_SECRET'] || 'your-secret-key-change-in-production';
+const JWT_REFRESH_SECRET = process.env['JWT_REFRESH_SECRET'] || 'your-refresh-secret-change-in-production';
 const JWT_EXPIRES_IN = '15m'; // 15 minutes
 const JWT_REFRESH_EXPIRES_IN = '7d'; // 7 days
 const BCRYPT_ROUNDS = 12;

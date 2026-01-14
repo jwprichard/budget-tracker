@@ -273,12 +273,17 @@ export class TransactionService {
       });
 
       // Delete both transactions in a database transaction
-      await this.prisma.$transaction([
+      const deleteOperations = [
         this.prisma.transaction.delete({ where: { id: transaction.id } }),
-        linkedTransaction
-          ? this.prisma.transaction.delete({ where: { id: linkedTransaction.id } })
-          : Promise.resolve(),
-      ]);
+      ];
+
+      if (linkedTransaction) {
+        deleteOperations.push(
+          this.prisma.transaction.delete({ where: { id: linkedTransaction.id } })
+        );
+      }
+
+      await this.prisma.$transaction(deleteOperations);
     } else {
       // Regular transaction - just delete
       await this.prisma.transaction.delete({ where: { id } });
