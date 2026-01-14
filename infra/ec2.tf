@@ -1,37 +1,33 @@
-# COST REDUCTION OPTION: Single EC2 Instance Instead of Fargate
-# Rename this file to ec2.tf and delete/disable ecs.tf to use this approach
-# This runs both frontend and backend on a single t3.micro instance (FREE TIER)
-
-# Cost: FREE for first 12 months (750 hours/month)
-# After free tier: ~$8/month
+# EC2 Instance for Budget Tracker
+# Deploys containers automatically on first boot - NO SSH NEEDED!
 
 resource "aws_security_group" "ec2" {
   name        = "budget-tracker-ec2"
   description = "Security group for EC2 instance"
   vpc_id      = aws_vpc.main.id
 
-  # SSH access (restrict to your IP in production)
+  # HTTP from anywhere (for testing - restrict to ALB in production)
   ingress {
-    from_port   = 22
-    to_port     = 22
+    from_port   = 80
+    to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # HTTP from ALB
+  # Backend API from anywhere (for testing - restrict to ALB in production)
   ingress {
-    from_port       = 80
-    to_port         = 80
-    protocol        = "tcp"
-    security_groups = [aws_security_group.alb.id]
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Backend API
+  # SSH access (optional - only needed for debugging)
   ingress {
-    from_port       = 3000
-    to_port         = 3000
-    protocol        = "tcp"
-    security_groups = [aws_security_group.alb.id]
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]  # Restrict to your IP: ["YOUR_IP/32"]
   }
 
   # All outbound
@@ -63,48 +59,33 @@ data "aws_ami" "amazon_linux_2023" {
   }
 }
 
+# Get AWS account ID and region
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
+
 resource "aws_instance" "app" {
   ami                    = data.aws_ami.amazon_linux_2023.id
   instance_type          = "t3.micro" # FREE TIER (750 hours/month)
   subnet_id              = aws_subnet.public_a.id
   vpc_security_group_ids = [aws_security_group.ec2.id]
+  iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
 
   associate_public_ip_address = true
 
-  user_data = <<-EOF
-              #!/bin/bash
-              # Install Docker
-              yum update -y
-              yum install -y docker
-              systemctl start docker
-              systemctl enable docker
-              usermod -a -G docker ec2-user
+  # User data deploys everything on first boot - NO SSH NEEDED!
+  user_data = templatefile("${path.module}/ec2-user-data.sh", {
+    aws_region    = data.aws_region.current.name
+    aws_account   = data.aws_caller_identity.current.account_id
+    database_url  = "postgresql://budget_user:budget_password@${aws_db_instance.postgres.address}:5432/budget_tracker"
+    backend_image = "${aws_ecr_repository.backend.repository_url}:latest"
+    frontend_image = "${aws_ecr_repository.frontend.repository_url}:latest"
+  })
 
-              # Install Docker Compose
-              curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-              chmod +x /usr/local/bin/docker-compose
-
-              # Clone repo and start services
-              # You'll need to set this up via SSH after initial deployment
-              EOF
-
-#  # ---- REMOTE EXEC BLOCK ----
-#   provisioner "remote-exec" {
-#     connection {
-#       type        = "ssh"
-#       host        = self.public_ip          # Must be reachable
-#       user        = "ec2-user"
-#       private_key = file("~/.ssh/id_rsa")   # Path to your key
-#     }
-
-#     # Commands to run after instance is up
-#     inline = [
-#       "docker --version",
-#       "docker-compose --version",
-#       "cd /home/ec2-user/app && docker-compose up -d",
-#       "cd /home/ec2-user/app/backend && npx prisma migrate deploy"
-#     ]
-#   }
+  # Ensure RDS is created first
+  depends_on = [
+    aws_db_instance.postgres,
+    aws_iam_role_policy.ec2_ecr_policy
+  ]
 
   tags = {
     Name = "budget-tracker-app"
@@ -122,9 +103,16 @@ resource "aws_eip" "app" {
 }
 
 output "ec2_public_ip" {
-  value = aws_eip.app.public_ip
+  description = "Public IP of EC2 instance"
+  value       = aws_eip.app.public_ip
 }
 
-output "ec2_ssh_command" {
-  value = "ssh ec2-user@${aws_eip.app.public_ip}"
+output "app_url" {
+  description = "URL to access the application"
+  value       = "http://${aws_eip.app.public_ip}"
+}
+
+output "api_url" {
+  description = "URL to access the API"
+  value       = "http://${aws_eip.app.public_ip}:3000/api"
 }

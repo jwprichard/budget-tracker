@@ -58,46 +58,20 @@ jobs:
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/budget-backend:latest
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/budget-frontend:latest
 
-      # # 9. Force ECS service update to deploy new images
-      # - name: Update ECS services
-      #   run: |
-      #     aws ecs update-service --cluster budget-tracker --service budget-api --force-new-deployment --region ${{ secrets.AWS_REGION }} || true
-      #     aws ecs update-service --cluster budget-tracker --service budget-frontend --force-new-deployment --region ${{ secrets.AWS_REGION }} || true
-
-      # - name: Deploy on EC2
-      #   uses: appleboy/ssh-action@v1.0.3
-      #   with:
-      #     host: ${{ secrets.EC2_PUBLIC_IP }}
-      #     username: ec2-user
-      #     key: ${{ secrets.EC2_SSH_KEY }}
-      #     script: |
-      #       aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
-      #         | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
-
-      #       docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/budget-backend:latest
-      #       docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/budget-frontend:latest
-
-      #       docker stop backend || true
-      #       docker rm backend || true
-      #       docker stop frontend || true
-      #       docker rm frontend || true
-
-      #       docker run -d --name backend -p 3000:3000 \
-      #         -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
-      #         ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/budget-backend:latest
-
-      #       docker run -d --name frontend -p 80:5173 \
-      #         ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/budget-frontend:latest
-
-
-      # # 10. Run Prisma Migrations
-      # - name: Run Prisma Migrations
-      #   run: |
-      #     cd backend
-      #     npm ci
-
-      #     # Get RDS endpoint dynamically from Terraform
-      #     export DATABASE_URL="postgresql://budget_user:budget_password@$(cd ../infra && terraform output -raw db_address):5432/budget_tracker"
-
-      #     echo "Running migrations on $DATABASE_URL"
-      #     npx prisma migrate deploy
+      # 9. Display deployment info
+      - name: Show deployment info
+        run: |
+          cd infra
+          echo "================================================"
+          echo "Deployment Complete!"
+          echo "================================================"
+          echo ""
+          echo "Application URL: $(terraform output -raw app_url)"
+          echo "API URL: $(terraform output -raw api_url)"
+          echo "EC2 IP: $(terraform output -raw ec2_public_ip)"
+          echo ""
+          echo "The EC2 instance is pulling and starting containers now."
+          echo "This may take 2-5 minutes. Check logs at:"
+          echo "ssh ec2-user@$(terraform output -raw ec2_public_ip) 'sudo tail -f /var/log/user-data.log'"
+          echo ""
+          echo "================================================"
