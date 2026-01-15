@@ -38,6 +38,7 @@ export class CategorizationService {
     _userId: string // Will be used in Phase 2 for user-specific rules
   ): Promise<CategorizationResult> {
     // Try Akahu category mapping (if transaction is from bank)
+	logger.info('[CategorisationService categorising transaction', {transaction: transaction})
     if (transaction.isFromBank && transaction.externalTransaction?.category) {
       try {
         const category = await this.getOrCreateCategory(
@@ -131,15 +132,16 @@ export class CategorizationService {
    * Examples:
    * - "groceries" -> "Groceries"
    * - "fast-food" -> "Fast Food"
-   * - "health-beauty" -> "Health Beauty"
+   * - "supermarkets and grocery stores" -> "Supermarkets And Grocery Stores"
    *
    * @param name - Raw Akahu category name
-   * @returns Cleaned, capitalized category name
+   * @returns Cleaned, title-cased category name
    */
   private cleanCategoryName(name: string): string {
     return name
-      .split('-')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .replace(/-/g, ' ') // Replace hyphens with spaces
+      .split(/\s+/) // Split by whitespace
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
   }
 

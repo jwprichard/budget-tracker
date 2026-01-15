@@ -378,6 +378,10 @@ export class SyncService {
       return;
     }
 
+	logger.debug('[SyncService] External Transaction', {
+		externalTransaction: extTx
+	})
+
     // Create external transaction record
     const externalTransaction = await prisma.externalTransaction.create({
       data: {
@@ -387,7 +391,7 @@ export class SyncService {
         amount: extTx.amount,
         description: extTx.description,
         merchant: extTx.merchant,
-        category: extTx.category,
+        category: extTx.rawData?.category?.name, // Category is nested in rawData
         type: extTx.type,
         balance: extTx.balance,
         rawData: extTx.rawData,
@@ -396,6 +400,7 @@ export class SyncService {
 
     logger.debug('[SyncService] Created external transaction record', {
       externalTransactionId: extTx.externalTransactionId,
+	  externalTransaction: externalTransaction
     });
 
     // Duplicate detection
