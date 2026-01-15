@@ -6,16 +6,19 @@ const TOKEN_KEY = 'auth_tokens';
 
 // Determine API base URL - use current hostname in production
 const getApiBaseUrl = (): string => {
-  // If VITE_API_URL is set, use it (for development/custom config)
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
-  }
-
-  // In production, use current hostname with backend port 3000
+  // In production, always use current hostname with backend port 3000
   // This works because frontend (port 80) and backend (port 3000) are on same server
   if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+
+    // Development mode: check if we're on localhost
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      // Use VITE_API_URL if set, otherwise default to localhost:3000
+      return 'http://localhost:3000/api';
+    }
+
+    // Production mode: use current hostname (EC2 IP or domain)
     const protocol = window.location.protocol; // http: or https:
-    const hostname = window.location.hostname; // EC2 IP or domain
     return `${protocol}//${hostname}:3000/api`;
   }
 
