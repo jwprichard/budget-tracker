@@ -92,14 +92,33 @@ model Category {
   updatedAt   DateTime  @updatedAt
 
   // Relations
-  user         User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent       Category?      @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
-  children     Category[]     @relation("CategoryHierarchy")
-  transactions Transaction[]
+  user          User?                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent        Category?                 @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children      Category[]                @relation("CategoryHierarchy")
+  transactions  Transaction[]
+  akahuMappings AkahuCategoryMapping[]    // Akahu category mappings
 
   @@index([userId])
   @@index([parentId])
   @@index([name])
+}
+
+// AkahuCategoryMapping - Maps Akahu bank categories to local categories
+model AkahuCategoryMapping {
+  id              String   @id @default(uuid())
+  akahuCategory   String   @unique  // e.g., "groceries", "restaurants"
+  localCategoryId String
+  confidence      Int      @default(80)  // 0-100 confidence score
+  isSystemDefault Boolean  @default(true)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  localCategory   Category @relation(fields: [localCategoryId], references: [id], onDelete: Restrict)
+
+  @@index([akahuCategory])
+  @@map("akahu_category_mappings")
 }
 
 // Transaction model - Represents income, expenses, and transfers

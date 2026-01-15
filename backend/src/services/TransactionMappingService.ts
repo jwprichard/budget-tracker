@@ -1,4 +1,5 @@
 import { TransactionType, TransactionStatus } from '@prisma/client';
+import { CategorizationService } from './CategorizationService';
 
 /**
  * Transaction Mapping Service
@@ -8,17 +9,20 @@ import { TransactionType, TransactionStatus } from '@prisma/client';
  * - Determining transaction type (INCOME/EXPENSE)
  * - Cleaning and formatting descriptions
  * - Building notes with metadata
+ * - Auto-categorizing transactions (using CategorizationService)
  * - Setting appropriate status
  */
 export class TransactionMappingService {
+  constructor(private categorizationService?: CategorizationService) {}
   /**
    * Map external transaction to local transaction create input
    *
    * @param externalTransaction - Transaction from banking provider
    * @param localAccountId - Local account ID to assign
+   * @param userId - User ID for categorization
    * @returns Transaction data ready for Prisma create
    */
-  mapToLocalTransaction(
+  async mapToLocalTransaction(
     externalTransaction: {
       date: Date;
       amount: number;
@@ -28,7 +32,8 @@ export class TransactionMappingService {
       type?: string;
       balance?: number;
     },
-    localAccountId: string
+    localAccountId: string,
+    userId: string
   ) {
     // Determine transaction type based on amount
     // Positive = INCOME, Negative = EXPENSE
@@ -46,6 +51,25 @@ export class TransactionMappingService {
     // Build notes with metadata (no need to include bank description anymore)
     const notes = this.buildNotesWithMetadata(externalTransaction);
 
+    // Auto-categorize using Akahu data
+    let categoryId: string | null = null;
+    if (this.categorizationService) {
+      const result = await this.categorizationService.categorizeTransaction(
+        {
+          description,
+          merchant: merchant || undefined,
+          amount: externalTransaction.amount,
+          type,
+          isFromBank: true,
+          externalTransaction: {
+            category: externalTransaction.category,
+          },
+        },
+        userId
+      );
+      categoryId = result.categoryId;
+    }
+
     return {
       accountId: localAccountId,
       type,
@@ -55,7 +79,7 @@ export class TransactionMappingService {
       merchant,
       notes,
       status: TransactionStatus.CLEARED, // Bank transactions are already cleared
-      categoryId: null, // Will be assigned by categorization rules later (Milestone 3.5)
+      categoryId, // Now auto-assigned from Akahu
       isFromBank: true,
     };
   }

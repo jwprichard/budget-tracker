@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { seedAkahuMappings } from './seed-akahu-mappings';
 
 const prisma = new PrismaClient();
 
@@ -173,6 +174,9 @@ async function seed() {
       }
     }
   }
+
+  // Seed Akahu category mappings (after categories are created)
+  await seedAkahuMappings(prisma);
 
   console.log('Database seeding completed!');
 }

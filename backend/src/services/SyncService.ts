@@ -1,6 +1,7 @@
 import { IBankingDataProvider } from '../interfaces/IBankingDataProvider';
 import { DuplicateDetectionService } from './DuplicateDetectionService';
 import { TransactionMappingService } from './TransactionMappingService';
+import { CategorizationService } from './CategorizationService';
 import { PrismaClient } from '@prisma/client';
 import logger from '../utils/logger';
 
@@ -46,14 +47,17 @@ export class SyncService {
   private provider: IBankingDataProvider;
   private duplicateDetection: DuplicateDetectionService;
   private transactionMapping: TransactionMappingService;
+  private categorizationService: CategorizationService;
 
   constructor(
     provider: IBankingDataProvider,
     duplicateDetection: DuplicateDetectionService = new DuplicateDetectionService(),
-    transactionMapping: TransactionMappingService = new TransactionMappingService()
+    categorizationService: CategorizationService = new CategorizationService(prisma),
+    transactionMapping: TransactionMappingService = new TransactionMappingService(categorizationService)
   ) {
     this.provider = provider;
     this.duplicateDetection = duplicateDetection;
+    this.categorizationService = categorizationService;
     this.transactionMapping = transactionMapping;
   }
 
@@ -510,8 +514,8 @@ export class SyncService {
       throw new Error('Bank connection not found');
     }
 
-    // Map external transaction to local transaction format
-    const mappedTransaction = this.transactionMapping.mapToLocalTransaction(
+    // Map external transaction to local transaction format (with auto-categorization)
+    const mappedTransaction = await this.transactionMapping.mapToLocalTransaction(
       {
         date: externalTransaction.date,
         amount: externalTransaction.amount,
@@ -521,7 +525,8 @@ export class SyncService {
         type: externalTransaction.type,
         balance: externalTransaction.balance,
       },
-      linkedAccount.localAccountId
+      linkedAccount.localAccountId,
+      connection.userId // Pass userId for categorization
     );
 
     // Create local transaction with userId
