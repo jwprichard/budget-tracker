@@ -2,8 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { SyncService } from '../services/SyncService';
 import { BankingProviderFactory } from '../services/BankingProviderFactory';
-import { DuplicateDetectionService } from '../services/DuplicateDetectionService';
 import { TransactionMappingService } from '../services/TransactionMappingService';
+import { CategorizationService } from '../services/CategorizationService';
 import { encrypt } from '../utils/encryption';
 import logger from '../utils/logger';
 
@@ -324,12 +324,8 @@ export const triggerSync = async (
     // Create provider
     const provider = await BankingProviderFactory.createProvider(connectionId);
 
-    // Create sync service
-    const syncService = new SyncService(
-      provider,
-      new DuplicateDetectionService(),
-      new TransactionMappingService()
-    );
+    // Create sync service (with defaults: DuplicateDetectionService, CategorizationService, TransactionMappingService)
+    const syncService = new SyncService(provider);
 
     // Trigger sync (runs in background)
     // Note: In production, this should be queued as a background job
@@ -715,9 +711,10 @@ export const approveTransaction = async (
       return;
     }
 
-    // Map and create local transaction
-    const mappingService = new TransactionMappingService();
-    const mappedTransaction = mappingService.mapToLocalTransaction(
+    // Map and create local transaction (with auto-categorization)
+    const categorizationService = new CategorizationService(prisma);
+    const mappingService = new TransactionMappingService(categorizationService);
+    const mappedTransaction = await mappingService.mapToLocalTransaction(
       {
         date: externalTx.date,
         amount: Number(externalTx.amount),
@@ -727,7 +724,8 @@ export const approveTransaction = async (
         type: externalTx.type,
         balance: externalTx.balance ? Number(externalTx.balance) : undefined,
       },
-      externalTx.linkedAccount.localAccountId
+      externalTx.linkedAccount.localAccountId,
+      userId // Pass userId for categorization
     );
 
     const localTransaction = await prisma.transaction.create({

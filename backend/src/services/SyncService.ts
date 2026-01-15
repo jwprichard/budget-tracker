@@ -47,7 +47,6 @@ export class SyncService {
   private provider: IBankingDataProvider;
   private duplicateDetection: DuplicateDetectionService;
   private transactionMapping: TransactionMappingService;
-  private categorizationService: CategorizationService;
 
   constructor(
     provider: IBankingDataProvider,
@@ -57,7 +56,6 @@ export class SyncService {
   ) {
     this.provider = provider;
     this.duplicateDetection = duplicateDetection;
-    this.categorizationService = categorizationService;
     this.transactionMapping = transactionMapping;
   }
 

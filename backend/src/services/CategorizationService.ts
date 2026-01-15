@@ -29,7 +29,7 @@ export class CategorizationService {
    */
   async categorizeTransaction(
     transaction: TransactionInput,
-    userId: string
+    _userId: string // Will be used in Phase 2 for rule evaluation
   ): Promise<CategorizationResult> {
     // Try Akahu category mapping (if transaction is from bank)
     if (transaction.isFromBank && transaction.externalTransaction?.category) {
