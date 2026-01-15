@@ -23,6 +23,7 @@ model User {
   accounts        Account[]
   transactions    Transaction[]
   categories      Category[]
+  categoryRules   CategoryRule[]
   bankConnections BankConnection[]
 
   @@index([email])
@@ -96,10 +97,43 @@ model Category {
   parent        Category?                 @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
   children      Category[]                @relation("CategoryHierarchy")
   transactions  Transaction[]
+  rules         CategoryRule[]
 
   @@index([userId])
   @@index([parentId])
   @@index([name])
+}
+
+// CategoryRule - User-defined rules for automatic categorization
+model CategoryRule {
+  id          String   @id @default(uuid())
+  userId      String?  // Nullable for system rules
+  name        String   // e.g., "Costco → Groceries"
+  categoryId  String
+
+  // Rule conditions (JSON for flexibility)
+  conditions  Json
+
+  // Rule metadata
+  priority    Int      @default(0)  // Higher = evaluated first
+  isEnabled   Boolean  @default(true)
+  isSystem    Boolean  @default(false)
+
+  // Statistics
+  matchCount  Int      @default(0)
+  lastMatched DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([priority])
+  @@index([isEnabled])
+  @@map("category_rules")
 }
 
 // Transaction model - Represents income, expenses, and transfers
