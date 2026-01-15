@@ -236,9 +236,14 @@ echo "Budget Tracker - Redeployment"
 echo "Started at: $(date)"
 echo "========================================="
 
-# Get AWS info
-AWS_REGION=$(curl -s http://169.254.169.254/latest/meta-data/placement/region)
+# Get AWS info using IMDSv2 (requires token)
+echo "Fetching AWS metadata..."
+TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600" 2>/dev/null)
+AWS_REGION=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/placement/region)
 AWS_ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+
+echo "AWS Region: $AWS_REGION"
+echo "AWS Account: $AWS_ACCOUNT"
 
 # Login to ECR
 echo "Logging into ECR..."
