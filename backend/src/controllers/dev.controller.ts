@@ -92,6 +92,44 @@ export const resetEverything = async (_req: Request, res: Response, next: NextFu
 };
 
 /**
+ * Reset all categories except Uncategorized
+ * Deletes all auto-created categories, keeps Uncategorized
+ */
+export const resetCategories = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    // First, set all transactions using these categories to Uncategorized
+    const uncategorized = await prisma.category.findFirst({
+      where: { name: 'Uncategorized', userId: null },
+    });
+
+    if (uncategorized) {
+      await prisma.transaction.updateMany({
+        where: {
+          categoryId: { not: uncategorized.id },
+        },
+        data: { categoryId: uncategorized.id },
+      });
+    }
+
+    // Delete all categories except Uncategorized
+    const result = await prisma.category.deleteMany({
+      where: {
+        name: { not: 'Uncategorized' },
+        userId: null, // Only system categories
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Deleted ${result.count} categories (kept Uncategorized)`,
+      deletedCount: result.count,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Get database statistics
  * Shows counts of records in each table
  */

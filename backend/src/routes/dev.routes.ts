@@ -4,6 +4,7 @@ import {
   resetAccounts,
   resetBankConnections,
   resetEverything,
+  resetCategories,
   getDatabaseStats,
 } from '../controllers/dev.controller';
 
@@ -20,6 +21,9 @@ router.post('/reset/accounts', resetAccounts);
 
 // POST /api/v1/dev/reset/bank-connections - Reset bank connections
 router.post('/reset/bank-connections', resetBankConnections);
+
+// POST /api/v1/dev/reset/categories - Reset all categories except Uncategorized
+router.post('/reset/categories', resetCategories);
 
 // POST /api/v1/dev/reset/everything - Reset everything (nuclear)
 router.post('/reset/everything', resetEverything);

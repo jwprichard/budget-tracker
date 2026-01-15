@@ -374,6 +374,46 @@ export const Development = () => {
             </Card>
           </Grid>
 
+          {/* Reset Categories */}
+          <Grid item xs={12} md={6}>
+            <Card variant="outlined" sx={{ height: '100%' }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Reset Categories
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Deletes all auto-created categories (keeps Uncategorized). Transactions are reassigned to Uncategorized.
+                </Typography>
+                <Divider sx={{ mb: 2 }} />
+                <Typography variant="caption" color="text.secondary" gutterBottom display="block">
+                  Will delete:
+                </Typography>
+                <Box sx={{ mb: 2 }}>
+                  <Chip label={`${Math.max(0, (stats?.categories || 0) - 1)} Categories`} size="small" sx={{ mr: 1, mb: 1 }} />
+                </Box>
+                <Typography variant="caption" color="success.main" gutterBottom display="block" sx={{ mb: 2 }}>
+                  Uncategorized will be preserved
+                </Typography>
+                <Button
+                  variant="outlined"
+                  color="warning"
+                  startIcon={<DeleteIcon />}
+                  onClick={() =>
+                    handleOpenDialog(
+                      'Reset Categories',
+                      'This will delete all auto-created categories except Uncategorized. All transactions will be reassigned to Uncategorized. This action cannot be undone.',
+                      'reset/categories',
+                      'Delete All Categories'
+                    )
+                  }
+                  fullWidth
+                >
+                  Reset Categories
+                </Button>
+              </CardContent>
+            </Card>
+          </Grid>
+
           {/* Reset Everything */}
           <Grid item xs={12} md={6}>
             <Card variant="outlined" sx={{ height: '100%', borderColor: 'error.main' }}>
