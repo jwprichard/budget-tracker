@@ -19,9 +19,14 @@ const app: Application = express();
 app.use(helmet());
 
 // CORS configuration
+// In production, allow requests from the same host on port 80
+// In development, allow localhost:5173 (Vite dev server)
+const corsOrigin = process.env['CORS_ORIGIN'] ||
+  (process.env['NODE_ENV'] === 'production' ? true : 'http://localhost:5173');
+
 app.use(
   cors({
-    origin: process.env['CORS_ORIGIN'] || 'http://localhost:5173',
+    origin: corsOrigin,
     credentials: true,
   })
 );
