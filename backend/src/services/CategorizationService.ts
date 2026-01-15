@@ -8,7 +8,18 @@ interface TransactionInput {
   type: string;
   isFromBank: boolean;
   externalTransaction?: {
-    category?: string;
+    category?: string; // JSON string containing full Akahu category data
+  };
+}
+
+interface AkahuCategory {
+  _id: string;
+  name: string;
+  groups?: {
+    personal_finance?: {
+      _id: string;
+      name: string;
+    };
   };
 }
 
@@ -31,7 +42,7 @@ export class CategorizationService {
 
   /**
    * Categorize a transaction using Akahu category data
-   * Auto-creates categories if they don't exist
+   * Auto-creates categories with hierarchy if they don't exist
    */
   async categorizeTransaction(
     transaction: TransactionInput,
@@ -41,8 +52,24 @@ export class CategorizationService {
 	logger.info('[CategorisationService categorising transaction', {transaction: transaction})
     if (transaction.isFromBank && transaction.externalTransaction?.category) {
       try {
-        const category = await this.getOrCreateCategory(
+        // Parse category JSON
+        const akahuCategory: AkahuCategory = JSON.parse(
           transaction.externalTransaction.category
+        );
+
+        logger.info('[CategorizationService] Parsed Akahu category', {
+          categoryName: akahuCategory.name,
+          parentName: akahuCategory.groups?.personal_finance?.name,
+        });
+
+        // Extract parent and child names
+        const parentName = akahuCategory.groups?.personal_finance?.name;
+        const childName = akahuCategory.name;
+
+        // Create/get category with hierarchy
+        const category = await this.getOrCreateCategoryWithHierarchy(
+          childName,
+          parentName
         );
 
         if (category) {
@@ -54,7 +81,7 @@ export class CategorizationService {
         }
       } catch (error) {
         logger.error('[CategorizationService] Error creating category', {
-          akahuCategory: transaction.externalTransaction.category,
+          categoryJson: transaction.externalTransaction.category,
           error,
         });
       }
@@ -70,16 +97,86 @@ export class CategorizationService {
   }
 
   /**
-   * Get or create category from Akahu category name
+   * Get or create category with parent-child hierarchy
    *
-   * Cleans the category name (capitalize, remove hyphens) and creates it if needed.
-   * Categories are stored as system categories (userId = null) and appear as top-level.
+   * Creates both parent and child categories if they don't exist.
+   * Example: childName="Supermarkets and grocery stores", parentName="Food"
+   * Creates: Food (parent) → Supermarkets And Grocery Stores (child)
    *
-   * @param akahuCategory - Raw category name from Akahu (e.g., "groceries", "fast-food")
+   * @param childName - Child category name from Akahu
+   * @param parentName - Parent category name from Akahu groups (optional)
+   * @returns Child category record
+   */
+  private async getOrCreateCategoryWithHierarchy(
+    childName: string,
+    parentName?: string
+  ) {
+    const cleanedChildName = this.cleanCategoryName(childName);
+
+    // If no parent name provided, create as top-level category
+    if (!parentName) {
+      return this.getOrCreateTopLevelCategory(cleanedChildName);
+    }
+
+    const cleanedParentName = this.cleanCategoryName(parentName);
+    const cacheKey = `${cleanedParentName}:${cleanedChildName}`.toLowerCase();
+
+    // Check cache first
+    if (this.categoryCache.has(cacheKey)) {
+      const categoryId = this.categoryCache.get(cacheKey)!;
+      const category = await this.prisma.category.findUnique({
+        where: { id: categoryId },
+      });
+      if (category) {
+        return category;
+      }
+      // Cache is stale, remove it
+      this.categoryCache.delete(cacheKey);
+    }
+
+    // Get or create parent category
+    const parentCategory = await this.getOrCreateTopLevelCategory(cleanedParentName);
+
+    // Try to find existing child category
+    let childCategory = await this.prisma.category.findFirst({
+      where: {
+        name: cleanedChildName,
+        parentId: parentCategory.id,
+        userId: null, // System categories only
+      },
+    });
+
+    if (!childCategory) {
+      // Create child category under parent
+      logger.info('[CategorizationService] Creating child category', {
+        childName: cleanedChildName,
+        parentName: cleanedParentName,
+        parentId: parentCategory.id,
+      });
+
+      childCategory = await this.prisma.category.create({
+        data: {
+          name: cleanedChildName,
+          color: this.generateColor(),
+          parentId: parentCategory.id,
+          userId: null, // System category
+        },
+      });
+    }
+
+    // Cache the child category ID
+    this.categoryCache.set(cacheKey, childCategory.id);
+    return childCategory;
+  }
+
+  /**
+   * Get or create top-level category (no parent)
+   *
+   * @param categoryName - Cleaned category name
    * @returns Category record
    */
-  private async getOrCreateCategory(akahuCategory: string) {
-    const normalized = akahuCategory.toLowerCase();
+  private async getOrCreateTopLevelCategory(categoryName: string) {
+    const normalized = categoryName.toLowerCase();
 
     // Check cache first
     if (this.categoryCache.has(normalized)) {
@@ -94,29 +191,27 @@ export class CategorizationService {
       this.categoryCache.delete(normalized);
     }
 
-    // Clean the category name (capitalize, remove hyphens)
-    const cleanedName = this.cleanCategoryName(akahuCategory);
-
-    // Try to find existing category by cleaned name
+    // Try to find existing category by name (already cleaned)
     let category = await this.prisma.category.findFirst({
       where: {
-        name: cleanedName,
+        name: categoryName,
         userId: null, // System categories only
+        parentId: null, // Top-level only
       },
     });
 
     if (!category) {
-      // Create new category
-      logger.info('[CategorizationService] Creating new category from Akahu', {
-        akahuCategory,
-        cleanedName,
+      // Create new top-level category
+      logger.info('[CategorizationService] Creating top-level category', {
+        categoryName,
       });
 
       category = await this.prisma.category.create({
         data: {
-          name: cleanedName,
+          name: categoryName,
           color: this.generateColor(),
-          userId: null, // System category (visible to all users in future multi-user setup)
+          userId: null, // System category
+          parentId: null, // Top-level
         },
       });
     }

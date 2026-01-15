@@ -391,7 +391,7 @@ export class SyncService {
         amount: extTx.amount,
         description: extTx.description,
         merchant: extTx.merchant,
-        category: extTx.rawData?.category?.name, // Category is nested in rawData
+        category: extTx.rawData?.category ? JSON.stringify(extTx.rawData.category) : null, // Store full category JSON
         type: extTx.type,
         balance: extTx.balance,
         rawData: extTx.rawData,
