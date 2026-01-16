@@ -96,66 +96,88 @@ This roadmap outlines the development milestones for the Budget Tracker applicat
 
 ---
 
-## Milestone 3.5: Smart Categorization & Rules Engine
+## Milestone 3.5: Smart Categorization & Rules Engine ✅
 
-**Objective**: Implement intelligent automatic category assignment based on configurable rules and machine learning.
+**Objective**: Implement intelligent automatic category assignment based on configurable rules and bank data.
 
-**Status**: PLANNED
+**Status**: COMPLETE (January 16, 2026)
+**Branch**: `main` (merged)
 **Dependencies**: Milestone 3 (Category System)
 
 ### Deliverables
-- [ ] Category rule data model and API
-- [ ] Rule engine architecture (extensible pattern matching)
-- [ ] Rule CRUD operations and management UI
-- [ ] Multiple rule types implementation
-- [ ] Rule priority and conflict resolution
-- [ ] Auto-apply rules to new transactions
-- [ ] Bulk apply rules to existing transactions
-- [ ] Rule testing and validation interface
-- [ ] Category suggestions based on transaction history
-- [ ] Rule import/export functionality
-- [ ] Performance optimization for large rule sets
+- [x] Category rule data model and API ✓
+- [x] Rule engine architecture (extensible pattern matching with JSON conditions) ✓
+- [x] Rule CRUD operations and management UI ✓
+- [x] Text-based rule type implementation ✓
+- [x] Rule priority and conflict resolution ✓
+- [x] Auto-apply rules to new transactions ✓
+- [x] Bulk apply rules to existing transactions ✓
+- [ ] Amount-based rules *(deferred)*
+- [ ] Context-based rules *(deferred)*
+- [ ] Rule testing and validation interface *(deferred)*
+- [ ] Category suggestions based on transaction history *(deferred)*
+- [ ] Rule import/export functionality *(deferred)*
+- [x] Performance optimization (batch processing, in-memory caching) ✓
 
-### Rule Types
-1. **Text-Based Rules**
-   - Description contains keyword (case-insensitive)
-   - Description exact match
-   - Regular expression pattern matching
-   - Merchant name matching
+### Implemented Rule Types
+1. **Text-Based Rules** ✓
+   - [x] Description/merchant/notes contains keyword (case-insensitive/sensitive)
+   - [x] Exact match
+   - [x] Starts with pattern
+   - [x] Ends with pattern
+   - Extensible JSON conditions structure for future rule types
 
-2. **Amount-Based Rules**
+2. **Akahu Bank Category Mapping** ✓
+   - [x] Automatic category creation from bank data with hierarchical structure
+   - [x] Parent-child category relationships from Akahu groups
+   - [x] Full category JSON stored in ExternalTransaction for flexibility
+
+### Future Rule Types *(Deferred)*
+3. **Amount-Based Rules**
    - Amount range (e.g., $0-$20 → Fast Food)
    - Amount threshold (e.g., >$500 → Rent)
    - Specific amount match
 
-3. **Context-Based Rules**
+4. **Context-Based Rules**
    - Transaction type (income/expense)
    - Account type
    - Day of week/month
    - Combination rules (AND/OR logic)
 
-4. **Smart Learning Rules** *(Future Enhancement)*
+5. **Smart Learning Rules**
    - Pattern detection from manual categorizations
    - Suggested rules based on user behavior
    - Confidence scoring
 
-### Features
+### Implemented Features ✓
 - **Rule Management Interface**
-  - Visual rule builder (no code required)
-  - Drag-and-drop rule priority ordering
-  - Enable/disable individual rules
-  - Rule testing against sample transactions
-  - Bulk rule import from templates
+  - [x] Visual rule builder (no code required) ✓
+  - [x] Priority-based ordering (numeric priority field) ✓
+  - [x] Enable/disable individual rules ✓
+  - [x] Category selection with hierarchical tree view ✓
+  - [x] Rule list with match statistics ✓
+  - [ ] Drag-and-drop priority reordering *(deferred)*
+  - [ ] Rule testing against sample transactions *(deferred)*
 
 - **Automatic Application**
-  - Real-time categorization during transaction entry
-  - Batch processing for CSV imports
-  - Background job for uncategorized transactions
-  - Manual review workflow for low-confidence matches
+  - [x] Real-time categorization during transaction entry ✓
+  - [x] Automatic categorization during bank sync ✓
+  - [x] Batch processing for CSV imports ✓
+  - [x] Bulk apply to existing uncategorized transactions ✓
+  - [x] Priority-based evaluation (user rules → bank mapping → uncategorized) ✓
+  - [ ] Manual review workflow for low-confidence matches *(deferred)*
 
+- **Performance & Architecture**
+  - [x] In-memory rule caching with invalidation ✓
+  - [x] Batch processing (100 transactions at a time) ✓
+  - [x] Extensible JSON conditions structure ✓
+  - [x] Match count tracking ✓
+
+### Future Features *(Deferred)*
 - **Rule Templates**
   - Pre-built rule sets (common merchants, bills, subscriptions)
   - Community-shared rule templates
+  - Rule import/export functionality
   - Industry-standard categorization rules
 
 - **Advanced Features**

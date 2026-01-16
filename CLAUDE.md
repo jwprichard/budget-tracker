@@ -16,9 +16,9 @@ Full-Stack Web Application (Self-Hosted)
 
 ## Current Status
 
-- **Current Branch**: `feature/milestone-4-visualization-analytics`
-- **Phase**: Milestone 4 - Visualization & Analytics (In Progress)
-- **Last Feature Completed**: Sync Transaction Debugging View (January 14, 2026) ✓
+- **Current Branch**: `main`
+- **Phase**: Milestone 3.5 - Smart Categorization & Rules Engine ✅ COMPLETE
+- **Last Feature Completed**: Bulk Apply Rules (January 16, 2026) ✓
 - **Completed Milestones**:
   - Milestone 1 - Foundation & Core Setup ✅
   - Milestone 1.5 - Authentication & Multi-User Support ✅
@@ -27,8 +27,9 @@ Full-Stack Web Application (Self-Hosted)
   - Milestone 8.5 - Akahu Bank Synchronization ✅
   - Milestone 8.6 - Enhanced Akahu Data Display ✅
   - Milestone 4 - Visualization & Analytics (Partial - Calendar, Category Charts, Trends) ✅
-- **Next Milestone**: Milestone 3 - Category System (after Milestone 4 completion)
-- **Current Focus**: Milestone 4 - Analytics dashboard with charts and calendar view
+  - Milestone 3.5 - Smart Categorization & Rules Engine ✅
+- **Next Milestone**: Milestone 5 - Budget Management OR Milestone 6 - Recurring Transactions
+- **Current Focus**: Ready for next feature - Budget Management or Recurring Transactions
 - **Tests**: Not yet implemented (testing infrastructure planned for Milestone 11)
 
 ## Technology Stack
@@ -512,20 +513,20 @@ Color-coded balance status (green/yellow/red thresholds).
 ## Current Development Context
 
 ### What We're Working On
-- **Phase**: Milestone 4 - Visualization & Analytics (In Progress - Jan 14, 2026)
-- **Current Task**: Analytics dashboard with calendar view and charts
-- **Branch**: `feature/milestone-4-visualization-analytics`
-- **Status**: Calendar view complete, category charts complete, trends charts complete
+- **Phase**: Milestone 3.5 - Smart Categorization & Rules Engine ✅ COMPLETE (Jan 16, 2026)
+- **Current Task**: All phases complete
+- **Branch**: `main`
+- **Status**: Feature complete and merged to main
 - **Completed Features**:
-  - Calendar view with daily balances and transaction display
-  - Category pie charts and bar charts
-  - Spending trends over time
-  - Income vs expense comparison charts
-  - Standalone calendar page with navigation
-  - Sync transaction debugging view
-- **Next Phase**: Complete remaining Milestone 4 features or start Milestone 3 (Category System)
+  - Phase 1: Akahu category mapping with hierarchical structure (parent → child)
+  - Phase 2: Text-based categorization rules with CRUD operations
+  - Phase 3: Bulk apply rules to existing uncategorized transactions
+  - Auto-categorization from bank sync transactions
+  - Priority-based rule evaluation system
+  - Rule management UI with category tree selection
+- **Next Phase**: Milestone 5 (Budget Management) OR Milestone 6 (Recurring Transactions)
 
-### Recent Decisions (Updated Jan 13, 2026)
+### Recent Decisions (Updated Jan 16, 2026)
 - Chose PostgreSQL over MySQL for better ACID compliance and JSON support
 - Selected Material-UI over other UI libraries for comprehensive component set
 - Using Prisma ORM for database abstraction and future flexibility
@@ -631,7 +632,17 @@ Color-coded balance status (green/yellow/red thresholds).
   - Token management: Automatic refresh on 401 with request queuing
   - Critical fix: React Query cache clearing on login/logout prevents data leakage between users
   - User table mapping: Prisma model `User` → database table `users` (avoids SQL reserved keyword)
-  - Security: Backend data isolation verified, frontend cache management prevents cross-user data visibility
+- **Smart Categorization & Rules Engine (Jan 16, 2026)** - Automatic transaction categorization
+  - **Hierarchical Category Structure**: Store full Akahu category JSON in ExternalTransaction, parse on local transaction creation
+  - **Auto-create Categories**: Bank sync automatically creates parent-child category relationships from Akahu data
+  - **Priority-based Rule Evaluation**: User rules (highest priority) → Akahu mapping → Uncategorized (fallback)
+  - **Text-based Rules**: Match on description, merchant, or notes fields with operators (contains, exact, startsWith, endsWith)
+  - **Rule Conditions JSON**: Flexible JSON structure for conditions allows future extension (amount rules, composite rules, etc.)
+  - **Batch Processing**: Bulk apply processes transactions in batches of 100 for performance
+  - **Cache Management**: In-memory caching for rules and categories with invalidation on updates
+  - **CategorySelect Component**: Reused existing TreeSelect component for hierarchical category selection in rule builder
+  - **Match Statistics**: Track matchCount and lastMatched timestamp for each rule
+  - **Database Models**: CategoryRule model with priority, isEnabled, isSystem fields for flexible rule management
 
 ### Known Issues
 None - All Docker build, runtime, and CSV import issues resolved
@@ -652,7 +663,7 @@ None - All Docker build, runtime, and CSV import issues resolved
 6. ✅ Implement Enhanced Akahu Data Display (Milestone 8.6) (COMPLETE - Jan 13, 2026)
 7. ✅ Implement Authentication & Multi-User Support (Milestone 1.5) (COMPLETE - Jan 13, 2026)
 8. ✅ Merge `feature/authentication-multi-user` to `main` branch (COMPLETE - Jan 13, 2026)
-9. ✅ Implement Analytics & Visualization (Milestone 4 - Partial) (IN PROGRESS - Jan 14, 2026)
+9. ✅ Implement Analytics & Visualization (Milestone 4 - Partial) (COMPLETE - Jan 14, 2026)
    - ✅ Backend analytics API endpoints (daily balances, category totals, trends)
    - ✅ Calendar view with transaction display and dynamic month loading
    - ✅ Category pie charts and bar charts
@@ -660,19 +671,25 @@ None - All Docker build, runtime, and CSV import issues resolved
    - ✅ Income vs expense comparison charts
    - ✅ Standalone calendar page with navigation
    - ✅ Sync transaction debugging view
-10. Complete remaining Milestone 4 features or merge to main
-11. Create feature plan for Category System (Milestone 3)
-    - Hierarchical category data model (Prisma schema)
-    - Default category seed data (Income, Housing, Transportation, Food & Dining, etc.)
-    - Category CRUD API endpoints with validation
-    - Category management UI (create, edit, delete, reorganize)
-    - Parent-child category relationships
-    - Category assignment to transactions (update TransactionForm)
-    - Category colors and visual identification
-    - Subcategory breakdown views
-    - Category filtering in transaction lists
-    - Auto-categorization using Akahu's category data (Milestone 3.5)
-12. Begin implementation of Category System (Milestone 3)
+10. ✅ Implement Smart Categorization & Rules Engine (Milestone 3.5) (COMPLETE - Jan 16, 2026)
+   - ✅ Phase 1: Akahu category mapping with hierarchical structure (parent → child)
+   - ✅ Phase 2: Text-based categorization rules with CRUD operations
+   - ✅ Phase 3: Bulk apply rules to existing uncategorized transactions
+   - ✅ Auto-categorization during bank sync
+   - ✅ Priority-based rule evaluation system
+   - ✅ Rule management UI with category tree selection
+11. OPTION A: Implement Budget Management (Milestone 5)
+    - Monthly/yearly budget setting per category
+    - Budget vs actual spending comparison
+    - Budget alerts and notifications
+    - Budget rollover handling
+    - Visual budget progress indicators
+12. OPTION B: Implement Recurring Transactions (Milestone 6)
+    - Recurring transaction templates
+    - Automatic transaction generation
+    - Recurrence patterns (daily, weekly, monthly, yearly, custom)
+    - Edit series vs single occurrence
+    - Skip/pause recurring transactions
 
 ## Project-Specific Notes
 
