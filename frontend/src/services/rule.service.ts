@@ -113,4 +113,22 @@ export const ruleService = {
   async deleteRule(id: string): Promise<void> {
     await apiClient.delete(`/v1/rules/${id}`);
   },
+
+  /**
+   * Bulk apply rules to uncategorized transactions
+   */
+  async bulkApply(options?: {
+    accountId?: string;
+    limit?: number;
+  }): Promise<{
+    processed: number;
+    categorized: number;
+    skipped: number;
+    errors: Array<{ transactionId: string; error: string }>;
+  }> {
+    const response = await apiClient.post('/v1/rules/bulk-apply', {}, {
+      params: options,
+    });
+    return response.data.data;
+  },
 };

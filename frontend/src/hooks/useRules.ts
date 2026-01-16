@@ -73,3 +73,21 @@ export function useDeleteRule() {
     },
   });
 }
+
+/**
+ * React Query hook to bulk apply rules to uncategorized transactions
+ */
+export function useBulkApply() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (options?: { accountId?: string; limit?: number }) =>
+      ruleService.bulkApply(options),
+    onSuccess: () => {
+      // Invalidate transactions to show newly categorized items
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      // Also invalidate accounts (balances may have changed)
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+    },
+  });
+}

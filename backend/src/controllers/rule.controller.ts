@@ -160,3 +160,31 @@ export const deleteRule = async (
     next(error);
   }
 };
+
+/**
+ * Bulk apply rules to uncategorized transactions
+ * POST /api/v1/rules/bulk-apply
+ */
+export const bulkApplyRules = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const userId = req.user!.userId;
+    const { accountId, limit } = req.query;
+
+    const result = await categorizationService.applyToUncategorized(userId, {
+      accountId: accountId as string | undefined,
+      limit: limit ? parseInt(limit as string) : undefined,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: result,
+      message: `Processed ${result.processed} transactions: ${result.categorized} categorized, ${result.skipped} skipped, ${result.errors.length} errors`,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

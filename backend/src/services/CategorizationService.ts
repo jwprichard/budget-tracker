@@ -405,6 +405,99 @@ export class CategorizationService {
   }
 
   /**
+   * Apply categorization rules to uncategorized transactions
+   * Phase 3: Bulk apply existing rules to transactions
+   *
+   * @param userId - User UUID
+   * @param options - Optional filters (accountId, limit)
+   * @returns Summary of categorization results
+   */
+  async applyToUncategorized(
+    userId: string,
+    options?: { accountId?: string; limit?: number }
+  ): Promise<{
+    processed: number;
+    categorized: number;
+    skipped: number;
+    errors: Array<{ transactionId: string; error: string }>;
+  }> {
+    // Get the "Uncategorized" category ID
+    const uncategorizedCategory = await this.getUncategorizedCategory();
+    if (!uncategorizedCategory) {
+      throw new Error('Uncategorized category not found');
+    }
+
+    // Find uncategorized transactions
+    const transactions = await this.prisma.transaction.findMany({
+      where: {
+        userId,
+        OR: [
+          { categoryId: null },
+          { categoryId: uncategorizedCategory.id },
+        ],
+        ...(options?.accountId ? { accountId: options.accountId } : {}),
+      },
+      take: options?.limit || 1000,
+      orderBy: { date: 'desc' },
+    });
+
+    const result = {
+      processed: 0,
+      categorized: 0,
+      skipped: 0,
+      errors: [] as Array<{ transactionId: string; error: string }>,
+    };
+
+    // Process transactions in batches
+    for (const transaction of transactions) {
+      result.processed++;
+
+      try {
+        // Categorize transaction using rules
+        const categorizationResult = await this.categorizeTransaction(
+          {
+            description: transaction.description,
+            merchant: transaction.merchant || undefined,
+            amount: transaction.amount.toNumber(),
+            type: transaction.type,
+            isFromBank: transaction.isFromBank,
+            notes: transaction.notes || undefined,
+            // Don't pass external transaction data for existing transactions
+          },
+          userId
+        );
+
+        // Only update if a rule matched (don't update if it would stay uncategorized)
+        if (
+          categorizationResult.categoryId &&
+          categorizationResult.categoryId !== uncategorizedCategory.id &&
+          categorizationResult.source === 'rule'
+        ) {
+          await this.prisma.transaction.update({
+            where: { id: transaction.id },
+            data: { categoryId: categorizationResult.categoryId },
+          });
+          result.categorized++;
+        } else {
+          result.skipped++;
+        }
+      } catch (error) {
+        result.errors.push({
+          transactionId: transaction.id,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+
+    logger.info('[CategorizationService] Bulk apply completed', {
+      userId,
+      ...result,
+    });
+
+    return result;
+  }
+
+  /**
    * Invalidate rule cache (call when rules change)
    */
   invalidateRuleCache(userId: string): void {

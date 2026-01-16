@@ -14,14 +14,17 @@ import {
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
   Info as InfoIcon,
+  PlayArrow as ApplyIcon,
 } from '@mui/icons-material';
 import { useCreateRule } from '../hooks/useRules';
 import { RuleBuilder } from '../components/rules/RuleBuilder';
 import { RuleList } from '../components/rules/RuleList';
+import { BulkApplyDialog } from '../components/rules/BulkApplyDialog';
 
 export function Rules() {
   const [showBuilder, setShowBuilder] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showBulkDialog, setShowBulkDialog] = useState(false);
   const createRule = useCreateRule();
 
   const handleSaveRule = async (data: any) => {
@@ -35,13 +38,22 @@ export function Rules() {
       <Box sx={{ mb: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h4">Category Rules</Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setShowBuilder(!showBuilder)}
-          >
-            {showBuilder ? 'Cancel' : 'Create Rule'}
-          </Button>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              variant="outlined"
+              startIcon={<ApplyIcon />}
+              onClick={() => setShowBulkDialog(true)}
+            >
+              Bulk Apply
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setShowBuilder(!showBuilder)}
+            >
+              {showBuilder ? 'Cancel' : 'Create Rule'}
+            </Button>
+          </Box>
         </Box>
 
         {/* Help Section */}
@@ -100,6 +112,9 @@ export function Rules() {
 
       {/* Rule List */}
       <RuleList />
+
+      {/* Bulk Apply Dialog */}
+      <BulkApplyDialog open={showBulkDialog} onClose={() => setShowBulkDialog(false)} />
     </Container>
   );
 }

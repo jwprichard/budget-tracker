@@ -6,12 +6,16 @@ import {
   getRuleById,
   updateRule,
   deleteRule,
+  bulkApplyRules,
 } from '../controllers/rule.controller';
 
 const router = Router();
 
 // All rule routes require authentication
 router.use(authenticate);
+
+// Bulk apply rules to uncategorized transactions
+router.post('/bulk-apply', bulkApplyRules);
 
 // Create rule
 router.post('/', createRule);
