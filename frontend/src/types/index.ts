@@ -96,6 +96,12 @@ export interface Transaction {
     name: string;
     type: AccountType;
   } | null;
+  category?: {
+    id: string;
+    name: string;
+    color: string;
+    parentId: string | null;
+  } | null;
 }
 
 export interface CreateTransactionDto {

@@ -1,5 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, CategoryRule } from '@prisma/client';
 import logger from '../utils/logger';
+import { RuleConditions, TextMatch } from '../types/rule.types';
 
 interface TransactionInput {
   description: string;
@@ -7,6 +8,7 @@ interface TransactionInput {
   amount: number;
   type: string;
   isFromBank: boolean;
+  notes?: string;
   externalTransaction?: {
     category?: string; // JSON string containing full Akahu category data
   };
@@ -26,30 +28,67 @@ interface AkahuCategory {
 interface CategorizationResult {
   categoryId: string | null;
   confidence: number;
-  source: 'akahu' | 'manual';
+  source: 'rule' | 'akahu' | 'manual';
+  ruleId?: string; // ID of the rule that matched (if applicable)
 }
 
 /**
  * Categorization Service
  *
- * Auto-creates categories from Akahu data and assigns them to transactions.
- * Categories are created on-the-fly as they are encountered during sync.
+ * Phase 1: Auto-creates categories from Akahu data
+ * Phase 2: Evaluates user-defined rules for categorization
+ *
+ * Categorization priority:
+ * 1. User-defined rules (highest priority first)
+ * 2. Akahu category mapping (if from bank)
+ * 3. Uncategorized (fallback)
  */
 export class CategorizationService {
   private categoryCache = new Map<string, string>(); // akahuCategory -> categoryId
+  private ruleCache = new Map<string, CategoryRule[]>(); // userId -> rules
 
   constructor(private prisma: PrismaClient) {}
 
   /**
-   * Categorize a transaction using Akahu category data
+   * Categorize a transaction using rules and Akahu category data
+   * Phase 2: Now evaluates user-defined rules first
    * Auto-creates categories with hierarchy if they don't exist
    */
   async categorizeTransaction(
     transaction: TransactionInput,
-    _userId: string // Will be used in Phase 2 for user-specific rules
+    userId: string
   ): Promise<CategorizationResult> {
-    // Try Akahu category mapping (if transaction is from bank)
-	logger.info('[CategorisationService categorising transaction', {transaction: transaction})
+    logger.info('[CategorizationService] Categorizing transaction', {
+      description: transaction.description,
+      merchant: transaction.merchant,
+      isFromBank: transaction.isFromBank,
+    });
+
+    // Step 1: Evaluate user rules (priority order)
+    const userRules = await this.getRulesForUser(userId);
+    for (const rule of userRules) {
+      if (await this.matchesRule(transaction, rule)) {
+        logger.info('[CategorizationService] Rule matched', {
+          ruleId: rule.id,
+          ruleName: rule.name,
+          categoryId: rule.categoryId,
+        });
+
+        // Increment match count asynchronously (don't wait)
+        this.incrementRuleMatchCount(rule.id).catch((err) =>
+          logger.error('[CategorizationService] Failed to increment match count', { err })
+        );
+
+        return {
+          categoryId: rule.categoryId,
+          confidence: 90,
+          source: 'rule',
+          ruleId: rule.id,
+        };
+      }
+    }
+
+    // Step 2: Try Akahu category mapping (if transaction is from bank)
     if (transaction.isFromBank && transaction.externalTransaction?.category) {
       try {
         // Parse category JSON
@@ -280,9 +319,103 @@ export class CategorizationService {
   }
 
   /**
-   * Clear the category cache (useful for testing)
+   * Get user's enabled rules (cached, priority order)
+   */
+  private async getRulesForUser(userId: string): Promise<CategoryRule[]> {
+    const cacheKey = `rules:${userId}`;
+    if (this.ruleCache.has(cacheKey)) {
+      return this.ruleCache.get(cacheKey)!;
+    }
+
+    const rules = await this.prisma.categoryRule.findMany({
+      where: {
+        userId,
+        isEnabled: true,
+      },
+      orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
+    });
+
+    this.ruleCache.set(cacheKey, rules);
+    return rules;
+  }
+
+  /**
+   * Check if transaction matches rule (text rules only for Phase 2)
+   */
+  private matchesRule(transaction: TransactionInput, rule: CategoryRule): boolean {
+    const conditions = rule.conditions as unknown as RuleConditions;
+
+    if (conditions.type !== 'text') {
+      return false; // Only text rules in Phase 2
+    }
+
+    return this.matchTextCondition(transaction, conditions.textMatch);
+  }
+
+  /**
+   * Match text condition against transaction
+   */
+  private matchTextCondition(transaction: TransactionInput, match: TextMatch): boolean {
+    // Get the field value to match against
+    let fieldValue = '';
+    switch (match.field) {
+      case 'description':
+        fieldValue = transaction.description || '';
+        break;
+      case 'merchant':
+        fieldValue = transaction.merchant || '';
+        break;
+      case 'notes':
+        fieldValue = transaction.notes || '';
+        break;
+      default:
+        return false;
+    }
+
+    // Apply case sensitivity
+    const searchValue = match.caseSensitive ? match.value : match.value.toLowerCase();
+    const fieldText = match.caseSensitive ? fieldValue : fieldValue.toLowerCase();
+
+    // Apply operator
+    switch (match.operator) {
+      case 'contains':
+        return fieldText.includes(searchValue);
+      case 'exact':
+        return fieldText === searchValue;
+      case 'startsWith':
+        return fieldText.startsWith(searchValue);
+      case 'endsWith':
+        return fieldText.endsWith(searchValue);
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * Increment rule match count (called when rule matches a transaction)
+   */
+  private async incrementRuleMatchCount(ruleId: string): Promise<void> {
+    await this.prisma.categoryRule.update({
+      where: { id: ruleId },
+      data: {
+        matchCount: { increment: 1 },
+        lastMatched: new Date(),
+      },
+    });
+  }
+
+  /**
+   * Invalidate rule cache (call when rules change)
+   */
+  invalidateRuleCache(userId: string): void {
+    this.ruleCache.delete(`rules:${userId}`);
+  }
+
+  /**
+   * Clear all caches (useful for testing)
    */
   clearCache(): void {
     this.categoryCache.clear();
+    this.ruleCache.clear();
   }
 }

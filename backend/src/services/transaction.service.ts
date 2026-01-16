@@ -43,6 +43,9 @@ export class TransactionService {
           transferAccount: {
             select: { id: true, name: true, type: true },
           },
+          category: {
+            select: { id: true, name: true, color: true, parentId: true },
+          },
         },
         orderBy: { [sortBy]: sortOrder },
         skip,

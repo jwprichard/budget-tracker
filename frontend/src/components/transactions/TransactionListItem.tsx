@@ -4,7 +4,6 @@ import { Transaction } from '../../types';
 import { BalanceDisplay } from '../common/BalanceDisplay';
 import { TransactionStatusChip } from './TransactionStatusChip';
 import { CategoryColorBadge } from '../categories/CategoryColorBadge';
-import { useCategories } from '../../hooks/useCategories';
 import { format } from 'date-fns';
 
 interface TransactionListItemProps {
@@ -15,13 +14,7 @@ interface TransactionListItemProps {
 
 export const TransactionListItem = ({ transaction, onEdit, onDelete }: TransactionListItemProps) => {
   const isTransfer = !!transaction.transferToAccountId;
-  const { data: categories = [] } = useCategories();
-
-  // Find the category for this transaction
-  const category = transaction.categoryId
-    ? categories.find((cat) => cat.id === transaction.categoryId) ||
-      categories.flatMap((cat) => cat.children || []).find((child) => child.id === transaction.categoryId)
-    : null;
+  const category = transaction.category;
 
   const handleEdit = () => {
     if (onEdit && !isTransfer) {

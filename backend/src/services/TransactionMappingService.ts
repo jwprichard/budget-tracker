@@ -1,5 +1,6 @@
 import { TransactionType, TransactionStatus } from '@prisma/client';
 import { CategorizationService } from './CategorizationService';
+import logger from '../utils/logger';
 
 /**
  * Transaction Mapping Service
@@ -50,6 +51,8 @@ export class TransactionMappingService {
 
     // Build notes with metadata (no need to include bank description anymore)
     const notes = this.buildNotesWithMetadata(externalTransaction);
+
+	logger.info('[TransactionMappingService] Mapping transaction', {externalTransaction: externalTransaction})
 
     // Auto-categorize using Akahu data
     let categoryId: string | null = null;
