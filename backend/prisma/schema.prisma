@@ -14,7 +14,7 @@ datasource db {
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
-  password  String   // bcrypt hashed (12 rounds)
+  password  String // bcrypt hashed (12 rounds)
   name      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -55,29 +55,30 @@ enum TransactionStatus {
 }
 
 enum BudgetPeriod {
+  DAILY
   WEEKLY
+  FORTNIGHTLY
   MONTHLY
-  QUARTERLY
   ANNUALLY
 }
 
 // Account model - Represents financial accounts (checking, savings, credit cards, etc.)
 model Account {
-  id              String       @id @default(uuid())
-  userId          String
-  name            String
-  type            AccountType
-  category        String?      // Custom categorization (e.g., "Personal", "Business")
-  currency        String       @default("USD")
-  initialBalance  Decimal      @db.Decimal(15, 2)
-  isActive        Boolean      @default(true)
+  id             String      @id @default(uuid())
+  userId         String
+  name           String
+  type           AccountType
+  category       String? // Custom categorization (e.g., "Personal", "Business")
+  currency       String      @default("USD")
+  initialBalance Decimal     @db.Decimal(15, 2)
+  isActive       Boolean     @default(true)
 
   // Bank sync fields
-  isLinkedToBank  Boolean      @default(false)
-  lastBankSync    DateTime?
+  isLinkedToBank Boolean   @default(false)
+  lastBankSync   DateTime?
 
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
   user                 User           @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -92,19 +93,19 @@ model Account {
 
 // Category model - Represents transaction categories with hierarchical structure
 model Category {
-  id          String    @id @default(uuid())
-  userId      String?   // Nullable for system categories
-  name        String
-  color       String    @default("#757575")  // Hex color code
-  icon        String?                         // Optional Material-UI icon name
-  parentId    String?                         // Self-referential for hierarchy
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id        String   @id @default(uuid())
+  userId    String? // Nullable for system categories
+  name      String
+  color     String   @default("#757575") // Hex color code
+  icon      String? // Optional Material-UI icon name
+  parentId  String? // Self-referential for hierarchy
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  user            User?                     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent          Category?                 @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
-  children        Category[]                @relation("CategoryHierarchy")
+  user            User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent          Category?        @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children        Category[]       @relation("CategoryHierarchy")
   transactions    Transaction[]
   rules           CategoryRule[]
   budgets         Budget[]
@@ -117,29 +118,29 @@ model Category {
 
 // CategoryRule - User-defined rules for automatic categorization
 model CategoryRule {
-  id          String   @id @default(uuid())
-  userId      String?  // Nullable for system rules
-  name        String   // e.g., "Costco → Groceries"
-  categoryId  String
+  id         String  @id @default(uuid())
+  userId     String? // Nullable for system rules
+  name       String // e.g., "Costco → Groceries"
+  categoryId String
 
   // Rule conditions (JSON for flexibility)
-  conditions  Json
+  conditions Json
 
   // Rule metadata
-  priority    Int      @default(0)  // Higher = evaluated first
-  isEnabled   Boolean  @default(true)
-  isSystem    Boolean  @default(false)
+  priority  Int     @default(0) // Higher = evaluated first
+  isEnabled Boolean @default(true)
+  isSystem  Boolean @default(false)
 
   // Statistics
-  matchCount  Int      @default(0)
+  matchCount  Int       @default(0)
   lastMatched DateTime?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category    Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  user     User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
 
   @@index([userId])
   @@index([priority])
@@ -149,75 +150,75 @@ model CategoryRule {
 
 // Budget - Category budgets with period tracking
 model Budget {
-  id              String      @id @default(uuid())
-  userId          String
-  categoryId      String
+  id         String @id @default(uuid())
+  userId     String
+  categoryId String
 
   // Budget amount
-  amount          Decimal     @db.Decimal(15, 2)
+  amount Decimal @db.Decimal(15, 2)
 
-  // Period definition
-  periodType      BudgetPeriod
-  periodYear      Int
-  periodNumber    Int         // Month (1-12), Quarter (1-4), Week (1-53)
+  // Period definition (NULL for one-time budgets)
+  periodType BudgetPeriod? // NULL = one-time budget
+  interval   Int? // NULL for one-time budgets (e.g., 1 = every period, 2 = every 2 periods)
+  startDate  DateTime // When this budget period starts
+  endDate    DateTime? // Calculated end date (NULL for one-time budgets)
 
   // Configuration
-  includeSubcategories Boolean  @default(false)
+  includeSubcategories Boolean @default(false)
 
   // Metadata
-  name            String?     // Optional custom name
-  notes           String?
+  name  String? // Optional custom name
+  notes String?
 
   // Template linkage
-  templateId      String?     // Link to template if this is a generated instance
-  isCustomized    Boolean     @default(false) // Track if instance was manually edited
+  templateId   String? // Link to template if this is a generated instance
+  isCustomized Boolean @default(false) // Track if instance was manually edited
 
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category        Category    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  template        BudgetTemplate? @relation("TemplateBudgets", fields: [templateId], references: [id], onDelete: SetNull)
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  template BudgetTemplate? @relation("TemplateBudgets", fields: [templateId], references: [id], onDelete: SetNull)
 
-  @@unique([userId, categoryId, periodType, periodYear, periodNumber])
   @@index([userId])
   @@index([categoryId])
-  @@index([periodType, periodYear, periodNumber])
+  @@index([startDate])
   @@index([templateId])
   @@map("budgets")
 }
 
 // BudgetTemplate - Recurring budget templates for automatic budget generation
 model BudgetTemplate {
-  id              String      @id @default(uuid())
-  userId          String
-  categoryId      String
+  id         String @id @default(uuid())
+  userId     String
+  categoryId String
 
   // Template configuration
-  amount          Decimal     @db.Decimal(15, 2)
-  periodType      BudgetPeriod
-  includeSubcategories Boolean  @default(false)
+  amount               Decimal      @db.Decimal(15, 2)
+  periodType           BudgetPeriod
+  interval             Int          @default(1) // How often (1 = every period, 2 = every 2 periods)
+  includeSubcategories Boolean      @default(false)
 
   // Recurrence settings
-  startYear       Int         // First period year
-  startNumber     Int         // First period number
-  endDate         DateTime?   // Optional end date (null = never ending)
+  firstStartDate DateTime // When the first budget instance starts
+  endDate        DateTime? // Optional end date (null = never ending)
 
   // Status
-  isActive        Boolean     @default(true)
+  isActive Boolean @default(true)
 
   // Metadata
-  name            String      // Template name (required for templates)
-  notes           String?
+  name  String // Template name (required for templates)
+  notes String?
 
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category        Category    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  budgets         Budget[]    @relation("TemplateBudgets")
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  budgets  Budget[] @relation("TemplateBudgets")
 
   @@unique([userId, name])
   @@index([userId])
@@ -228,30 +229,30 @@ model BudgetTemplate {
 
 // Transaction model - Represents income, expenses, and transfers
 model Transaction {
-  id              String            @id @default(uuid())
-  userId          String
-  accountId       String
-  categoryId      String?           // Nullable - links to Category
-  type            TransactionType
-  amount          Decimal           @db.Decimal(15, 2)
-  date            DateTime
-  description     String
-  merchant        String?           // Merchant name from bank
-  notes           String?
-  status          TransactionStatus @default(CLEARED)
-  transferToAccountId String?       // Links to destination account for transfers
+  id                  String            @id @default(uuid())
+  userId              String
+  accountId           String
+  categoryId          String? // Nullable - links to Category
+  type                TransactionType
+  amount              Decimal           @db.Decimal(15, 2)
+  date                DateTime
+  description         String
+  merchant            String? // Merchant name from bank
+  notes               String?
+  status              TransactionStatus @default(CLEARED)
+  transferToAccountId String? // Links to destination account for transfers
 
   // Bank sync field
-  isFromBank      Boolean           @default(false)
+  isFromBank Boolean @default(false)
 
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  account            Account              @relation("AccountTransactions", fields: [accountId], references: [id], onDelete: Cascade)
-  category           Category?            @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  transferAccount    Account?             @relation("TransferDestination", fields: [transferToAccountId], references: [id], onDelete: SetNull)
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account             Account              @relation("AccountTransactions", fields: [accountId], references: [id], onDelete: Cascade)
+  category            Category?            @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  transferAccount     Account?             @relation("TransferDestination", fields: [transferToAccountId], references: [id], onDelete: SetNull)
   externalTransaction ExternalTransaction? // One-to-one with external transaction
 
   @@index([userId])
@@ -269,30 +270,30 @@ model Transaction {
 
 // BankConnection - Stores connection to banking provider (Akahu, Plaid, etc.)
 model BankConnection {
-  id              String    @id @default(uuid())
-  userId          String
-  provider        String    @default("AKAHU_PERSONAL") // AKAHU_PERSONAL, AKAHU_OAUTH, PLAID, etc.
-  status          String    @default("ACTIVE") // ACTIVE, INACTIVE, ERROR
-  lastSync        DateTime?
-  lastError       String?
+  id        String    @id @default(uuid())
+  userId    String
+  provider  String    @default("AKAHU_PERSONAL") // AKAHU_PERSONAL, AKAHU_OAUTH, PLAID, etc.
+  status    String    @default("ACTIVE") // ACTIVE, INACTIVE, ERROR
+  lastSync  DateTime?
+  lastError String?
 
   // Personal App fields (used now)
-  appToken        String?   @db.Text // Encrypted, nullable for future OAuth
-  userToken       String?   @db.Text // Encrypted, for Personal App user access token
+  appToken  String? @db.Text // Encrypted, nullable for future OAuth
+  userToken String? @db.Text // Encrypted, for Personal App user access token
 
   // OAuth fields (not used now, ready for future)
-  accessToken     String?   @db.Text // Encrypted, null for personal app
-  refreshToken    String?   @db.Text // Encrypted, null for personal app
-  tokenExpiry     DateTime? // null for personal app
+  accessToken  String?   @db.Text // Encrypted, null for personal app
+  refreshToken String?   @db.Text // Encrypted, null for personal app
+  tokenExpiry  DateTime? // null for personal app
 
-  metadata        Json?     // Flexible storage for provider-specific data
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  metadata  Json? // Flexible storage for provider-specific data
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  linkedAccounts  LinkedAccount[]
-  syncHistory     SyncHistory[]
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  linkedAccounts LinkedAccount[]
+  syncHistory    SyncHistory[]
 
   @@index([userId])
   @@index([provider])
@@ -301,30 +302,30 @@ model BankConnection {
 
 // LinkedAccount - External account linked to local Account
 model LinkedAccount {
-  id                String    @id @default(uuid())
-  connectionId      String
+  id           String @id @default(uuid())
+  connectionId String
 
   // External provider data
-  externalAccountId String    // Provider's account ID (e.g., Akahu's _id)
-  externalName      String    // Account name from provider
-  externalType      String    // BANK, CARD, etc.
-  institution       String    // Bank name
-  accountNumber     String?   // Masked account number
+  externalAccountId String // Provider's account ID (e.g., Akahu's _id)
+  externalName      String // Account name from provider
+  externalType      String // BANK, CARD, etc.
+  institution       String // Bank name
+  accountNumber     String? // Masked account number
 
   // Link to local account
-  localAccountId    String?   @unique
+  localAccountId String? @unique
 
   // Sync control
-  syncEnabled       Boolean   @default(true)
-  status            String?   // Account status: ACTIVE, CLOSED, DORMANT, ERROR
-  lastSync          DateTime?
+  syncEnabled Boolean   @default(true)
+  status      String? // Account status: ACTIVE, CLOSED, DORMANT, ERROR
+  lastSync    DateTime?
 
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  connection        BankConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
-  localAccount      Account?       @relation(fields: [localAccountId], references: [id], onDelete: SetNull)
+  connection           BankConnection        @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  localAccount         Account?              @relation(fields: [localAccountId], references: [id], onDelete: SetNull)
   externalTransactions ExternalTransaction[]
 
   @@unique([connectionId, externalAccountId])
@@ -336,36 +337,36 @@ model LinkedAccount {
 
 // ExternalTransaction - Transaction from banking provider
 model ExternalTransaction {
-  id                  String    @id @default(uuid())
-  linkedAccountId     String
+  id              String @id @default(uuid())
+  linkedAccountId String
 
   // External provider data
-  externalTransactionId String  @unique // Provider's transaction ID
-  date                DateTime
-  amount              Decimal   @db.Decimal(15, 2)
-  description         String
-  merchant            String?
-  category            String?   // Provider's category
-  type                String    // Provider's type (DEBIT, CREDIT, etc.)
-  balance             Decimal?  @db.Decimal(15, 2)
+  externalTransactionId String   @unique // Provider's transaction ID
+  date                  DateTime
+  amount                Decimal  @db.Decimal(15, 2)
+  description           String
+  merchant              String?
+  category              String? // Provider's category
+  type                  String // Provider's type (DEBIT, CREDIT, etc.)
+  balance               Decimal? @db.Decimal(15, 2)
 
   // Link to local transaction
-  localTransactionId  String?   @unique
+  localTransactionId String? @unique
 
   // Duplicate detection
-  isDuplicate         Boolean   @default(false)
-  duplicateConfidence Int?      // 0-100
-  needsReview         Boolean   @default(false)
+  isDuplicate         Boolean @default(false)
+  duplicateConfidence Int? // 0-100
+  needsReview         Boolean @default(false)
 
   // Raw data for debugging
-  rawData             Json?
+  rawData Json?
 
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  linkedAccount       LinkedAccount @relation(fields: [linkedAccountId], references: [id], onDelete: Cascade)
-  localTransaction    Transaction?  @relation(fields: [localTransactionId], references: [id], onDelete: SetNull)
+  linkedAccount    LinkedAccount @relation(fields: [linkedAccountId], references: [id], onDelete: Cascade)
+  localTransaction Transaction?  @relation(fields: [localTransactionId], references: [id], onDelete: SetNull)
 
   @@index([linkedAccountId])
   @@index([externalTransactionId])
@@ -377,29 +378,29 @@ model ExternalTransaction {
 
 // SyncHistory - Track sync job history and status
 model SyncHistory {
-  id                  String    @id @default(uuid())
-  connectionId        String
-  type                String    // FULL, INCREMENTAL, MANUAL
-  status              String    // PENDING, IN_PROGRESS, COMPLETED, FAILED
+  id           String @id @default(uuid())
+  connectionId String
+  type         String // FULL, INCREMENTAL, MANUAL
+  status       String // PENDING, IN_PROGRESS, COMPLETED, FAILED
 
-  startedAt           DateTime  @default(now())
-  completedAt         DateTime?
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
 
   // Results
-  accountsSynced      Int       @default(0)
-  transactionsFetched Int       @default(0)
-  transactionsImported Int      @default(0)
-  duplicatesDetected  Int       @default(0)
-  needsReview         Int       @default(0)
+  accountsSynced       Int @default(0)
+  transactionsFetched  Int @default(0)
+  transactionsImported Int @default(0)
+  duplicatesDetected   Int @default(0)
+  needsReview          Int @default(0)
 
-  errorMessage        String?
-  errorDetails        Json?
+  errorMessage String?
+  errorDetails Json?
 
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  connection          BankConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  connection BankConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
 
   @@index([connectionId])
   @@index([status])
