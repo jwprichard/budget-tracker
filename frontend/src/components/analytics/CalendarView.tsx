@@ -95,8 +95,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     if (!budgetsData) return new Map<string, BudgetWithStatus[]>();
     const map = new Map<string, BudgetWithStatus[]>();
     budgetsData.forEach((budget) => {
-      // Extract date from startDate (YYYY-MM-DD)
-      const dateStr = budget.startDate.split('T')[0] || budget.startDate;
+      // Extract date from startDate in local timezone (not UTC)
+      const date = new Date(budget.startDate);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`;
+
       if (!map.has(dateStr)) {
         map.set(dateStr, []);
       }
