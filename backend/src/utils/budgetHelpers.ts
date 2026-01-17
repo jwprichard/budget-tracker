@@ -13,7 +13,9 @@ export function getPeriodBoundaries(
   periodNumber: number
 ): { startDate: Date; endDate: Date } {
   switch (periodType) {
+    case 'DAILY':
     case 'WEEKLY':
+    case 'FORTNIGHTLY':
       return getISOWeekBoundaries(year, periodNumber);
 
     case 'MONTHLY':
@@ -21,14 +23,6 @@ export function getPeriodBoundaries(
       return {
         startDate: new Date(year, periodNumber - 1, 1, 0, 0, 0, 0),
         endDate: new Date(year, periodNumber, 0, 23, 59, 59, 999), // Last day of month
-      };
-
-    case 'QUARTERLY':
-      // Quarter boundaries (periodNumber: 1-4)
-      const startMonth = (periodNumber - 1) * 3;
-      return {
-        startDate: new Date(year, startMonth, 1, 0, 0, 0, 0),
-        endDate: new Date(year, startMonth + 3, 0, 23, 59, 59, 999), // Last day of quarter
       };
 
     case 'ANNUALLY':
@@ -54,14 +48,17 @@ export function getCurrentPeriod(periodType: BudgetPeriod): {
   const year = now.getFullYear();
 
   switch (periodType) {
+    case 'DAILY':
+      return { year, periodNumber: Math.floor((now.getTime() - new Date(year, 0, 1).getTime()) / 86400000) + 1 };
+
     case 'WEEKLY':
       return { year, periodNumber: getISOWeek(now) };
 
+    case 'FORTNIGHTLY':
+      return { year, periodNumber: Math.floor(getISOWeek(now) / 2) + 1 };
+
     case 'MONTHLY':
       return { year, periodNumber: now.getMonth() + 1 }; // 1-12
-
-    case 'QUARTERLY':
-      return { year, periodNumber: Math.floor(now.getMonth() / 3) + 1 }; // 1-4
 
     case 'ANNUALLY':
       return { year, periodNumber: 1 };
@@ -105,8 +102,14 @@ export function formatPeriod(
   periodNumber: number
 ): string {
   switch (periodType) {
+    case 'DAILY':
+      return `Day ${periodNumber} ${year}`;
+
     case 'WEEKLY':
       return `Week ${periodNumber} ${year}`;
+
+    case 'FORTNIGHTLY':
+      return `Fortnight ${periodNumber} ${year}`;
 
     case 'MONTHLY':
       const monthNames = [
@@ -124,9 +127,6 @@ export function formatPeriod(
         'December',
       ];
       return `${monthNames[periodNumber - 1]} ${year}`;
-
-    case 'QUARTERLY':
-      return `Q${periodNumber} ${year}`;
 
     case 'ANNUALLY':
       return `${year}`;

@@ -6,10 +6,12 @@ import {
 } from '../schemas/budgetTemplate.schema';
 import {
   BudgetTemplateWithStats,
-  BudgetPeriod,
 } from '../types/budget.types';
 import { AppError } from '../middlewares/errorHandler';
-import { getCurrentPeriod } from '../utils/budgetHelpers';
+import {
+  calculatePeriodEndDate,
+  calculateNextPeriodStart,
+} from '../utils/periodCalculations';
 
 export class BudgetTemplateService {
   constructor(private prisma: PrismaClient) {}
@@ -58,9 +60,9 @@ export class BudgetTemplateService {
           categoryId: data.categoryId,
           amount: data.amount,
           periodType: data.periodType,
+          interval: data.interval,
           includeSubcategories: data.includeSubcategories,
-          startYear: data.startYear,
-          startNumber: data.startNumber,
+          firstStartDate: new Date(data.firstStartDate),
           endDate: data.endDate ? new Date(data.endDate) : null,
           isActive: true,
           name: data.name,
@@ -95,8 +97,7 @@ export class BudgetTemplateService {
         budgets: {
           select: {
             id: true,
-            periodYear: true,
-            periodNumber: true,
+            startDate: true,
           },
         },
       },
@@ -130,8 +131,7 @@ export class BudgetTemplateService {
         budgets: {
           select: {
             id: true,
-            periodYear: true,
-            periodNumber: true,
+            startDate: true,
           },
         },
       },
@@ -203,7 +203,7 @@ export class BudgetTemplateService {
 
       // Update non-customized future instances if requested
       if (updateInstances) {
-        const currentPeriod = getCurrentPeriod(updated.periodType);
+        const now = new Date();
         const updateData: any = {};
 
         if (data.amount !== undefined) updateData.amount = data.amount;
@@ -212,19 +212,16 @@ export class BudgetTemplateService {
         if (data.name !== undefined) updateData.name = data.name;
         if (data.notes !== undefined) updateData.notes = data.notes;
 
+        // Add interval if provided
+        if (data.interval !== undefined) updateData.interval = data.interval;
+
         // Only update if there's something to update
         if (Object.keys(updateData).length > 0) {
           await tx.budget.updateMany({
             where: {
               templateId: id,
               isCustomized: false,
-              OR: [
-                { periodYear: { gt: currentPeriod.year } },
-                {
-                  periodYear: currentPeriod.year,
-                  periodNumber: { gte: currentPeriod.periodNumber },
-                },
-              ],
+              startDate: { gte: now }, // Future budgets only
             },
             data: updateData,
           });
@@ -255,19 +252,13 @@ export class BudgetTemplateService {
     }
 
     await this.prisma.$transaction(async (tx) => {
-      const currentPeriod = getCurrentPeriod(template.periodType);
+      const now = new Date();
 
-      // Delete future budget instances
+      // Delete future budget instances (start date after today)
       await tx.budget.deleteMany({
         where: {
           templateId: id,
-          OR: [
-            { periodYear: { gt: currentPeriod.year } },
-            {
-              periodYear: currentPeriod.year,
-              periodNumber: { gt: currentPeriod.periodNumber },
-            },
-          ],
+          startDate: { gt: now },
         },
       });
 
@@ -275,13 +266,7 @@ export class BudgetTemplateService {
       await tx.budget.updateMany({
         where: {
           templateId: id,
-          OR: [
-            { periodYear: { lt: currentPeriod.year } },
-            {
-              periodYear: currentPeriod.year,
-              periodNumber: { lte: currentPeriod.periodNumber },
-            },
-          ],
+          startDate: { lte: now },
         },
         data: {
           templateId: null,
@@ -369,13 +354,7 @@ export class BudgetTemplateService {
           where: {
             templateId: budget.templateId,
             isCustomized: false,
-            OR: [
-              { periodYear: { gt: budget.periodYear } },
-              {
-                periodYear: budget.periodYear,
-                periodNumber: { gte: budget.periodNumber },
-              },
-            ],
+            startDate: { gte: budget.startDate },
           },
           data: updateData,
         });
@@ -434,27 +413,19 @@ export class BudgetTemplateService {
       include: {
         budgets: {
           select: {
-            periodYear: true,
-            periodNumber: true,
+            startDate: true,
           },
-          orderBy: [{ periodYear: 'desc' }, { periodNumber: 'desc' }],
+          orderBy: [{ startDate: 'desc' }],
         },
       },
     });
 
+    const now = new Date();
+
     for (const template of templates) {
       try {
         // Check how many future periods exist
-        const currentPeriod = getCurrentPeriod(template.periodType);
-        const futureBudgets = template.budgets.filter((b) => {
-          if (b.periodYear > currentPeriod.year) return true;
-          if (
-            b.periodYear === currentPeriod.year &&
-            b.periodNumber >= currentPeriod.periodNumber
-          )
-            return true;
-          return false;
-        });
+        const futureBudgets = template.budgets.filter((b) => b.startDate >= now);
 
         // Generate more if needed to maintain 12 future periods
         const needed = 12 - futureBudgets.length;
@@ -478,27 +449,25 @@ export class BudgetTemplateService {
     count: number,
     tx: any // Prisma transaction client
   ): Promise<Budget[]> {
-    // Find the last generated period
+    // Find the last generated budget
     const lastBudget = await tx.budget.findFirst({
       where: { templateId: template.id },
-      orderBy: [{ periodYear: 'desc' }, { periodNumber: 'desc' }],
+      orderBy: [{ startDate: 'desc' }],
     });
 
     // Start from the next period after last budget, or from template start
-    let currentYear: number;
-    let currentPeriodNumber: number;
+    let currentStartDate: Date;
 
     if (lastBudget) {
-      const next = this.calculateNextPeriod(
+      // Calculate next period start from last budget
+      currentStartDate = calculateNextPeriodStart(
+        lastBudget.startDate,
         template.periodType,
-        lastBudget.periodYear,
-        lastBudget.periodNumber
+        template.interval
       );
-      currentYear = next.year;
-      currentPeriodNumber = next.periodNumber;
     } else {
-      currentYear = template.startYear;
-      currentPeriodNumber = template.startNumber;
+      // Start from template's first start date
+      currentStartDate = new Date(template.firstStartDate);
     }
 
     const budgetsToCreate: any[] = [];
@@ -506,18 +475,23 @@ export class BudgetTemplateService {
     // Generate up to count periods
     for (let i = 0; i < count; i++) {
       // Check if we've reached the end date
-      if (!this.periodInRange(currentYear, currentPeriodNumber, template.endDate)) {
+      if (template.endDate && currentStartDate >= template.endDate) {
         break;
       }
+
+      // Calculate end date for this period
+      const endDate = calculatePeriodEndDate(
+        currentStartDate,
+        template.periodType,
+        template.interval
+      );
 
       // Check if budget already exists (prevent duplicates)
       const existing = await tx.budget.findFirst({
         where: {
           userId: template.userId,
           categoryId: template.categoryId,
-          periodType: template.periodType,
-          periodYear: currentYear,
-          periodNumber: currentPeriodNumber,
+          startDate: currentStartDate,
         },
       });
 
@@ -527,8 +501,9 @@ export class BudgetTemplateService {
           categoryId: template.categoryId,
           amount: template.amount,
           periodType: template.periodType,
-          periodYear: currentYear,
-          periodNumber: currentPeriodNumber,
+          interval: template.interval,
+          startDate: currentStartDate,
+          endDate,
           includeSubcategories: template.includeSubcategories,
           name: template.name,
           notes: template.notes,
@@ -538,13 +513,11 @@ export class BudgetTemplateService {
       }
 
       // Move to next period
-      const next = this.calculateNextPeriod(
+      currentStartDate = calculateNextPeriodStart(
+        currentStartDate,
         template.periodType,
-        currentYear,
-        currentPeriodNumber
+        template.interval
       );
-      currentYear = next.year;
-      currentPeriodNumber = next.periodNumber;
     }
 
     // Create all budgets at once
@@ -558,7 +531,7 @@ export class BudgetTemplateService {
       return tx.budget.findMany({
         where: {
           templateId: template.id,
-          periodYear: { in: budgetsToCreate.map((b) => b.periodYear) },
+          startDate: { in: budgetsToCreate.map((b) => b.startDate) },
         },
       });
     }
@@ -567,117 +540,25 @@ export class BudgetTemplateService {
   }
 
   /**
-   * Calculate the next period after the given year/periodNumber
-   * @private
-   */
-  private calculateNextPeriod(
-    periodType: BudgetPeriod,
-    year: number,
-    periodNumber: number
-  ): { year: number; periodNumber: number } {
-    switch (periodType) {
-      case 'WEEKLY':
-        // ISO weeks: 52-53 weeks per year
-        const weeksInYear = this.getWeeksInYear(year);
-        if (periodNumber < weeksInYear) {
-          return { year, periodNumber: periodNumber + 1 };
-        } else {
-          return { year: year + 1, periodNumber: 1 };
-        }
-
-      case 'MONTHLY':
-        if (periodNumber < 12) {
-          return { year, periodNumber: periodNumber + 1 };
-        } else {
-          return { year: year + 1, periodNumber: 1 };
-        }
-
-      case 'QUARTERLY':
-        if (periodNumber < 4) {
-          return { year, periodNumber: periodNumber + 1 };
-        } else {
-          return { year: year + 1, periodNumber: 1 };
-        }
-
-      case 'ANNUALLY':
-        return { year: year + 1, periodNumber: 1 };
-
-      default:
-        throw new Error(`Invalid period type: ${periodType}`);
-    }
-  }
-
-  /**
-   * Check if a period is within the template's date range
-   * @private
-   */
-  private periodInRange(
-    year: number,
-    _periodNumber: number, // Unused - simplified implementation uses year only
-    endDate: Date | null
-  ): boolean {
-    if (!endDate) return true; // No end date = infinite
-
-    // Calculate the start of the period
-    // For simplicity, use the start of the year as approximation
-    // Real implementation would use getPeriodBoundaries with periodNumber
-    const periodStart = new Date(year, 0, 1);
-
-    return periodStart <= endDate;
-  }
-
-  /**
-   * Get number of ISO weeks in a year (52 or 53)
-   * @private
-   */
-  private getWeeksInYear(year: number): number {
-    const dec31 = new Date(year, 11, 31);
-    const week = this.getISOWeek(dec31);
-    return week === 53 ? 53 : 52;
-  }
-
-  /**
-   * Get ISO week number for a date (1-53)
-   * @private
-   */
-  private getISOWeek(date: Date): number {
-    const target = new Date(date.valueOf());
-    const dayNumber = (date.getDay() + 6) % 7;
-    target.setDate(target.getDate() - dayNumber + 3);
-    const firstThursday = target.valueOf();
-    target.setMonth(0, 1);
-    if (target.getDay() !== 4) {
-      target.setMonth(0, 1 + ((4 - target.getDay() + 7) % 7));
-    }
-    return 1 + Math.ceil((firstThursday - target.valueOf()) / 604800000);
-  }
-
-  /**
    * Enrich template with calculated statistics
    * @private
    */
   private enrichTemplateWithStats(template: any): BudgetTemplateWithStats {
-    const now = getCurrentPeriod(template.periodType);
-    const futureBudgets = template.budgets.filter((b: any) => {
-      if (b.periodYear > now.year) return true;
-      if (b.periodYear === now.year && b.periodNumber >= now.periodNumber) return true;
-      return false;
-    });
+    const now = new Date();
+    const futureBudgets = template.budgets.filter((b: any) => b.startDate >= now);
 
-    // Calculate next period to be generated
-    let nextPeriod: { year: number; periodNumber: number } | null = null;
+    // Calculate next period start date
+    let nextPeriodStart: string | null = null;
     if (template.isActive && template.budgets.length > 0) {
-      const lastBudget = template.budgets[0]; // Already sorted by desc
-      nextPeriod = this.calculateNextPeriod(
+      const lastBudget = template.budgets[0]; // Already sorted by desc startDate
+      const next = calculateNextPeriodStart(
+        lastBudget.startDate,
         template.periodType,
-        lastBudget.periodYear,
-        lastBudget.periodNumber
+        template.interval
       );
+      nextPeriodStart = next.toISOString();
     } else if (template.isActive) {
-      nextPeriod = {
-        year: template.startYear,
-        periodNumber: template.startNumber,
-      };
+      nextPeriodStart = template.firstStartDate.toISOString();
     }
 
     return {
@@ -688,9 +569,9 @@ export class BudgetTemplateService {
       categoryColor: template.category.color,
       amount: template.amount.toNumber(),
       periodType: template.periodType,
+      interval: template.interval,
       includeSubcategories: template.includeSubcategories,
-      startYear: template.startYear,
-      startNumber: template.startNumber,
+      firstStartDate: template.firstStartDate.toISOString(),
       endDate: template.endDate ? template.endDate.toISOString() : null,
       isActive: template.isActive,
       name: template.name,
@@ -699,7 +580,7 @@ export class BudgetTemplateService {
       updatedAt: template.updatedAt.toISOString(),
       totalInstances: template.budgets.length,
       activeInstances: futureBudgets.length,
-      nextPeriod,
+      nextPeriodStart,
     };
   }
 }

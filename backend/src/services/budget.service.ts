@@ -2,11 +2,8 @@ import { PrismaClient, Budget } from '@prisma/client';
 import { CreateBudgetDto, UpdateBudgetDto, BudgetQueryDto } from '../schemas/budget.schema';
 import { BudgetWithStatus, BudgetSummaryResponse } from '../types/budget.types';
 import { AppError } from '../middlewares/errorHandler';
-import {
-  getPeriodBoundaries,
-  calculateBudgetStatus,
-  getCurrentPeriod,
-} from '../utils/budgetHelpers';
+import { calculateBudgetStatus } from '../utils/budgetHelpers';
+import { calculatePeriodEndDate } from '../utils/periodCalculations';
 
 export class BudgetService {
   constructor(private prisma: PrismaClient) {}
@@ -30,22 +27,33 @@ export class BudgetService {
       throw new AppError('Category not found or access denied', 404);
     }
 
-    // Check for duplicate budget (same category + period)
-    const existing = await this.prisma.budget.findFirst({
-      where: {
-        userId,
-        categoryId: data.categoryId,
-        periodType: data.periodType,
-        periodYear: data.periodYear,
-        periodNumber: data.periodNumber,
-      },
-    });
+    // Calculate end date for recurring budgets
+    const startDate = new Date(data.startDate);
+    const endDate = calculatePeriodEndDate(
+      startDate,
+      data.periodType || null,
+      data.interval || null
+    );
 
-    if (existing) {
-      throw new AppError(
-        'A budget already exists for this category and period',
-        400
-      );
+    // Check for duplicate budget (same category + start date + period type)
+    // For recurring budgets, check if another budget with same category and overlapping period exists
+    // For one-time budgets, allow multiple (user might want multiple one-time budgets for same category)
+    if (data.periodType) {
+      const existing = await this.prisma.budget.findFirst({
+        where: {
+          userId,
+          categoryId: data.categoryId,
+          periodType: data.periodType,
+          startDate,
+        },
+      });
+
+      if (existing) {
+        throw new AppError(
+          'A budget already exists for this category and period',
+          400
+        );
+      }
     }
 
     // Create budget
@@ -54,9 +62,10 @@ export class BudgetService {
         userId,
         categoryId: data.categoryId,
         amount: data.amount,
-        periodType: data.periodType,
-        periodYear: data.periodYear,
-        periodNumber: data.periodNumber,
+        periodType: data.periodType || null,
+        interval: data.interval || null,
+        startDate,
+        endDate,
         includeSubcategories: data.includeSubcategories,
         name: data.name,
         notes: data.notes,
@@ -70,15 +79,35 @@ export class BudgetService {
    * @param query - Optional filters
    */
   async getBudgets(userId: string, query?: BudgetQueryDto): Promise<Budget[]> {
+    // Build where clause
+    const where: any = {
+      userId,
+      ...(query?.categoryId && { categoryId: query.categoryId }),
+      ...(query?.templateId !== undefined && { templateId: query.templateId }),
+    };
+
+    // Filter by date range
+    if (query?.startDate || query?.endDate) {
+      where.startDate = {};
+      if (query.startDate) {
+        where.startDate.gte = new Date(query.startDate);
+      }
+      if (query.endDate) {
+        where.startDate.lte = new Date(query.endDate);
+      }
+    }
+
+    // Filter by recurring vs one-time
+    if (query?.isRecurring !== undefined) {
+      if (query.isRecurring) {
+        where.periodType = { not: null };
+      } else {
+        where.periodType = null;
+      }
+    }
+
     return this.prisma.budget.findMany({
-      where: {
-        userId,
-        ...(query?.categoryId && { categoryId: query.categoryId }),
-        ...(query?.periodType && { periodType: query.periodType }),
-        ...(query?.periodYear && { periodYear: query.periodYear }),
-        ...(query?.periodNumber && { periodNumber: query.periodNumber }),
-        ...(query?.templateId !== undefined && { templateId: query.templateId }),
-      },
+      where,
       include: {
         category: {
           select: {
@@ -89,7 +118,7 @@ export class BudgetService {
           },
         },
       },
-      orderBy: [{ periodYear: 'desc' }, { periodNumber: 'desc' }],
+      orderBy: [{ startDate: 'desc' }],
     });
   }
 
@@ -206,7 +235,7 @@ export class BudgetService {
           },
         },
       },
-      orderBy: [{ periodYear: 'asc' }, { periodNumber: 'asc' }],
+      orderBy: [{ startDate: 'asc' }],
     });
   }
 
@@ -242,17 +271,32 @@ export class BudgetService {
   }
 
   /**
-   * Get budget summary for current period
+   * Get budget summary for active budgets
+   * Returns all budgets that are currently active (one-time budgets or recurring budgets covering today)
    * @param userId - User UUID
    */
   async getBudgetSummary(userId: string): Promise<BudgetSummaryResponse> {
-    // Get current month budgets (most common case)
-    const currentPeriod = getCurrentPeriod('MONTHLY');
-    const budgets = await this.getBudgetsWithStatus(userId, {
-      periodType: 'MONTHLY',
-      periodYear: currentPeriod.year,
-      periodNumber: currentPeriod.periodNumber,
+    const now = new Date();
+
+    // Get all budgets with status
+    const allBudgets = await this.getBudgetsWithStatus(userId, {
       includeStatus: true,
+    });
+
+    // Filter to active budgets only:
+    // - Recurring budgets: startDate <= now < endDate
+    // - One-time budgets: startDate <= now and not complete
+    const budgets = allBudgets.filter((budget) => {
+      const startDate = new Date(budget.startDate);
+
+      if (budget.periodType) {
+        // Recurring budget - check if current date is in range
+        const endDate = budget.endDate ? new Date(budget.endDate) : null;
+        return startDate <= now && (!endDate || now < endDate);
+      } else {
+        // One-time budget - active if started and not complete
+        return startDate <= now && !budget.isComplete;
+      }
     });
 
     // Calculate totals
@@ -285,12 +329,8 @@ export class BudgetService {
       budget.amount.toNumber()
     );
 
-    // Get period boundaries
-    const { startDate, endDate } = getPeriodBoundaries(
-      budget.periodType,
-      budget.periodYear,
-      budget.periodNumber
-    );
+    // Calculate isComplete for one-time budgets (>= 100% spent)
+    const isComplete = !budget.periodType && percentage >= 100;
 
     return {
       id: budget.id,
@@ -300,8 +340,9 @@ export class BudgetService {
       categoryColor: budget.category.color,
       amount: budget.amount.toNumber(),
       periodType: budget.periodType,
-      periodYear: budget.periodYear,
-      periodNumber: budget.periodNumber,
+      interval: budget.interval,
+      startDate: budget.startDate.toISOString(),
+      endDate: budget.endDate ? budget.endDate.toISOString() : null,
       includeSubcategories: budget.includeSubcategories,
       name: budget.name || undefined,
       notes: budget.notes || undefined,
@@ -313,8 +354,7 @@ export class BudgetService {
       remaining,
       percentage: Math.round(percentage * 100) / 100, // Round to 2 decimal places
       status,
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
+      isComplete,
     };
   }
 
@@ -334,19 +374,20 @@ export class BudgetService {
         ]
       : [budget.categoryId];
 
-    // Calculate period boundaries
-    const { startDate, endDate } = getPeriodBoundaries(
-      budget.periodType,
-      budget.periodYear,
-      budget.periodNumber
-    );
+    // Build date filter
+    // For recurring budgets: use startDate and endDate
+    // For one-time budgets: startDate to now (no endDate)
+    const dateFilter: any = { gte: budget.startDate };
+    if (budget.endDate) {
+      dateFilter.lte = budget.endDate;
+    }
 
     // Aggregate transaction amounts (expenses only)
     const result = await this.prisma.transaction.aggregate({
       where: {
         userId,
         categoryId: { in: categoryIds },
-        date: { gte: startDate, lte: endDate },
+        date: dateFilter,
         type: 'EXPENSE',
       },
       _sum: { amount: true },

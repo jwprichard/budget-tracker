@@ -157,13 +157,9 @@ export function isDateInBudgetPeriod(
  * Format period display string
  *
  * @param startDate - Period start date
- * @param periodType - Type of period (null for one-time)
  * @returns Formatted string like "Starting Jan 15, 2026"
  */
-export function formatBudgetPeriod(
-  startDate: Date,
-  periodType: BudgetPeriod | null
-): string {
+export function formatBudgetPeriod(startDate: Date): string {
   const dateStr = startDate.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
