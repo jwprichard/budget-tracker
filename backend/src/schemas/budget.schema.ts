@@ -66,9 +66,9 @@ export const budgetQuerySchema = z.object({
   categoryId: z.string().uuid().optional(),
   templateId: z.string().uuid().optional(),
 
-  // NEW: Filter by date range
-  startDate: z.string().datetime().optional(),
-  endDate: z.string().datetime().optional(),
+  // NEW: Filter by date range (accepts YYYY-MM-DD or ISO datetime)
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
 
   // NEW: Filter one-time vs recurring
   isRecurring: z
