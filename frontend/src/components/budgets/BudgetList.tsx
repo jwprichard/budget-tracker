@@ -28,6 +28,7 @@ import { BudgetWithStatus, BudgetStatus, BudgetPeriod, BudgetTemplate } from '..
 import { BudgetCard } from './BudgetCard';
 import { TemplateCard } from './TemplateCard';
 import { BudgetForm } from './BudgetForm';
+import { TemplateEditDialog } from './TemplateEditDialog';
 import { useDeleteBudget } from '../../hooks/useBudgets';
 import { useBudgetTemplates, useDeleteTemplate } from '../../hooks/useBudgetTemplates';
 
@@ -50,6 +51,8 @@ export const BudgetList: React.FC<BudgetListProps> = ({ budgets, isLoading, erro
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [budgetToDelete, setBudgetToDelete] = useState<string | null>(null);
   const [templateToDelete, setTemplateToDelete] = useState<BudgetTemplate | null>(null);
+  const [editingTemplate, setEditingTemplate] = useState<BudgetTemplate | null>(null);
+  const [templateEditOpen, setTemplateEditOpen] = useState(false);
 
   const deleteBudgetMutation = useDeleteBudget();
   const deleteTemplateMutation = useDeleteTemplate();
@@ -144,6 +147,16 @@ export const BudgetList: React.FC<BudgetListProps> = ({ budgets, isLoading, erro
   const handleFormClose = () => {
     setBudgetFormOpen(false);
     setEditingBudget(undefined);
+  };
+
+  const handleTemplateEdit = (template: BudgetTemplate) => {
+    setEditingTemplate(template);
+    setTemplateEditOpen(true);
+  };
+
+  const handleTemplateEditClose = () => {
+    setTemplateEditOpen(false);
+    setEditingTemplate(null);
   };
 
   // Loading state
@@ -319,9 +332,7 @@ export const BudgetList: React.FC<BudgetListProps> = ({ budgets, isLoading, erro
                 <TemplateCard
                   template={template}
                   budgets={templateBudgetsMap.get(template.id) || []}
-                  onEdit={() => {
-                    /* TODO: Implement template edit */
-                  }}
+                  onEdit={handleTemplateEdit}
                   onDelete={handleTemplateDeleteClick}
                   onEditBudget={handleEdit}
                   onDeleteBudget={(budget) => handleDeleteClick(budget.id)}
@@ -362,6 +373,13 @@ export const BudgetList: React.FC<BudgetListProps> = ({ budgets, isLoading, erro
         open={budgetFormOpen}
         onClose={handleFormClose}
         budget={editingBudget}
+      />
+
+      {/* Template Edit Dialog */}
+      <TemplateEditDialog
+        open={templateEditOpen}
+        onClose={handleTemplateEditClose}
+        template={editingTemplate}
       />
 
       {/* Delete Confirmation Dialog */}
