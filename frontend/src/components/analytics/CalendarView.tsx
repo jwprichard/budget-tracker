@@ -179,8 +179,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         }
       };
 
-      const balanceColor = getBalanceColor(balance.balance);
-
       // Collect all transactions across all accounts for this day
       const allTransactions = balance.accounts.flatMap((account) =>
         account.transactions.map((tx) => ({
@@ -189,8 +187,24 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         }))
       );
 
-      // Get budgets for this day
+      // Get budgets for this day (to display on the day)
       const dayBudgets = budgetsByDate.get(dateStr) || [];
+
+      // Calculate total budget amounts for ALL budgets that have started on or before this day
+      const currentDate = new Date(dateStr);
+      let cumulativeBudgetAmount = 0;
+      budgetsByDate.forEach((budgets, budgetDateStr) => {
+        const budgetDate = new Date(budgetDateStr);
+        if (budgetDate <= currentDate) {
+          budgets.forEach((budget) => {
+            cumulativeBudgetAmount += budget.amount;
+          });
+        }
+      });
+
+      // Calculate adjusted balance (balance - all budgets started up to this day)
+      const adjustedBalance = balance.balance - cumulativeBudgetAmount;
+      const adjustedBalanceColor = getBalanceColor(adjustedBalance);
 
       return (
         <Box
@@ -329,7 +343,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             )}
           </Box>
 
-          {/* Final balance at bottom */}
+          {/* Final balance at bottom (after budgets) */}
           <Box
             sx={{
               mt: 0.5,
@@ -338,20 +352,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               pb: 0.5,
               textAlign: 'right',
               flexShrink: 0,
-            //   backgroundColor: `${balanceColor}20`,
-            //   borderLeft: `3px solid ${balanceColor}`,
+            //   backgroundColor: `${adjustedBalanceColor}20`,
+            //   borderLeft: `3px solid ${adjustedBalanceColor}`,
             //   borderRadius: 0.5,
             }}
           >
             <Typography
               variant="caption"
               sx={{
-                color: balanceColor,
+                color: adjustedBalanceColor,
                 fontWeight: 'bold',
                 fontSize: '0.7rem',
               }}
             >
-              {formatCurrency(balance.balance)}
+              {formatCurrency(adjustedBalance)}
             </Typography>
           </Box>
         </Box>
@@ -439,7 +453,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           {/* Legend */}
           <Box sx={{ mt: 2 }}>
             <Typography variant="caption" fontWeight="bold" display="block" gutterBottom>
-              Balance Status:
+              Balance Status (after budgets):
             </Typography>
             <Stack direction="row" spacing={2} sx={{ mb: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -566,9 +580,26 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 </IconButton>
               </Box>
               {selectedDate && (
-                <Typography variant="h5" color="primary" sx={{ mt: 1 }}>
-                  Total Balance: {formatCurrency(selectedDate.balance)}
-                </Typography>
+                <Box sx={{ mt: 1 }}>
+                  <Typography variant="h5" color="primary">
+                    Total Balance: {formatCurrency(selectedDate.balance)}
+                  </Typography>
+                  {budgetsByDate.get(selectedDateStr) && budgetsByDate.get(selectedDateStr)!.length > 0 && (
+                    <>
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                        Budgets: -{formatCurrency(
+                          budgetsByDate.get(selectedDateStr)!.reduce((sum, b) => sum + b.amount, 0)
+                        )}
+                      </Typography>
+                      <Typography variant="h6" color="secondary" sx={{ mt: 0.5 }}>
+                        Available: {formatCurrency(
+                          selectedDate.balance -
+                          budgetsByDate.get(selectedDateStr)!.reduce((sum, b) => sum + b.amount, 0)
+                        )}
+                      </Typography>
+                    </>
+                  )}
+                </Box>
               )}
             </DialogTitle>
             <DialogContent dividers>
