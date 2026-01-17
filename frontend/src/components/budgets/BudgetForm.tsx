@@ -17,9 +17,10 @@ import {
   Grid,
   InputAdornment,
   Alert,
+  MenuItem,
+  FormLabel,
 } from '@mui/material';
 import { CategorySelect } from '../categories/CategorySelect';
-import PeriodSelector from './PeriodSelector';
 import { useCreateBudget, useUpdateBudget } from '../../hooks/useBudgets';
 import { useCreateTemplate } from '../../hooks/useBudgetTemplates';
 import {
@@ -39,42 +40,18 @@ interface BudgetFormProps {
   budget?: BudgetWithStatus; // If provided, we're editing
 }
 
-/**
- * Get current period for a given period type
- */
-const getCurrentPeriod = (periodType: BudgetPeriod): { year: number; periodNumber: number } => {
-  const now = new Date();
-  const year = now.getFullYear();
-
-  switch (periodType) {
-    case 'MONTHLY':
-      return { year, periodNumber: now.getMonth() + 1 }; // 1-12
-    case 'QUARTERLY':
-      return { year, periodNumber: Math.floor(now.getMonth() / 3) + 1 }; // 1-4
-    case 'WEEKLY':
-      // Simple ISO week calculation
-      const target = new Date(now.valueOf());
-      const dayNumber = (now.getDay() + 6) % 7;
-      target.setDate(target.getDate() - dayNumber + 3);
-      const firstThursday = target.valueOf();
-      target.setMonth(0, 1);
-      if (target.getDay() !== 4) {
-        target.setMonth(0, 1 + ((4 - target.getDay() + 7) % 7));
-      }
-      return { year, periodNumber: 1 + Math.ceil((firstThursday - target.valueOf()) / 604800000) };
-    case 'ANNUALLY':
-      return { year, periodNumber: 1 };
-    default:
-      return { year, periodNumber: 1 };
-  }
-};
+const PERIOD_TYPES: { value: BudgetPeriod; label: string; singular: string; plural: string }[] = [
+  { value: 'DAILY', label: 'Daily', singular: 'day', plural: 'days' },
+  { value: 'WEEKLY', label: 'Weekly', singular: 'week', plural: 'weeks' },
+  { value: 'FORTNIGHTLY', label: 'Fortnightly', singular: 'fortnight', plural: 'fortnights' },
+  { value: 'MONTHLY', label: 'Monthly', singular: 'month', plural: 'months' },
+  { value: 'ANNUALLY', label: 'Annually', singular: 'year', plural: 'years' },
+];
 
 export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget }) => {
   const [categoryId, setCategoryId] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
-  const [periodType, setPeriodType] = useState<BudgetPeriod>('MONTHLY');
-  const [periodYear, setPeriodYear] = useState<number>(new Date().getFullYear());
-  const [periodNumber, setPeriodNumber] = useState<number>(new Date().getMonth() + 1);
+  const [startDate, setStartDate] = useState<Date>(new Date());
   const [includeSubcategories, setIncludeSubcategories] = useState<boolean>(false);
   const [name, setName] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
@@ -82,6 +59,8 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget })
 
   // Recurring budget fields
   const [isRecurring, setIsRecurring] = useState<boolean>(false);
+  const [periodType, setPeriodType] = useState<BudgetPeriod>('MONTHLY');
+  const [interval, setInterval] = useState<number>(1);
   const [endDate, setEndDate] = useState<Date | null>(null);
 
   const createMutation = useCreateBudget();
@@ -95,37 +74,39 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget })
     if (budget) {
       setCategoryId(budget.categoryId);
       setAmount(budget.amount.toString());
-      setPeriodType(budget.periodType);
-      setPeriodYear(budget.periodYear);
-      setPeriodNumber(budget.periodNumber);
+      setStartDate(new Date(budget.startDate));
       setIncludeSubcategories(budget.includeSubcategories);
       setName(budget.name || '');
       setNotes(budget.notes || '');
+
+      // Check if it's a recurring budget
+      if (budget.periodType) {
+        setIsRecurring(true);
+        setPeriodType(budget.periodType);
+        setInterval(budget.interval || 1);
+      } else {
+        setIsRecurring(false);
+      }
     } else {
       // Reset form for new budget
-      const current = getCurrentPeriod(periodType);
       setCategoryId('');
       setAmount('');
-      setPeriodType('MONTHLY');
-      setPeriodYear(current.year);
-      setPeriodNumber(current.periodNumber);
+      setStartDate(new Date());
       setIncludeSubcategories(false);
       setName('');
       setNotes('');
       setIsRecurring(false);
+      setPeriodType('MONTHLY');
+      setInterval(1);
       setEndDate(null);
     }
     setError('');
   }, [budget, open]);
 
-  const handlePeriodTypeChange = (newPeriodType: BudgetPeriod) => {
-    setPeriodType(newPeriodType);
-    // Update to current period for new period type
-    if (!isEditing) {
-      const current = getCurrentPeriod(newPeriodType);
-      setPeriodYear(current.year);
-      setPeriodNumber(current.periodNumber);
-    }
+  const getPeriodLabel = () => {
+    const periodInfo = PERIOD_TYPES.find((p) => p.value === periodType);
+    if (!periodInfo) return '';
+    return interval === 1 ? periodInfo.singular : periodInfo.plural;
   };
 
   const handleSubmit = async () => {
@@ -156,6 +137,10 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget })
         setError('Template name must be 100 characters or less');
         return;
       }
+      if (interval < 1 || interval > 365) {
+        setError('Interval must be between 1 and 365');
+        return;
+      }
     }
 
     setError('');
@@ -177,8 +162,8 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget })
           categoryId,
           amount: amountNum,
           periodType,
-          startYear: periodYear,
-          startNumber: periodNumber,
+          interval,
+          firstStartDate: startDate.toISOString(),
           includeSubcategories,
           name: name.trim(),
           notes: notes.trim() || undefined,
@@ -191,9 +176,7 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget })
         const createData: CreateBudgetDto = {
           categoryId,
           amount: amountNum,
-          periodType,
-          periodYear,
-          periodNumber,
+          startDate: startDate.toISOString(),
           includeSubcategories,
           name: name.trim() || undefined,
           notes: notes.trim() || undefined,
@@ -230,32 +213,30 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget })
               />
             </Grid>
 
-            {/* Period Selection */}
-            {!isEditing && (
-              <Grid item xs={12}>
-                <PeriodSelector
-                  periodType={periodType}
-                  periodYear={periodYear}
-                  periodNumber={periodNumber}
-                  onPeriodTypeChange={handlePeriodTypeChange}
-                  onPeriodYearChange={setPeriodYear}
-                  onPeriodNumberChange={setPeriodNumber}
+            {/* Start Date */}
+            <Grid item xs={12}>
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <DatePicker
+                  label="Start Date"
+                  value={startDate}
+                  onChange={(newValue: Date | null) => {
+                    if (newValue) setStartDate(newValue);
+                  }}
+                  disabled={isEditing} // Cannot change start date when editing
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      required: true,
+                      helperText: isEditing
+                        ? 'Start date cannot be changed'
+                        : isRecurring
+                        ? 'This budget will start on this date and repeat based on your settings'
+                        : 'This budget will track spending starting from this date',
+                    },
+                  }}
                 />
-              </Grid>
-            )}
-
-            {/* Show period info when editing (read-only) */}
-            {isEditing && (
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Period"
-                  value={`${periodType} - ${periodYear} - Period ${periodNumber}`}
-                  disabled
-                  helperText="Period cannot be changed when editing a budget"
-                />
-              </Grid>
-            )}
+              </LocalizationProvider>
+            </Grid>
 
             {/* Budget Amount */}
             <Grid item xs={12} sm={6}>
@@ -286,7 +267,7 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget })
                     onChange={(e) => setIncludeSubcategories(e.target.checked)}
                   />
                 }
-                label="Include subcategories in budget"
+                label="Include subcategories"
                 sx={{ mt: 1 }}
               />
             </Grid>
@@ -302,9 +283,66 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget })
                     />
                   }
                   label="Make this recurring"
-                  sx={{ mt: 1 }}
                 />
               </Grid>
+            )}
+
+            {/* Recurring Budget Settings */}
+            {isRecurring && !isEditing && (
+              <>
+                <Grid item xs={12}>
+                  <FormLabel sx={{ mb: 1, display: 'block' }}>Repeat every:</FormLabel>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Interval"
+                    type="number"
+                    value={interval}
+                    onChange={(e) => setInterval(parseInt(e.target.value) || 1)}
+                    required
+                    inputProps={{
+                      min: 1,
+                      max: 365,
+                    }}
+                    helperText={`Every ${interval} ${getPeriodLabel()}`}
+                  />
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    select
+                    label="Period Type"
+                    value={periodType}
+                    onChange={(e) => setPeriodType(e.target.value as BudgetPeriod)}
+                    required
+                  >
+                    {PERIOD_TYPES.map((type) => (
+                      <MenuItem key={type.value} value={type.value}>
+                        {type.label}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+
+                <Grid item xs={12}>
+                  <LocalizationProvider dateAdapter={AdapterDateFns}>
+                    <DatePicker
+                      label="End Date (Optional)"
+                      value={endDate}
+                      onChange={(newValue: Date | null) => setEndDate(newValue)}
+                      slotProps={{
+                        textField: {
+                          fullWidth: true,
+                          helperText: 'Leave empty for ongoing recurring budget',
+                        },
+                      }}
+                    />
+                  </LocalizationProvider>
+                </Grid>
+              </>
             )}
 
             {/* Name - Required for recurring, optional for one-time */}
@@ -315,34 +353,14 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget })
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 inputProps={{ maxLength: 100 }}
-                required={isRecurring}
+                required={isRecurring && !isEditing}
                 helperText={
                   isRecurring
-                    ? 'Name for this recurring budget template (e.g., "Monthly Groceries")'
+                    ? 'Name for this recurring budget (e.g., "Monthly Groceries")'
                     : 'Custom name for this budget (e.g., "Holiday Shopping Fund")'
                 }
               />
             </Grid>
-
-            {/* End Date - Only for recurring budgets */}
-            {isRecurring && !isEditing && (
-              <Grid item xs={12}>
-                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                  <DatePicker
-                    label="End Date (Optional)"
-                    value={endDate}
-                    onChange={(newValue: Date | null) => setEndDate(newValue)}
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        helperText:
-                          'Leave empty for ongoing recurring budget, or set an end date',
-                      },
-                    }}
-                  />
-                </LocalizationProvider>
-              </Grid>
-            )}
 
             {/* Notes (optional) */}
             <Grid item xs={12}>

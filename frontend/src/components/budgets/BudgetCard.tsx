@@ -50,26 +50,21 @@ const getStatusInfo = (status: BudgetStatus): { label: string; color: 'success' 
 };
 
 /**
- * Format period for display
+ * Format start date for display
  */
-const formatPeriod = (periodType: string, year: number, periodNumber: number): string => {
-  const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
+const formatBudgetPeriod = (startDate: string, periodType: string | null): string => {
+  const date = new Date(startDate);
+  const formatted = date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 
-  switch (periodType) {
-    case 'MONTHLY':
-      return `${monthNames[periodNumber - 1]} ${year}`;
-    case 'QUARTERLY':
-      return `Q${periodNumber} ${year}`;
-    case 'WEEKLY':
-      return `Week ${periodNumber} ${year}`;
-    case 'ANNUALLY':
-      return `${year}`;
-    default:
-      return `${periodType} ${periodNumber} ${year}`;
+  if (!periodType) {
+    return `One-time budget (${formatted})`;
   }
+
+  return `Starting ${formatted}`;
 };
 
 /**
@@ -116,7 +111,7 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({ budget, onEdit, onDelete
 
         {/* Period Display */}
         <Typography variant="body2" color="text.secondary" gutterBottom>
-          {formatPeriod(budget.periodType, budget.periodYear, budget.periodNumber)}
+          {formatBudgetPeriod(budget.startDate, budget.periodType)}
         </Typography>
 
         {/* Budget Name (if exists) */}
@@ -167,8 +162,20 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({ budget, onEdit, onDelete
               Period Dates
             </Typography>
             <Typography variant="body2">
-              {new Date(budget.startDate).toLocaleDateString()} - {new Date(budget.endDate).toLocaleDateString()}
+              {new Date(budget.startDate).toLocaleDateString()}
+              {budget.endDate ? ` - ${new Date(budget.endDate).toLocaleDateString()}` : ' (ongoing)'}
             </Typography>
+
+            {budget.periodType && budget.interval && (
+              <Box sx={{ mt: 1 }}>
+                <Typography variant="caption" color="text.secondary" display="block">
+                  Recurrence
+                </Typography>
+                <Typography variant="body2">
+                  Every {budget.interval} {budget.interval === 1 ? budget.periodType.toLowerCase() : `${budget.periodType.toLowerCase()}s`}
+                </Typography>
+              </Box>
+            )}
 
             {budget.includeSubcategories && (
               <Box sx={{ mt: 1 }}>

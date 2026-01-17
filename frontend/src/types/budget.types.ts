@@ -3,7 +3,7 @@
  * Matches backend types for consistency
  */
 
-export type BudgetPeriod = 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY';
+export type BudgetPeriod = 'DAILY' | 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY';
 
 export type BudgetStatus = 'UNDER_BUDGET' | 'ON_TRACK' | 'WARNING' | 'EXCEEDED';
 
@@ -17,9 +17,13 @@ export interface BudgetWithStatus {
   categoryName: string;
   categoryColor: string;
   amount: number;
-  periodType: BudgetPeriod;
-  periodYear: number;
-  periodNumber: number;
+
+  // Period definition (NULL for one-time budgets)
+  periodType: BudgetPeriod | null;
+  interval: number | null;
+  startDate: string;
+  endDate: string | null;
+
   includeSubcategories: boolean;
   name?: string;
   notes?: string;
@@ -33,8 +37,7 @@ export interface BudgetWithStatus {
   remaining: number;
   percentage: number;
   status: BudgetStatus;
-  startDate: string;
-  endDate: string;
+  isComplete?: boolean; // true when one-time budget is fully spent
 }
 
 /**
@@ -52,11 +55,16 @@ export interface BudgetSummaryResponse {
  */
 export interface BudgetQuery {
   categoryId?: string;
-  periodType?: BudgetPeriod;
-  periodYear?: number;
-  periodNumber?: number;
-  includeStatus?: boolean;
   templateId?: string; // Filter budgets by template
+
+  // NEW: Filter by date range
+  startDate?: string; // ISO datetime
+  endDate?: string; // ISO datetime
+
+  // NEW: Filter one-time vs recurring
+  isRecurring?: boolean; // true = has periodType, false = no periodType
+
+  includeStatus?: boolean;
 }
 
 /**
@@ -65,12 +73,16 @@ export interface BudgetQuery {
 export interface CreateBudgetDto {
   categoryId: string;
   amount: number;
-  periodType: BudgetPeriod;
-  periodYear: number;
-  periodNumber: number;
   includeSubcategories?: boolean;
   name?: string;
   notes?: string;
+
+  // Required
+  startDate: string; // ISO datetime
+
+  // Optional - both must be present or both absent (recurring vs one-time)
+  periodType?: BudgetPeriod;
+  interval?: number;
 }
 
 /**
@@ -91,9 +103,13 @@ export interface Budget {
   userId: string;
   categoryId: string;
   amount: number;
-  periodType: BudgetPeriod;
-  periodYear: number;
-  periodNumber: number;
+
+  // Period definition (NULL for one-time budgets)
+  periodType: BudgetPeriod | null;
+  interval: number | null;
+  startDate: string;
+  endDate: string | null;
+
   includeSubcategories: boolean;
   name: string | null;
   notes: string | null;
@@ -114,9 +130,9 @@ export interface BudgetTemplate {
   categoryColor: string;
   amount: number;
   periodType: BudgetPeriod;
+  interval: number;
   includeSubcategories: boolean;
-  startYear: number;
-  startNumber: number;
+  firstStartDate: string; // ISO datetime of first period start
   endDate: string | null;
   isActive: boolean;
   name: string;
@@ -127,7 +143,7 @@ export interface BudgetTemplate {
   // Calculated statistics
   totalInstances: number;
   activeInstances: number;
-  nextPeriod: { year: number; periodNumber: number } | null;
+  nextPeriodStart: string | null; // ISO datetime of next period start
 }
 
 /**
@@ -137,8 +153,8 @@ export interface CreateBudgetTemplateDto {
   categoryId: string;
   amount: number;
   periodType: BudgetPeriod;
-  startYear: number;
-  startNumber: number;
+  interval: number;
+  firstStartDate: string; // ISO datetime
   endDate?: string; // ISO datetime string, optional
   includeSubcategories?: boolean;
   name: string; // Required for templates
@@ -150,6 +166,7 @@ export interface CreateBudgetTemplateDto {
  */
 export interface UpdateBudgetTemplateDto {
   amount?: number;
+  interval?: number;
   includeSubcategories?: boolean;
   endDate?: string | null;
   isActive?: boolean;

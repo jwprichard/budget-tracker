@@ -83,11 +83,10 @@ export const BudgetList: React.FC<BudgetListProps> = ({ budgets, isLoading, erro
       }
     });
 
-    // Sort budgets within each template by period (newest first)
+    // Sort budgets within each template by start date (newest first)
     templateMap.forEach((budgets) => {
       budgets.sort((a, b) => {
-        if (a.periodYear !== b.periodYear) return b.periodYear - a.periodYear;
-        return b.periodNumber - a.periodNumber;
+        return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
       });
     });
 
@@ -106,8 +105,7 @@ export const BudgetList: React.FC<BudgetListProps> = ({ budgets, isLoading, erro
       case 'name':
         return (a.name || a.categoryName).localeCompare(b.name || b.categoryName);
       case 'period':
-        if (a.periodYear !== b.periodYear) return b.periodYear - a.periodYear;
-        return b.periodNumber - a.periodNumber;
+        return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
       default:
         return 0;
     }

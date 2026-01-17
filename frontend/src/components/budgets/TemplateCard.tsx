@@ -38,56 +38,36 @@ interface TemplateCardProps {
 }
 
 /**
- * Format period display (e.g., "January 2026", "Q1 2026", "Week 12 2026")
+ * Format start date for display
  */
-const formatPeriod = (
-  periodType: string,
-  year: number,
-  periodNumber: number
-): string => {
-  switch (periodType) {
-    case 'MONTHLY':
-      const monthNames = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
-      ];
-      return `${monthNames[periodNumber - 1]} ${year}`;
-    case 'QUARTERLY':
-      return `Q${periodNumber} ${year}`;
-    case 'WEEKLY':
-      return `W${periodNumber} ${year}`;
-    case 'ANNUALLY':
-      return `${year}`;
-    default:
-      return `${periodType} ${periodNumber} ${year}`;
-  }
+const formatBudgetDate = (startDate: string): string => {
+  const date = new Date(startDate);
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 };
 
 /**
  * Get period type display name
  */
-const getPeriodTypeName = (periodType: string): string => {
+const getPeriodTypeName = (periodType: string, interval?: number): string => {
+  const displayInterval = interval && interval > 1 ? ` (Every ${interval})` : '';
+
   switch (periodType) {
-    case 'MONTHLY':
-      return 'Monthly';
-    case 'QUARTERLY':
-      return 'Quarterly';
+    case 'DAILY':
+      return 'Daily' + displayInterval;
     case 'WEEKLY':
-      return 'Weekly';
+      return 'Weekly' + displayInterval;
+    case 'FORTNIGHTLY':
+      return 'Fortnightly' + displayInterval;
+    case 'MONTHLY':
+      return 'Monthly' + displayInterval;
     case 'ANNUALLY':
-      return 'Annually';
+      return 'Annually' + displayInterval;
     default:
-      return periodType;
+      return periodType + displayInterval;
   }
 };
 
@@ -142,7 +122,7 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
 
         {/* Period type badge */}
         <Chip
-          label={`${getPeriodTypeName(template.periodType)} Template`}
+          label={`${getPeriodTypeName(template.periodType, template.interval)} Template`}
           variant="outlined"
           size="small"
           sx={{ mb: 2, ml: 1 }}
@@ -167,9 +147,9 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
         </Typography>
 
         {/* Next period info */}
-        {template.nextPeriod && template.isActive && (
+        {template.nextPeriodStart && template.isActive && (
           <Typography variant="body2" color="text.secondary">
-            Next: {formatPeriod(template.periodType, template.nextPeriod.year, template.nextPeriod.periodNumber)}
+            Next: {formatBudgetDate(template.nextPeriodStart)}
           </Typography>
         )}
 
@@ -243,7 +223,7 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
                   >
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                       <ListItemText
-                        primary={formatPeriod(budget.periodType, budget.periodYear, budget.periodNumber)}
+                        primary={formatBudgetDate(budget.startDate)}
                         secondary={
                           <>
                             {formatCurrency(budget.amount)}

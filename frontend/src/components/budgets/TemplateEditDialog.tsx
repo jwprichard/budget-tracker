@@ -36,6 +36,7 @@ export const TemplateEditDialog: React.FC<TemplateEditDialogProps> = ({
   template,
 }) => {
   const [amount, setAmount] = useState<string>('');
+  const [interval, setInterval] = useState<number>(1);
   const [includeSubcategories, setIncludeSubcategories] = useState<boolean>(false);
   const [name, setName] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
@@ -50,6 +51,7 @@ export const TemplateEditDialog: React.FC<TemplateEditDialogProps> = ({
   useEffect(() => {
     if (template) {
       setAmount(template.amount.toString());
+      setInterval(template.interval);
       setIncludeSubcategories(template.includeSubcategories);
       setName(template.name);
       setNotes(template.notes || '');
@@ -85,6 +87,11 @@ export const TemplateEditDialog: React.FC<TemplateEditDialogProps> = ({
       return;
     }
 
+    if (interval < 1 || interval > 365) {
+      setError('Interval must be between 1 and 365');
+      return;
+    }
+
     setError('');
 
     try {
@@ -92,6 +99,7 @@ export const TemplateEditDialog: React.FC<TemplateEditDialogProps> = ({
         id: template.id,
         data: {
           amount: amountNum,
+          interval,
           includeSubcategories,
           name: name.trim(),
           notes: notes.trim() || null,
@@ -154,8 +162,25 @@ export const TemplateEditDialog: React.FC<TemplateEditDialogProps> = ({
               />
             </Grid>
 
-            {/* Include Subcategories */}
+            {/* Interval */}
             <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Interval"
+                type="number"
+                value={interval}
+                onChange={(e) => setInterval(parseInt(e.target.value) || 1)}
+                required
+                inputProps={{
+                  min: 1,
+                  max: 365,
+                }}
+                helperText={`Repeats every ${interval} ${template?.periodType.toLowerCase()}${interval > 1 ? 's' : ''}`}
+              />
+            </Grid>
+
+            {/* Include Subcategories */}
+            <Grid item xs={12}>
               <FormControlLabel
                 control={
                   <Checkbox
@@ -164,7 +189,6 @@ export const TemplateEditDialog: React.FC<TemplateEditDialogProps> = ({
                   />
                 }
                 label="Include subcategories in budget"
-                sx={{ mt: 1 }}
               />
             </Grid>
 
