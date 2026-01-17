@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ruleService, CreateRuleDto, UpdateRuleDto, CategoryRule } from '../services/rule.service';
+import { ruleService, CreateRuleDto, UpdateRuleDto } from '../services/rule.service';
 
 /**
  * React Query hook to fetch all rules

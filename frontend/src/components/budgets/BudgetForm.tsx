@@ -226,7 +226,6 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget })
                 value={categoryId}
                 onChange={setCategoryId}
                 label="Category"
-                required
                 disabled={isEditing} // Cannot change category when editing
               />
             </Grid>
@@ -332,7 +331,7 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget })
                   <DatePicker
                     label="End Date (Optional)"
                     value={endDate}
-                    onChange={(newValue) => setEndDate(newValue)}
+                    onChange={(newValue: Date | null) => setEndDate(newValue)}
                     slotProps={{
                       textField: {
                         fullWidth: true,

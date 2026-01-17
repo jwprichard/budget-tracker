@@ -37,7 +37,7 @@ export function BulkApplyDialog({ open, onClose }: BulkApplyDialogProps) {
 
   const handleApply = async () => {
     try {
-      const res = await bulkApply.mutateAsync();
+      const res = await bulkApply.mutateAsync(undefined);
       setResult(res);
     } catch (error) {
       console.error('Bulk apply failed:', error);

@@ -9,6 +9,7 @@ import { Accounts } from './pages/Accounts';
 import { AccountDetails } from './pages/AccountDetails';
 import { Transactions } from './pages/Transactions';
 import { Categories } from './pages/Categories';
+import { Budgets } from './pages/Budgets';
 import { Rules } from './pages/Rules';
 import { BankSync } from './pages/BankSync';
 import { Calendar } from './pages/Calendar';
@@ -199,6 +200,7 @@ function App() {
                   <Route path="/accounts/:id" element={<AccountDetails />} />
                   <Route path="/transactions" element={<Transactions />} />
                   <Route path="/categories" element={<Categories />} />
+                  <Route path="/budgets" element={<Budgets />} />
                   <Route path="/rules" element={<Rules />} />
                   <Route path="/bank-sync" element={<BankSync />} />
                   <Route path="/calendar" element={<Calendar />} />

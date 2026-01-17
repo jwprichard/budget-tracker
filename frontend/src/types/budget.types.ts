@@ -23,6 +23,8 @@ export interface BudgetWithStatus {
   includeSubcategories: boolean;
   name?: string;
   notes?: string;
+  templateId?: string | null; // Link to template if this is an instance
+  isCustomized?: boolean; // Track if manually edited
   createdAt: string;
   updatedAt: string;
 
