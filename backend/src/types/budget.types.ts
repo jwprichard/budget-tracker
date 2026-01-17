@@ -3,7 +3,7 @@
  * These types are used across the backend for budget management
  */
 
-export type BudgetPeriod = 'WEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'ANNUALLY';
+export type BudgetPeriod = 'DAILY' | 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY';
 
 export type BudgetStatus = 'UNDER_BUDGET' | 'ON_TRACK' | 'WARNING' | 'EXCEEDED';
 
@@ -17,12 +17,21 @@ export interface BudgetWithStatus {
   categoryName: string;
   categoryColor: string;
   amount: number;
-  periodType: BudgetPeriod;
-  periodYear: number;
-  periodNumber: number;
+
+  // Period definition (NULL for one-time budgets)
+  periodType: BudgetPeriod | null;
+  interval: number | null;
+  startDate: string;
+  endDate: string | null;
+
   includeSubcategories: boolean;
   name?: string;
   notes?: string;
+
+  // Template linkage
+  templateId?: string | null;
+  isCustomized?: boolean;
+
   createdAt: string;
   updatedAt: string;
 
@@ -31,8 +40,7 @@ export interface BudgetWithStatus {
   remaining: number;
   percentage: number;
   status: BudgetStatus;
-  startDate: string;
-  endDate: string;
+  isComplete?: boolean; // NEW: true when one-time budget is fully spent
 }
 
 /**
@@ -50,11 +58,16 @@ export interface BudgetSummaryResponse {
  */
 export interface BudgetQuery {
   categoryId?: string;
-  periodType?: BudgetPeriod;
-  periodYear?: number;
-  periodNumber?: number;
-  includeStatus?: boolean;
   templateId?: string;
+
+  // NEW: Filter by date range
+  startDate?: string; // ISO datetime
+  endDate?: string; // ISO datetime
+
+  // NEW: Filter one-time vs recurring
+  isRecurring?: boolean; // true = has periodType, false = no periodType
+
+  includeStatus?: boolean;
 }
 
 /**
@@ -68,9 +81,9 @@ export interface BudgetTemplateWithStats {
   categoryColor: string;
   amount: number;
   periodType: BudgetPeriod;
+  interval: number;
   includeSubcategories: boolean;
-  startYear: number;
-  startNumber: number;
+  firstStartDate: string;
   endDate: string | null;
   isActive: boolean;
   name: string;
@@ -81,7 +94,7 @@ export interface BudgetTemplateWithStats {
   // Stats
   totalInstances: number;
   activeInstances: number;
-  nextPeriod: { year: number; periodNumber: number } | null;
+  nextPeriodStart: string | null; // ISO datetime of next period start
 }
 
 /**
