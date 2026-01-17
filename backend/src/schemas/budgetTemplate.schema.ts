@@ -8,45 +8,20 @@ import { budgetPeriodSchema } from './budget.schema';
 /**
  * Create budget template request schema with validation
  */
-export const createBudgetTemplateSchema = z
-  .object({
-    categoryId: z.string().uuid('Invalid category ID'),
-    amount: z
-      .number()
-      .positive('Amount must be positive')
-      .max(1000000000, 'Amount too large'),
-    periodType: budgetPeriodSchema,
-    startYear: z.number().int().min(2000).max(2100),
-    startNumber: z.number().int().min(1).max(53),
-    endDate: z.string().datetime().optional(),
-    includeSubcategories: z.boolean().default(false),
-    name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
-    notes: z.string().max(500).optional(),
-  })
-  .refine(
-    (data) => {
-      // Validate periodNumber based on periodType
-      if (
-        data.periodType === 'MONTHLY' &&
-        (data.startNumber < 1 || data.startNumber > 12)
-      ) {
-        return false;
-      }
-      if (
-        data.periodType === 'QUARTERLY' &&
-        (data.startNumber < 1 || data.startNumber > 4)
-      ) {
-        return false;
-      }
-      if (data.periodType === 'ANNUALLY' && data.startNumber !== 1) {
-        return false;
-      }
-      return true;
-    },
-    {
-      message: 'Invalid period number for the selected period type',
-    }
-  );
+export const createBudgetTemplateSchema = z.object({
+  categoryId: z.string().uuid('Invalid category ID'),
+  amount: z
+    .number()
+    .positive('Amount must be positive')
+    .max(1000000000, 'Amount too large'),
+  periodType: budgetPeriodSchema,
+  interval: z.number().int().min(1).max(365).default(1),
+  firstStartDate: z.string().datetime('Invalid start date format'),
+  endDate: z.string().datetime().optional(),
+  includeSubcategories: z.boolean().default(false),
+  name: z.string().min(1, 'Name is required').max(100, 'Name too long'),
+  notes: z.string().max(500).optional(),
+});
 
 /**
  * Update budget template request schema
@@ -57,6 +32,7 @@ export const updateBudgetTemplateSchema = z.object({
     .positive('Amount must be positive')
     .max(1000000000, 'Amount too large')
     .optional(),
+  interval: z.number().int().min(1).max(365).optional(),
   includeSubcategories: z.boolean().optional(),
   endDate: z.string().datetime().nullable().optional(),
   isActive: z.boolean().optional(),
