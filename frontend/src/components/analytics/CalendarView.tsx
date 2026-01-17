@@ -26,7 +26,9 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { DayCellContentArg, DatesSetArg } from '@fullcalendar/core';
 import { DateClickArg } from '@fullcalendar/interaction';
 import { useDailyBalances } from '../../hooks/useAnalytics';
+import { useBudgets } from '../../hooks/useBudgets';
 import { DailyBalance, AccountDailyBalance } from '../../types/analytics.types';
+import { BudgetWithStatus } from '../../types/budget.types';
 import { formatCurrency, formatDateForInput } from '../../utils/formatters';
 
 interface CalendarViewProps {
@@ -42,6 +44,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   accountIds,
 }) => {
   const [selectedDate, setSelectedDate] = useState<DailyBalance | null>(null);
+  const [selectedDateStr, setSelectedDateStr] = useState<string>('');
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // Track the current calendar date range
@@ -70,6 +73,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     accountIds,
   });
 
+  // Fetch budgets for the current calendar range (only current/future)
+  const today = formatDateForInput(new Date());
+  const { data: budgetsData } = useBudgets({
+    startDate: today, // Only fetch current/future budgets
+    endDate: calendarRange.endDate,
+  });
+
   // Create a map for quick date lookups
   const balanceMap = useMemo(() => {
     if (!data?.dailyBalances) return new Map<string, DailyBalance>();
@@ -80,6 +90,24 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     return map;
   }, [data]);
 
+  // Create a map of budgets by date (using startDate)
+  const budgetsByDate = useMemo(() => {
+    if (!budgetsData) return new Map<string, BudgetWithStatus[]>();
+    const map = new Map<string, BudgetWithStatus[]>();
+    budgetsData.forEach((budget) => {
+      // Extract date from startDate (YYYY-MM-DD)
+      const dateStr = budget.startDate.split('T')[0] || budget.startDate;
+      if (!map.has(dateStr)) {
+        map.set(dateStr, []);
+      }
+      const existingBudgets = map.get(dateStr);
+      if (existingBudgets) {
+        existingBudgets.push(budget);
+      }
+    });
+    return map;
+  }, [budgetsData]);
+
   // Handle date click
   const handleDateClick = useCallback(
     (arg: DateClickArg) => {
@@ -89,18 +117,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       const day = String(arg.date.getDate()).padStart(2, '0');
       const dateStr = `${year}-${month}-${day}`;
       const balance = balanceMap.get(dateStr);
-      if (balance) {
-        setSelectedDate(balance);
+      const budgets = budgetsByDate.get(dateStr);
+      // Show dialog if there's balance data or budgets
+      if (balance || budgets) {
+        setSelectedDate(balance || null);
+        setSelectedDateStr(dateStr);
         setDialogOpen(true);
       }
     },
-    [balanceMap]
+    [balanceMap, budgetsByDate]
   );
 
   // Handle dialog close
   const handleDialogClose = () => {
     setDialogOpen(false);
     setSelectedDate(null);
+    setSelectedDateStr('');
   };
 
   // Custom day cell content renderer
@@ -152,6 +184,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         }))
       );
 
+      // Get budgets for this day
+      const dayBudgets = budgetsByDate.get(dateStr) || [];
+
       return (
         <Box
           sx={{
@@ -172,13 +207,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             {arg.dayNumberText || ''}
           </Typography>
 
-          {/* Transaction bars */}
+          {/* Transaction and Budget bars */}
           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.25, overflow: 'auto', minHeight: 0 }}>
-            {allTransactions.slice(0, 4).map((tx, index) => {
+            {/* Transaction bars */}
+            {allTransactions.slice(0, 3).map((tx, index) => {
               const txColor = getTransactionColor(tx.type);
               return (
                 <Box
-                  key={index}
+                  key={`tx-${index}`}
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
@@ -187,7 +223,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     borderLeft: `2px solid ${txColor}`,
                     px: 0.5,
                     py: 0.2,
-                    // borderRadius: 0.5,
                     minHeight: '16px',
                     flexShrink: 0,
                   }}
@@ -221,7 +256,59 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 </Box>
               );
             })}
-            {allTransactions.length > 4 && (
+
+            {/* Budget bars */}
+            {dayBudgets.slice(0, 2).map((budget, index) => {
+              const budgetColor = '#9c27b0'; // Purple for budgets
+              const budgetName = budget.name || budget.categoryName;
+              return (
+                <Box
+                  key={`budget-${index}`}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    backgroundColor: `${budgetColor}20`,
+                    borderLeft: `2px solid ${budgetColor}`,
+                    px: 0.5,
+                    py: 0.2,
+                    minHeight: '16px',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontSize: '0.65rem',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      flex: 1,
+                      mr: 0.5,
+                      fontStyle: 'italic',
+                    }}
+                  >
+                    {budgetName.length > 18
+                      ? `${budgetName.substring(0, 17)}...`
+                      : budgetName}
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontSize: '0.65rem',
+                      fontWeight: 'bold',
+                      color: budgetColor,
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {formatCurrency(budget.amount)}
+                  </Typography>
+                </Box>
+              );
+            })}
+
+            {/* Show "more" indicator if items exceed limit */}
+            {(allTransactions.length > 3 || dayBudgets.length > 2) && (
               <Typography
                 variant="caption"
                 sx={{
@@ -232,7 +319,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   flexShrink: 0,
                 }}
               >
-                +{allTransactions.length - 4} more
+                +{Math.max(allTransactions.length - 3, 0) + Math.max(dayBudgets.length - 2, 0)} more
               </Typography>
             )}
           </Box>
@@ -265,7 +352,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </Box>
       );
     },
-    [balanceMap]
+    [balanceMap, budgetsByDate]
   );
 
   // Get transaction type color
@@ -306,7 +393,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             Balance Calendar
           </Typography>
           <Typography variant="body2" color="text.secondary" gutterBottom>
-            Click on any date to view detailed transactions
+            Click on any date to view detailed transactions and budgets
           </Typography>
 
           <Box sx={{
@@ -388,7 +475,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             <Typography variant="caption" fontWeight="bold" display="block" gutterBottom>
               Transaction Types:
             </Typography>
-            <Stack direction="row" spacing={2} sx={{ justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Stack direction="row" spacing={2} sx={{ mb: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Box
                   sx={{
@@ -423,6 +510,23 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 <Typography variant="caption">Transfer</Typography>
               </Box>
             </Stack>
+
+            <Typography variant="caption" fontWeight="bold" display="block" gutterBottom>
+              Budgets:
+            </Typography>
+            <Stack direction="row" spacing={2} sx={{ justifyContent: 'center', flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box
+                  sx={{
+                    width: 20,
+                    height: 20,
+                    backgroundColor: '#9c27b0',
+                    borderRadius: 0.5,
+                  }}
+                />
+                <Typography variant="caption">Budget Start Date (Current/Future Only)</Typography>
+              </Box>
+            </Stack>
           </Box>
         </CardContent>
       </Card>
@@ -434,7 +538,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         maxWidth="md"
         fullWidth
       >
-        {selectedDate && (
+        {(selectedDate || selectedDateStr) && (
           <>
             <DialogTitle>
               <Box
@@ -445,7 +549,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 }}
               >
                 <Typography variant="h6">
-                  {new Date(selectedDate.date).toLocaleDateString('en-US', {
+                  {new Date(selectedDateStr).toLocaleDateString('en-US', {
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',
@@ -456,12 +560,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   <CloseIcon />
                 </IconButton>
               </Box>
-              <Typography variant="h5" color="primary" sx={{ mt: 1 }}>
-                Total Balance: {formatCurrency(selectedDate.balance)}
-              </Typography>
+              {selectedDate && (
+                <Typography variant="h5" color="primary" sx={{ mt: 1 }}>
+                  Total Balance: {formatCurrency(selectedDate.balance)}
+                </Typography>
+              )}
             </DialogTitle>
             <DialogContent dividers>
-              {selectedDate.accounts.map((account: AccountDailyBalance) => (
+              {/* Transactions Section */}
+              {selectedDate && selectedDate.accounts.map((account: AccountDailyBalance) => (
                 <Box key={account.accountId} sx={{ mb: 3 }}>
                   <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                     {account.accountName}
@@ -513,6 +620,74 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   )}
                 </Box>
               ))}
+
+              {/* Budgets Section */}
+              {budgetsByDate.get(selectedDateStr) && budgetsByDate.get(selectedDateStr)!.length > 0 && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                    Budgets Starting on This Day
+                  </Typography>
+                  <List dense>
+                    {budgetsByDate.get(selectedDateStr)!.map((budget) => (
+                      <ListItem
+                        key={budget.id}
+                        sx={{
+                          border: 1,
+                          borderColor: 'divider',
+                          borderRadius: 1,
+                          mb: 1,
+                          backgroundColor: '#9c27b020',
+                        }}
+                      >
+                        <ListItemText
+                          primary={
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography variant="body2" fontWeight="bold">
+                                {budget.name || budget.categoryName}
+                              </Typography>
+                              {budget.periodType && (
+                                <Chip
+                                  label={budget.periodType}
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{ height: 20, fontSize: '0.7rem' }}
+                                />
+                              )}
+                            </Box>
+                          }
+                          secondary={
+                            <Box sx={{ mt: 0.5 }}>
+                              <Chip
+                                label={`Budget: ${formatCurrency(budget.amount)}`}
+                                size="small"
+                                sx={{ mr: 1, backgroundColor: '#9c27b0', color: 'white' }}
+                              />
+                              <Chip
+                                label={`Spent: ${formatCurrency(budget.spent)}`}
+                                size="small"
+                                sx={{ mr: 1 }}
+                              />
+                              <Chip
+                                label={`${budget.percentage.toFixed(0)}%`}
+                                size="small"
+                                color={
+                                  budget.status === 'UNDER_BUDGET'
+                                    ? 'success'
+                                    : budget.status === 'ON_TRACK'
+                                    ? 'info'
+                                    : budget.status === 'WARNING'
+                                    ? 'warning'
+                                    : 'error'
+                                }
+                              />
+                            </Box>
+                          }
+                        />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Box>
+              )}
             </DialogContent>
             <DialogActions>
               <Button onClick={handleDialogClose}>Close</Button>
