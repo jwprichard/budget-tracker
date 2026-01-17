@@ -305,6 +305,8 @@ export class BudgetService {
       includeSubcategories: budget.includeSubcategories,
       name: budget.name || undefined,
       notes: budget.notes || undefined,
+      templateId: budget.templateId || undefined,
+      isCustomized: budget.isCustomized || false,
       createdAt: budget.createdAt.toISOString(),
       updatedAt: budget.updatedAt.toISOString(),
       spent,
