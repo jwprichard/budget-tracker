@@ -18,6 +18,7 @@ import {
   MenuItem,
   Avatar,
   Divider,
+  Collapse,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -33,11 +34,22 @@ import {
   Build as DevelopmentIcon,
   Logout as LogoutIcon,
   AccountCircle as AccountCircleIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon,
+  PieChart as PieChartIcon,
+  TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
-const navigation = [
+interface NavigationItem {
+  name: string;
+  path?: string; // Optional for parent items with submenus
+  icon: React.ReactElement;
+  children?: NavigationItem[]; // Nested items for dropdown menus
+}
+
+const navigation: NavigationItem[] = [
   { name: 'Dashboard', path: '/', icon: <DashboardIcon /> },
   { name: 'Accounts', path: '/accounts', icon: <AccountsIcon /> },
   { name: 'Transactions', path: '/transactions', icon: <TransactionsIcon /> },
@@ -46,7 +58,14 @@ const navigation = [
   { name: 'Rules', path: '/rules', icon: <RuleIcon /> },
   { name: 'Bank Sync', path: '/bank-sync', icon: <SyncIcon /> },
   { name: 'Calendar', path: '/calendar', icon: <CalendarIcon /> },
-  { name: 'Analytics', path: '/analytics', icon: <AnalyticsIcon /> },
+  {
+    name: 'Analytics',
+    icon: <AnalyticsIcon />,
+    children: [
+      { name: 'Spending Analysis', path: '/analytics/spending-analysis', icon: <PieChartIcon /> },
+      { name: 'Trends & Patterns', path: '/analytics/trends-patterns', icon: <TrendingUpIcon /> },
+    ],
+  },
   { name: 'Development', path: '/development', icon: <DevelopmentIcon /> },
 ];
 
@@ -59,13 +78,25 @@ export const AppBar = () => {
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
   const { user, logout } = useAuth();
 
+  // Analytics dropdown menu state (desktop)
+  const [analyticsMenuAnchor, setAnalyticsMenuAnchor] = useState<null | HTMLElement>(null);
+
+  // Analytics collapse state (mobile)
+  const [analyticsExpanded, setAnalyticsExpanded] = useState(false);
+
   const handleNavigate = (path: string) => {
     navigate(path);
     setDrawerOpen(false);
+    // Close all menus
+    setAnalyticsMenuAnchor(null);
   };
 
   const isActive = (path: string) => {
     return location.pathname === path;
+  };
+
+  const isAnalyticsActive = () => {
+    return location.pathname.startsWith('/analytics');
   };
 
   const handleUserMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -123,21 +154,62 @@ export const AppBar = () => {
 
           {!isMobile && (
             <Box sx={{ display: 'flex', gap: 1, flexGrow: 1 }}>
-              {navigation.map((item) => (
-                <Button
-                  key={item.path}
-                  color="inherit"
-                  onClick={() => handleNavigate(item.path)}
-                  sx={{
-                    fontWeight: isActive(item.path) ? 'bold' : 'normal',
-                    borderBottom: isActive(item.path) ? '2px solid white' : 'none',
-                    borderRadius: 0,
-                  }}
-                  startIcon={item.icon}
-                >
-                  {item.name}
-                </Button>
-              ))}
+              {navigation.map((item) => {
+                // Render dropdown menu for Analytics (or any item with children)
+                if (item.children) {
+                  const isActiveItem = item.name === 'Analytics' ? isAnalyticsActive() : false;
+                  return (
+                    <Box key={item.name}>
+                      <Button
+                        color="inherit"
+                        onClick={(e) => setAnalyticsMenuAnchor(e.currentTarget)}
+                        sx={{
+                          fontWeight: isActiveItem ? 'bold' : 'normal',
+                          borderBottom: isActiveItem ? '2px solid white' : 'none',
+                          borderRadius: 0,
+                        }}
+                        startIcon={item.icon}
+                        endIcon={<ExpandMoreIcon />}
+                      >
+                        {item.name}
+                      </Button>
+                      <Menu
+                        anchorEl={analyticsMenuAnchor}
+                        open={Boolean(analyticsMenuAnchor)}
+                        onClose={() => setAnalyticsMenuAnchor(null)}
+                      >
+                        {item.children.map((child) => (
+                          <MenuItem
+                            key={child.path}
+                            onClick={() => child.path && handleNavigate(child.path)}
+                            selected={child.path ? isActive(child.path) : false}
+                          >
+                            <ListItemIcon>{child.icon}</ListItemIcon>
+                            <ListItemText>{child.name}</ListItemText>
+                          </MenuItem>
+                        ))}
+                      </Menu>
+                    </Box>
+                  );
+                }
+
+                // Regular navigation button for items without children
+                return (
+                  <Button
+                    key={item.path}
+                    color="inherit"
+                    onClick={() => item.path && handleNavigate(item.path)}
+                    sx={{
+                      fontWeight: item.path && isActive(item.path) ? 'bold' : 'normal',
+                      borderBottom: item.path && isActive(item.path) ? '2px solid white' : 'none',
+                      borderRadius: 0,
+                    }}
+                    startIcon={item.icon}
+                  >
+                    {item.name}
+                  </Button>
+                );
+              })}
             </Box>
           )}
 
@@ -200,17 +272,55 @@ export const AppBar = () => {
       >
         <Box sx={{ width: 250 }} role="presentation">
           <List>
-            {navigation.map((item) => (
-              <ListItem key={item.path} disablePadding>
-                <ListItemButton
-                  selected={isActive(item.path)}
-                  onClick={() => handleNavigate(item.path)}
-                >
-                  <ListItemIcon>{item.icon}</ListItemIcon>
-                  <ListItemText primary={item.name} />
-                </ListItemButton>
-              </ListItem>
-            ))}
+            {navigation.map((item) => {
+              // Render collapsible menu for Analytics (or any item with children)
+              if (item.children) {
+                const isActiveItem = item.name === 'Analytics' ? isAnalyticsActive() : false;
+                return (
+                  <Box key={item.name}>
+                    <ListItem disablePadding>
+                      <ListItemButton
+                        selected={isActiveItem}
+                        onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
+                      >
+                        <ListItemIcon>{item.icon}</ListItemIcon>
+                        <ListItemText primary={item.name} />
+                        {analyticsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                      </ListItemButton>
+                    </ListItem>
+                    <Collapse in={analyticsExpanded} timeout="auto" unmountOnExit>
+                      <List disablePadding>
+                        {item.children.map((child) => (
+                          <ListItem key={child.path} disablePadding>
+                            <ListItemButton
+                              sx={{ pl: 4 }}
+                              selected={child.path ? isActive(child.path) : false}
+                              onClick={() => child.path && handleNavigate(child.path)}
+                            >
+                              <ListItemIcon>{child.icon}</ListItemIcon>
+                              <ListItemText primary={child.name} />
+                            </ListItemButton>
+                          </ListItem>
+                        ))}
+                      </List>
+                    </Collapse>
+                  </Box>
+                );
+              }
+
+              // Regular navigation item for items without children
+              return (
+                <ListItem key={item.path} disablePadding>
+                  <ListItemButton
+                    selected={item.path ? isActive(item.path) : false}
+                    onClick={() => item.path && handleNavigate(item.path)}
+                  >
+                    <ListItemIcon>{item.icon}</ListItemIcon>
+                    <ListItemText primary={item.name} />
+                  </ListItemButton>
+                </ListItem>
+              );
+            })}
           </List>
         </Box>
       </Drawer>

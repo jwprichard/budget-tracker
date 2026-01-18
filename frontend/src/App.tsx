@@ -13,10 +13,13 @@ import { Budgets } from './pages/Budgets';
 import { Rules } from './pages/Rules';
 import { BankSync } from './pages/BankSync';
 import { Calendar } from './pages/Calendar';
-import { Analytics } from './pages/Analytics';
 import { Development } from './pages/Development';
 import Login from './pages/Login';
 import Register from './pages/Register';
+
+// Analytics Pages
+import { SpendingAnalysis } from './pages/analytics/SpendingAnalysis';
+import { TrendsPatterns } from './pages/analytics/TrendsPatterns';
 
 // Create Material-UI theme with enhanced visual design
 const theme = createTheme({
@@ -204,7 +207,11 @@ function App() {
                   <Route path="/rules" element={<Rules />} />
                   <Route path="/bank-sync" element={<BankSync />} />
                   <Route path="/calendar" element={<Calendar />} />
-                  <Route path="/analytics" element={<Analytics />} />
+
+                  {/* Analytics Routes */}
+                  <Route path="/analytics/spending-analysis" element={<SpendingAnalysis />} />
+                  <Route path="/analytics/trends-patterns" element={<TrendsPatterns />} />
+
                   <Route path="/development" element={<Development />} />
                 </Route>
               </Route>
