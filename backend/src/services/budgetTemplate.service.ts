@@ -570,6 +570,7 @@ export class BudgetTemplateService {
       categoryName: template.category.name,
       categoryColor: template.category.color,
       amount: template.amount.toNumber(),
+      type: template.type, // Include budget type in template response
       periodType: template.periodType,
       interval: template.interval,
       includeSubcategories: template.includeSubcategories,
