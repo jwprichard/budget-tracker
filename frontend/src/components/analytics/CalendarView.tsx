@@ -197,12 +197,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         const budgetDate = new Date(budgetDateStr);
         if (budgetDate <= currentDate) {
           budgets.forEach((budget) => {
-            cumulativeBudgetAmount += budget.amount;
+            // INCOME budgets are ADDED to balance, EXPENSE budgets are SUBTRACTED
+            if (budget.type === 'INCOME') {
+              cumulativeBudgetAmount -= budget.amount; // Subtract so it adds to balance
+            } else {
+              cumulativeBudgetAmount += budget.amount; // Add so it subtracts from balance
+            }
           });
         }
       });
 
-      // Calculate adjusted balance (balance - all budgets started up to this day)
+      // Calculate adjusted balance (balance - cumulative expense budgets + cumulative income budgets)
       const adjustedBalance = balance.balance - cumulativeBudgetAmount;
       const adjustedBalanceColor = getBalanceColor(adjustedBalance);
 
@@ -278,8 +283,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
             {/* Budget bars */}
             {dayBudgets.slice(0, 2).map((budget, index) => {
-              const budgetColor = '#9c27b0'; // Purple for budgets
+              const budgetColor = budget.type === 'INCOME' ? '#4caf50' : '#9c27b0'; // Green for income, purple for expense
               const budgetName = budget.name || budget.categoryName;
+              const budgetPrefix = budget.type === 'INCOME' ? '+' : '-'; // Show +/- prefix
               return (
                 <Box
                   key={`budget-${index}`}
@@ -320,7 +326,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {formatCurrency(budget.amount)}
+                    {budgetPrefix}{formatCurrency(budget.amount)}
                   </Typography>
                 </Box>
               );
@@ -539,11 +545,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   sx={{
                     width: 20,
                     height: 20,
+                    backgroundColor: '#4caf50',
+                    borderRadius: 0.5,
+                  }}
+                />
+                <Typography variant="caption">Income Budget (expected income)</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Box
+                  sx={{
+                    width: 20,
+                    height: 20,
                     backgroundColor: '#9c27b0',
                     borderRadius: 0.5,
                   }}
                 />
-                <Typography variant="caption">Budget Start Date (Current/Future Only)</Typography>
+                <Typography variant="caption">Expense Budget (spending limit)</Typography>
               </Box>
             </Stack>
           </Box>
@@ -587,14 +604,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   {budgetsByDate.get(selectedDateStr) && budgetsByDate.get(selectedDateStr)!.length > 0 && (
                     <>
                       <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                        Budgets: -{formatCurrency(
-                          budgetsByDate.get(selectedDateStr)!.reduce((sum, b) => sum + b.amount, 0)
+                        Budgets: {formatCurrency(
+                          budgetsByDate.get(selectedDateStr)!.reduce((sum, b) => {
+                            // INCOME budgets add to balance (negative), EXPENSE budgets subtract (positive)
+                            return sum + (b.type === 'INCOME' ? -b.amount : b.amount);
+                          }, 0)
                         )}
                       </Typography>
                       <Typography variant="h6" color="secondary" sx={{ mt: 0.5 }}>
                         Available: {formatCurrency(
                           selectedDate.balance -
-                          budgetsByDate.get(selectedDateStr)!.reduce((sum, b) => sum + b.amount, 0)
+                          budgetsByDate.get(selectedDateStr)!.reduce((sum, b) => {
+                            // INCOME budgets add to balance (negative), EXPENSE budgets subtract (positive)
+                            return sum + (b.type === 'INCOME' ? -b.amount : b.amount);
+                          }, 0)
                         )}
                       </Typography>
                     </>
@@ -696,7 +719,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                               <Chip
                                 label={`Budget: ${formatCurrency(budget.amount)}`}
                                 size="small"
-                                sx={{ mr: 1, backgroundColor: '#9c27b0', color: 'white' }}
+                                sx={{
+                                  mr: 1,
+                                  backgroundColor: budget.type === 'INCOME' ? '#4caf50' : '#9c27b0',
+                                  color: 'white',
+                                }}
                               />
                               <Chip
                                 label={`Spent: ${formatCurrency(budget.spent)}`}

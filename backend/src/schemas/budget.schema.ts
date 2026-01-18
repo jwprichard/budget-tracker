@@ -10,6 +10,11 @@ import { z } from 'zod';
 export const budgetPeriodSchema = z.enum(['DAILY', 'WEEKLY', 'FORTNIGHTLY', 'MONTHLY', 'ANNUALLY']);
 
 /**
+ * Budget type enum schema
+ */
+export const budgetTypeSchema = z.enum(['INCOME', 'EXPENSE']);
+
+/**
  * Create budget request schema with validation
  * Supports both one-time budgets (startDate only) and recurring budgets (startDate + periodType + interval)
  */
@@ -20,6 +25,7 @@ export const createBudgetSchema = z
       .number()
       .positive('Amount must be positive')
       .max(1000000000, 'Amount too large'),
+    type: budgetTypeSchema.default('EXPENSE'),
     includeSubcategories: z.boolean().default(false),
     name: z.string().min(1).max(100).optional(),
     notes: z.string().max(500).optional(),
@@ -54,6 +60,7 @@ export const updateBudgetSchema = z.object({
     .positive('Amount must be positive')
     .max(1000000000, 'Amount too large')
     .optional(),
+  type: budgetTypeSchema.optional(),
   includeSubcategories: z.boolean().optional(),
   name: z.string().max(100).optional().nullable(),
   notes: z.string().max(500).optional().nullable(),

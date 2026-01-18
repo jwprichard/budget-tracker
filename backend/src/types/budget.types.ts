@@ -5,6 +5,8 @@
 
 export type BudgetPeriod = 'DAILY' | 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY';
 
+export type BudgetType = 'INCOME' | 'EXPENSE';
+
 export type BudgetStatus = 'UNDER_BUDGET' | 'ON_TRACK' | 'WARNING' | 'EXCEEDED';
 
 /**
@@ -17,6 +19,7 @@ export interface BudgetWithStatus {
   categoryName: string;
   categoryColor: string;
   amount: number;
+  type: BudgetType; // Budget type: income vs expense
 
   // Period definition (NULL for one-time budgets)
   periodType: BudgetPeriod | null;
@@ -80,6 +83,7 @@ export interface BudgetTemplateWithStats {
   categoryName: string;
   categoryColor: string;
   amount: number;
+  type: BudgetType; // Budget type: income vs expense
   periodType: BudgetPeriod;
   interval: number;
   includeSubcategories: boolean;

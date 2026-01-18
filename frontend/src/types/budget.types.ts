@@ -5,6 +5,8 @@
 
 export type BudgetPeriod = 'DAILY' | 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY' | 'ANNUALLY';
 
+export type BudgetType = 'INCOME' | 'EXPENSE';
+
 export type BudgetStatus = 'UNDER_BUDGET' | 'ON_TRACK' | 'WARNING' | 'EXCEEDED';
 
 /**
@@ -17,6 +19,7 @@ export interface BudgetWithStatus {
   categoryName: string;
   categoryColor: string;
   amount: number;
+  type: BudgetType; // Budget type: income vs expense
 
   // Period definition (NULL for one-time budgets)
   periodType: BudgetPeriod | null;
@@ -73,6 +76,7 @@ export interface BudgetQuery {
 export interface CreateBudgetDto {
   categoryId: string;
   amount: number;
+  type?: BudgetType; // Defaults to EXPENSE on backend
   includeSubcategories?: boolean;
   name?: string;
   notes?: string;
@@ -90,6 +94,7 @@ export interface CreateBudgetDto {
  */
 export interface UpdateBudgetDto {
   amount?: number;
+  type?: BudgetType;
   includeSubcategories?: boolean;
   name?: string | null;
   notes?: string | null;
@@ -103,6 +108,7 @@ export interface Budget {
   userId: string;
   categoryId: string;
   amount: number;
+  type: BudgetType; // Budget type: income vs expense
 
   // Period definition (NULL for one-time budgets)
   periodType: BudgetPeriod | null;
@@ -129,6 +135,7 @@ export interface BudgetTemplate {
   categoryName: string;
   categoryColor: string;
   amount: number;
+  type: BudgetType; // Budget type: income vs expense
   periodType: BudgetPeriod;
   interval: number;
   includeSubcategories: boolean;
@@ -152,6 +159,7 @@ export interface BudgetTemplate {
 export interface CreateBudgetTemplateDto {
   categoryId: string;
   amount: number;
+  type?: BudgetType; // Defaults to EXPENSE on backend
   periodType: BudgetPeriod;
   interval: number;
   firstStartDate: string; // ISO datetime
@@ -166,6 +174,7 @@ export interface CreateBudgetTemplateDto {
  */
 export interface UpdateBudgetTemplateDto {
   amount?: number;
+  type?: BudgetType;
   interval?: number;
   includeSubcategories?: boolean;
   endDate?: string | null;
@@ -184,6 +193,7 @@ export type UpdateScope = 'THIS_ONLY' | 'THIS_AND_FUTURE' | 'ALL';
  */
 export interface UpdateBudgetInstanceDto {
   amount?: number;
+  type?: BudgetType;
   includeSubcategories?: boolean;
   name?: string | null;
   notes?: string | null;

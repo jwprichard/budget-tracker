@@ -62,6 +62,7 @@ export class BudgetService {
         userId,
         categoryId: data.categoryId,
         amount: data.amount,
+        type: data.type || 'EXPENSE',
         periodType: data.periodType || null,
         interval: data.interval || null,
         startDate,
@@ -152,7 +153,7 @@ export class BudgetService {
 
   /**
    * Update an existing budget
-   * Only allows updating amount, includeSubcategories, name, and notes
+   * Only allows updating amount, type, includeSubcategories, name, and notes
    * @param id - Budget UUID
    * @param data - Update data
    * @param userId - User UUID
@@ -170,6 +171,7 @@ export class BudgetService {
       where: { id },
       data: {
         ...(data.amount !== undefined && { amount: data.amount }),
+        ...(data.type !== undefined && { type: data.type }),
         ...(data.includeSubcategories !== undefined && {
           includeSubcategories: data.includeSubcategories,
         }),
@@ -339,6 +341,7 @@ export class BudgetService {
       categoryName: budget.category.name,
       categoryColor: budget.category.color,
       amount: budget.amount.toNumber(),
+      type: budget.type, // NEW - include budget type in API response
       periodType: budget.periodType,
       interval: budget.interval,
       startDate: budget.startDate.toISOString(),
@@ -382,19 +385,24 @@ export class BudgetService {
       dateFilter.lte = budget.endDate;
     }
 
-    // Aggregate transaction amounts (expenses only)
+    // Determine transaction type based on budget type
+    const transactionType = budget.type === 'INCOME' ? 'INCOME' : 'EXPENSE';
+
+    // Aggregate transaction amounts
     const result = await this.prisma.transaction.aggregate({
       where: {
         userId,
         categoryId: { in: categoryIds },
         date: dateFilter,
-        type: 'EXPENSE',
+        type: transactionType,
       },
       _sum: { amount: true },
     });
 
-    // Return absolute value (amounts are negative for expenses)
-    return Math.abs(result._sum.amount?.toNumber() || 0);
+    // For EXPENSE budgets: amounts are negative, return absolute value
+    // For INCOME budgets: amounts are positive, return as-is
+    const total = result._sum.amount?.toNumber() || 0;
+    return budget.type === 'INCOME' ? total : Math.abs(total);
   }
 
   /**

@@ -21,7 +21,7 @@ import {
   Delete as DeleteIcon,
   ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
-import { BudgetWithStatus, BudgetStatus } from '../../types/budget.types';
+import { BudgetWithStatus, BudgetStatus, BudgetType } from '../../types/budget.types';
 import { BudgetProgress } from './BudgetProgress';
 import { CategoryColorBadge } from '../categories/CategoryColorBadge';
 
@@ -47,6 +47,13 @@ const getStatusInfo = (status: BudgetStatus): { label: string; color: 'success' 
     default:
       return { label: 'Unknown', color: 'info' };
   }
+};
+
+/**
+ * Get color based on budget type
+ */
+const getBudgetTypeColor = (type: BudgetType): string => {
+  return type === 'INCOME' ? '#4caf50' : '#9c27b0'; // Green for income, purple for expense
 };
 
 /**
@@ -80,6 +87,7 @@ const formatCurrency = (amount: number): string => {
 export const BudgetCard: React.FC<BudgetCardProps> = ({ budget, onEdit, onDelete }) => {
   const [expanded, setExpanded] = useState(false);
   const statusInfo = getStatusInfo(budget.status);
+  const budgetTypeColor = getBudgetTypeColor(budget.type);
 
   return (
     <Card
@@ -88,6 +96,7 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({ budget, onEdit, onDelete
         display: 'flex',
         flexDirection: 'column',
         transition: 'box-shadow 0.3s',
+        borderLeft: `4px solid ${budgetTypeColor}`,
         '&:hover': {
           boxShadow: 6,
         },
@@ -101,6 +110,16 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({ budget, onEdit, onDelete
             <Typography variant="h6" component="div">
               {budget.categoryName}
             </Typography>
+            {/* Budget Type Chip */}
+            <Chip
+              label={budget.type}
+              size="small"
+              sx={{
+                backgroundColor: budgetTypeColor,
+                color: 'white',
+                fontWeight: 'bold',
+              }}
+            />
           </Box>
           <Chip
             label={statusInfo.label}
@@ -138,7 +157,7 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({ budget, onEdit, onDelete
           </Grid>
           <Grid item xs={4}>
             <Typography variant="caption" color="text.secondary" display="block">
-              Spent
+              {budget.type === 'INCOME' ? 'Received' : 'Spent'}
             </Typography>
             <Typography variant="body2" fontWeight="600" color={budget.percentage > 100 ? 'error.main' : 'inherit'}>
               {formatCurrency(budget.spent)}

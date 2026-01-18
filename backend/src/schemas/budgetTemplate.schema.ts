@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod';
-import { budgetPeriodSchema } from './budget.schema';
+import { budgetPeriodSchema, budgetTypeSchema } from './budget.schema';
 
 /**
  * Create budget template request schema with validation
@@ -14,6 +14,7 @@ export const createBudgetTemplateSchema = z.object({
     .number()
     .positive('Amount must be positive')
     .max(1000000000, 'Amount too large'),
+  type: budgetTypeSchema.default('EXPENSE'),
   periodType: budgetPeriodSchema,
   interval: z.number().int().min(1).max(365).default(1),
   firstStartDate: z.string().datetime('Invalid start date format'),
@@ -32,6 +33,7 @@ export const updateBudgetTemplateSchema = z.object({
     .positive('Amount must be positive')
     .max(1000000000, 'Amount too large')
     .optional(),
+  type: budgetTypeSchema.optional(),
   interval: z.number().int().min(1).max(365).optional(),
   includeSubcategories: z.boolean().optional(),
   endDate: z.string().datetime().nullable().optional(),
@@ -49,6 +51,7 @@ export const updateBudgetInstanceSchema = z.object({
     .positive('Amount must be positive')
     .max(1000000000, 'Amount too large')
     .optional(),
+  type: budgetTypeSchema.optional(),
   includeSubcategories: z.boolean().optional(),
   name: z.string().max(100).optional().nullable(),
   notes: z.string().max(500).optional().nullable(),

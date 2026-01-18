@@ -25,7 +25,7 @@ import {
   Delete as DeleteIcon,
   Schedule as ScheduleIcon,
 } from '@mui/icons-material';
-import { BudgetTemplate, BudgetWithStatus } from '../../types/budget.types';
+import { BudgetTemplate, BudgetWithStatus, BudgetType } from '../../types/budget.types';
 import { formatCurrency } from '../../utils/formatters';
 
 interface TemplateCardProps {
@@ -71,6 +71,13 @@ const getPeriodTypeName = (periodType: string, interval?: number): string => {
   }
 };
 
+/**
+ * Get color based on budget type
+ */
+const getBudgetTypeColor = (type: BudgetType): string => {
+  return type === 'INCOME' ? '#4caf50' : '#9c27b0'; // Green for income, purple for expense
+};
+
 export const TemplateCard: React.FC<TemplateCardProps> = ({
   template,
   budgets = [],
@@ -80,6 +87,7 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
   onDeleteBudget,
 }) => {
   const [expanded, setExpanded] = useState(false);
+  const budgetTypeColor = getBudgetTypeColor(template.type);
 
   const handleExpandClick = () => {
     setExpanded(!expanded);
@@ -91,22 +99,31 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
+        borderLeft: `4px solid ${budgetTypeColor}`,
         '&:hover': {
           boxShadow: 6,
         },
       }}
     >
       <CardContent sx={{ flexGrow: 1 }}>
-        {/* Header: Template name + Status badge */}
+        {/* Header: Template name + Status badges */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
           <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
             {template.name}
           </Typography>
-          <Chip
-            label={template.isActive ? 'Active' : 'Inactive'}
-            color={template.isActive ? 'success' : 'default'}
-            size="small"
-          />
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            {/* Budget Type Chip */}
+            <Chip
+              label={template.type}
+              size="small"
+              sx={{ backgroundColor: budgetTypeColor, color: 'white', fontWeight: 'bold' }}
+            />
+            <Chip
+              label={template.isActive ? 'Active' : 'Inactive'}
+              color={template.isActive ? 'success' : 'default'}
+              size="small"
+            />
+          </Box>
         </Box>
 
         {/* Category badge */}
@@ -258,7 +275,7 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
                     <Box>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                         <Typography variant="caption" color="text.secondary">
-                          Spent: {formatCurrency(budget.spent)}
+                          {budget.type === 'INCOME' ? 'Received' : 'Spent'}: {formatCurrency(budget.spent)}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
                           {budget.percentage.toFixed(0)}%

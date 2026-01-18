@@ -19,6 +19,8 @@ import {
   Alert,
   MenuItem,
   FormLabel,
+  Radio,
+  RadioGroup,
 } from '@mui/material';
 import { CategorySelect } from '../categories/CategorySelect';
 import { useCreateBudget, useUpdateBudget } from '../../hooks/useBudgets';
@@ -29,6 +31,7 @@ import {
   UpdateBudgetDto,
   CreateBudgetTemplateDto,
   BudgetPeriod,
+  BudgetType,
 } from '../../types/budget.types';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -51,6 +54,7 @@ const PERIOD_TYPES: { value: BudgetPeriod; label: string; singular: string; plur
 export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget }) => {
   const [categoryId, setCategoryId] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
+  const [budgetType, setBudgetType] = useState<BudgetType>('EXPENSE');
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [includeSubcategories, setIncludeSubcategories] = useState<boolean>(false);
   const [name, setName] = useState<string>('');
@@ -74,6 +78,7 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget })
     if (budget) {
       setCategoryId(budget.categoryId);
       setAmount(budget.amount.toString());
+      setBudgetType(budget.type || 'EXPENSE');
       setStartDate(new Date(budget.startDate));
       setIncludeSubcategories(budget.includeSubcategories);
       setName(budget.name || '');
@@ -91,6 +96,7 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget })
       // Reset form for new budget
       setCategoryId('');
       setAmount('');
+      setBudgetType('EXPENSE');
       setStartDate(new Date());
       setIncludeSubcategories(false);
       setName('');
@@ -147,9 +153,10 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget })
 
     try {
       if (isEditing) {
-        // Update existing budget (only amount, includeSubcategories, name, notes)
+        // Update existing budget (only amount, type, includeSubcategories, name, notes)
         const updateData: UpdateBudgetDto = {
           amount: amountNum,
+          type: budgetType,
           includeSubcategories,
           name: name.trim() || null,
           notes: notes.trim() || null,
@@ -161,6 +168,7 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget })
         const templateData: CreateBudgetTemplateDto = {
           categoryId,
           amount: amountNum,
+          type: budgetType,
           periodType,
           interval,
           firstStartDate: startDate.toISOString(),
@@ -176,6 +184,7 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget })
         const createData: CreateBudgetDto = {
           categoryId,
           amount: amountNum,
+          type: budgetType,
           startDate: startDate.toISOString(),
           includeSubcategories,
           name: name.trim() || undefined,
@@ -211,6 +220,28 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget })
                 label="Category"
                 disabled={isEditing} // Cannot change category when editing
               />
+            </Grid>
+
+            {/* Budget Type Selection */}
+            <Grid item xs={12}>
+              <FormLabel id="budget-type-label">Budget Type</FormLabel>
+              <RadioGroup
+                aria-labelledby="budget-type-label"
+                value={budgetType}
+                onChange={(e) => setBudgetType(e.target.value as BudgetType)}
+                row
+              >
+                <FormControlLabel
+                  value="EXPENSE"
+                  control={<Radio />}
+                  label="Expense Budget (spending limit)"
+                />
+                <FormControlLabel
+                  value="INCOME"
+                  control={<Radio />}
+                  label="Income Budget (expected income)"
+                />
+              </RadioGroup>
             </Grid>
 
             {/* Start Date */}

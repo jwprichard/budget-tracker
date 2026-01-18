@@ -17,11 +17,15 @@ import {
   Grid,
   InputAdornment,
   Alert,
+  FormLabel,
+  Radio,
+  RadioGroup,
+  Typography,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { BudgetTemplate } from '../../types/budget.types';
+import { BudgetTemplate, BudgetType } from '../../types/budget.types';
 import { useUpdateTemplate } from '../../hooks/useBudgetTemplates';
 
 interface TemplateEditDialogProps {
@@ -36,6 +40,7 @@ export const TemplateEditDialog: React.FC<TemplateEditDialogProps> = ({
   template,
 }) => {
   const [amount, setAmount] = useState<string>('');
+  const [type, setType] = useState<BudgetType>('EXPENSE');
   const [interval, setInterval] = useState<number>(1);
   const [includeSubcategories, setIncludeSubcategories] = useState<boolean>(false);
   const [name, setName] = useState<string>('');
@@ -51,6 +56,7 @@ export const TemplateEditDialog: React.FC<TemplateEditDialogProps> = ({
   useEffect(() => {
     if (template) {
       setAmount(template.amount.toString());
+      setType(template.type || 'EXPENSE');
       setInterval(template.interval);
       setIncludeSubcategories(template.includeSubcategories);
       setName(template.name);
@@ -140,6 +146,28 @@ export const TemplateEditDialog: React.FC<TemplateEditDialogProps> = ({
                 inputProps={{ maxLength: 100 }}
                 helperText="Name for this recurring budget template"
               />
+            </Grid>
+
+            {/* Budget Type (Read-Only) */}
+            <Grid item xs={12}>
+              <FormLabel>Budget Type</FormLabel>
+              <RadioGroup value={type} row>
+                <FormControlLabel
+                  value="EXPENSE"
+                  control={<Radio disabled />}
+                  label="Expense Budget"
+                  disabled
+                />
+                <FormControlLabel
+                  value="INCOME"
+                  control={<Radio disabled />}
+                  label="Income Budget"
+                  disabled
+                />
+              </RadioGroup>
+              <Typography variant="caption" color="text.secondary">
+                Budget type cannot be changed after creation
+              </Typography>
             </Grid>
 
             {/* Budget Amount */}

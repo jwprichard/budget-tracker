@@ -62,6 +62,11 @@ enum BudgetPeriod {
   ANNUALLY
 }
 
+enum BudgetType {
+  INCOME
+  EXPENSE
+}
+
 // Account model - Represents financial accounts (checking, savings, credit cards, etc.)
 model Account {
   id             String      @id @default(uuid())
@@ -164,7 +169,8 @@ model Budget {
   endDate    DateTime? // Calculated end date (NULL for one-time budgets)
 
   // Configuration
-  includeSubcategories Boolean @default(false)
+  includeSubcategories Boolean    @default(false)
+  type                 BudgetType @default(EXPENSE) // Budget type: income vs expense
 
   // Metadata
   name  String? // Optional custom name
@@ -200,6 +206,7 @@ model BudgetTemplate {
   periodType           BudgetPeriod
   interval             Int          @default(1) // How often (1 = every period, 2 = every 2 periods)
   includeSubcategories Boolean      @default(false)
+  type                 BudgetType   @default(EXPENSE) // Budget type: income vs expense
 
   // Recurrence settings
   firstStartDate DateTime // When the first budget instance starts
