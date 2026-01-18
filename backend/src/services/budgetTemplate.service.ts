@@ -185,13 +185,36 @@ export class BudgetTemplateService {
 
     // Update template and optionally update instances in a transaction
     const template = await this.prisma.$transaction(async (tx) => {
+      // Check if firstStartDate or interval is changing (requires regeneration)
+      const needsRegeneration =
+        updateInstances &&
+        (data.firstStartDate !== undefined || data.interval !== undefined);
+
+      // If dates need regeneration, delete all future non-customized budgets
+      if (needsRegeneration) {
+        const now = new Date();
+
+        // Delete all future non-customized budget instances
+        await tx.budget.deleteMany({
+          where: {
+            templateId: id,
+            isCustomized: false,
+            startDate: { gte: now },
+          },
+        });
+      }
+
       // Update the template
       const updated = await tx.budgetTemplate.update({
         where: { id },
         data: {
           ...(data.amount !== undefined && { amount: data.amount }),
+          ...(data.interval !== undefined && { interval: data.interval }),
           ...(data.includeSubcategories !== undefined && {
             includeSubcategories: data.includeSubcategories,
+          }),
+          ...(data.firstStartDate !== undefined && {
+            firstStartDate: new Date(data.firstStartDate),
           }),
           ...(data.endDate !== undefined && {
             endDate: data.endDate ? new Date(data.endDate) : null,
@@ -202,8 +225,12 @@ export class BudgetTemplateService {
         },
       });
 
-      // Update non-customized future instances if requested
-      if (updateInstances) {
+      // Regenerate budgets if dates changed
+      if (needsRegeneration) {
+        // Generate 12 new budget periods with updated dates
+        await this.generateBudgetsForTemplate(updated, 12, tx);
+      } else if (updateInstances) {
+        // Just update properties without changing dates
         const now = new Date();
         const updateData: any = {};
 
@@ -212,9 +239,6 @@ export class BudgetTemplateService {
           updateData.includeSubcategories = data.includeSubcategories;
         if (data.name !== undefined) updateData.name = data.name;
         if (data.notes !== undefined) updateData.notes = data.notes;
-
-        // Add interval if provided
-        if (data.interval !== undefined) updateData.interval = data.interval;
 
         // Only update if there's something to update
         if (Object.keys(updateData).length > 0) {

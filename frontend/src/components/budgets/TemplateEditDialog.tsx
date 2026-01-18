@@ -45,6 +45,7 @@ export const TemplateEditDialog: React.FC<TemplateEditDialogProps> = ({
   const [includeSubcategories, setIncludeSubcategories] = useState<boolean>(false);
   const [name, setName] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
+  const [firstStartDate, setFirstStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [isActive, setIsActive] = useState<boolean>(true);
   const [updateInstances, setUpdateInstances] = useState<boolean>(true);
@@ -61,6 +62,7 @@ export const TemplateEditDialog: React.FC<TemplateEditDialogProps> = ({
       setIncludeSubcategories(template.includeSubcategories);
       setName(template.name);
       setNotes(template.notes || '');
+      setFirstStartDate(new Date(template.firstStartDate));
       setEndDate(template.endDate ? new Date(template.endDate) : null);
       setIsActive(template.isActive);
       setUpdateInstances(true);
@@ -98,6 +100,11 @@ export const TemplateEditDialog: React.FC<TemplateEditDialogProps> = ({
       return;
     }
 
+    if (!firstStartDate) {
+      setError('Start date is required');
+      return;
+    }
+
     setError('');
 
     try {
@@ -109,6 +116,7 @@ export const TemplateEditDialog: React.FC<TemplateEditDialogProps> = ({
           includeSubcategories,
           name: name.trim(),
           notes: notes.trim() || null,
+          firstStartDate: firstStartDate.toISOString(),
           endDate: endDate ? endDate.toISOString() : null,
           isActive,
         },
@@ -218,6 +226,24 @@ export const TemplateEditDialog: React.FC<TemplateEditDialogProps> = ({
                 }
                 label="Include subcategories in budget"
               />
+            </Grid>
+
+            {/* First Start Date */}
+            <Grid item xs={12}>
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <DatePicker
+                  label="Start Date"
+                  value={firstStartDate}
+                  onChange={(newValue: Date | null) => setFirstStartDate(newValue)}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      required: true,
+                      helperText: 'The date when this recurring budget template starts',
+                    },
+                  }}
+                />
+              </LocalizationProvider>
             </Grid>
 
             {/* End Date */}

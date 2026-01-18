@@ -36,6 +36,7 @@ export const updateBudgetTemplateSchema = z.object({
   type: budgetTypeSchema.optional(),
   interval: z.number().int().min(1).max(365).optional(),
   includeSubcategories: z.boolean().optional(),
+  firstStartDate: z.string().datetime('Invalid start date format').optional(),
   endDate: z.string().datetime().nullable().optional(),
   isActive: z.boolean().optional(),
   name: z.string().min(1).max(100).optional(),

@@ -177,6 +177,7 @@ export interface UpdateBudgetTemplateDto {
   type?: BudgetType;
   interval?: number;
   includeSubcategories?: boolean;
+  firstStartDate?: string; // ISO datetime of first period start
   endDate?: string | null;
   isActive?: boolean;
   name?: string;
