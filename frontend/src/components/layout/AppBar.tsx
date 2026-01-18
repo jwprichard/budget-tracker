@@ -53,10 +53,15 @@ const navigation: NavigationItem[] = [
   { name: 'Dashboard', path: '/', icon: <DashboardIcon /> },
   { name: 'Accounts', path: '/accounts', icon: <AccountsIcon /> },
   { name: 'Transactions', path: '/transactions', icon: <TransactionsIcon /> },
-  { name: 'Categories', path: '/categories', icon: <CategoryIcon /> },
+  {
+    name: 'Categorisation',
+    icon: <CategoryIcon />,
+    children: [
+      { name: 'Categories', path: '/categories', icon: <CategoryIcon /> },
+      { name: 'Rules', path: '/rules', icon: <RuleIcon /> },
+    ],
+  },
   { name: 'Budgets', path: '/budgets', icon: <BudgetIcon /> },
-  { name: 'Rules', path: '/rules', icon: <RuleIcon /> },
-  { name: 'Bank Sync', path: '/bank-sync', icon: <SyncIcon /> },
   { name: 'Calendar', path: '/calendar', icon: <CalendarIcon /> },
   {
     name: 'Analytics',
@@ -66,7 +71,6 @@ const navigation: NavigationItem[] = [
       { name: 'Trends & Patterns', path: '/analytics/trends-patterns', icon: <TrendingUpIcon /> },
     ],
   },
-  { name: 'Development', path: '/development', icon: <DevelopmentIcon /> },
 ];
 
 export const AppBar = () => {
@@ -78,21 +82,28 @@ export const AppBar = () => {
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
   const { user, logout } = useAuth();
 
-  // Analytics dropdown menu state (desktop)
+  // Dropdown menu state (desktop)
+  const [categorisationMenuAnchor, setCategorisationMenuAnchor] = useState<null | HTMLElement>(null);
   const [analyticsMenuAnchor, setAnalyticsMenuAnchor] = useState<null | HTMLElement>(null);
 
-  // Analytics collapse state (mobile)
+  // Collapse state (mobile)
+  const [categorisationExpanded, setCategorisationExpanded] = useState(false);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(false);
 
   const handleNavigate = (path: string) => {
     navigate(path);
     setDrawerOpen(false);
     // Close all menus
+    setCategorisationMenuAnchor(null);
     setAnalyticsMenuAnchor(null);
   };
 
   const isActive = (path: string) => {
     return location.pathname === path;
+  };
+
+  const isCategorisationActive = () => {
+    return location.pathname === '/categories' || location.pathname === '/rules';
   };
 
   const isAnalyticsActive = () => {
@@ -155,14 +166,27 @@ export const AppBar = () => {
           {!isMobile && (
             <Box sx={{ display: 'flex', gap: 1, flexGrow: 1 }}>
               {navigation.map((item) => {
-                // Render dropdown menu for Analytics (or any item with children)
+                // Render dropdown menu for items with children
                 if (item.children) {
-                  const isActiveItem = item.name === 'Analytics' ? isAnalyticsActive() : false;
+                  let isActiveItem = false;
+                  let menuAnchor = null;
+                  let setMenuAnchor: (anchor: HTMLElement | null) => void = () => {};
+
+                  if (item.name === 'Categorisation') {
+                    isActiveItem = isCategorisationActive();
+                    menuAnchor = categorisationMenuAnchor;
+                    setMenuAnchor = setCategorisationMenuAnchor;
+                  } else if (item.name === 'Analytics') {
+                    isActiveItem = isAnalyticsActive();
+                    menuAnchor = analyticsMenuAnchor;
+                    setMenuAnchor = setAnalyticsMenuAnchor;
+                  }
+
                   return (
                     <Box key={item.name}>
                       <Button
                         color="inherit"
-                        onClick={(e) => setAnalyticsMenuAnchor(e.currentTarget)}
+                        onClick={(e) => setMenuAnchor(e.currentTarget)}
                         sx={{
                           fontWeight: isActiveItem ? 'bold' : 'normal',
                           borderBottom: isActiveItem ? '2px solid white' : 'none',
@@ -174,9 +198,9 @@ export const AppBar = () => {
                         {item.name}
                       </Button>
                       <Menu
-                        anchorEl={analyticsMenuAnchor}
-                        open={Boolean(analyticsMenuAnchor)}
-                        onClose={() => setAnalyticsMenuAnchor(null)}
+                        anchorEl={menuAnchor}
+                        open={Boolean(menuAnchor)}
+                        onClose={() => setMenuAnchor(null)}
                       >
                         {item.children.map((child) => (
                           <MenuItem
@@ -242,7 +266,6 @@ export const AppBar = () => {
         anchorEl={userMenuAnchor}
         open={Boolean(userMenuAnchor)}
         onClose={handleUserMenuClose}
-        onClick={handleUserMenuClose}
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
       >
@@ -254,6 +277,19 @@ export const AppBar = () => {
             primary={user?.name}
             secondary={user?.email}
           />
+        </MenuItem>
+        <Divider />
+        <MenuItem onClick={() => { handleNavigate('/bank-sync'); handleUserMenuClose(); }}>
+          <ListItemIcon>
+            <SyncIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Bank Sync</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => { handleNavigate('/development'); handleUserMenuClose(); }}>
+          <ListItemIcon>
+            <DevelopmentIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Development</ListItemText>
         </MenuItem>
         <Divider />
         <MenuItem onClick={handleLogout}>
@@ -273,22 +309,35 @@ export const AppBar = () => {
         <Box sx={{ width: 250 }} role="presentation">
           <List>
             {navigation.map((item) => {
-              // Render collapsible menu for Analytics (or any item with children)
+              // Render collapsible menu for items with children
               if (item.children) {
-                const isActiveItem = item.name === 'Analytics' ? isAnalyticsActive() : false;
+                let isActiveItem = false;
+                let isExpanded = false;
+                let setExpanded: (expanded: boolean) => void = () => {};
+
+                if (item.name === 'Categorisation') {
+                  isActiveItem = isCategorisationActive();
+                  isExpanded = categorisationExpanded;
+                  setExpanded = setCategorisationExpanded;
+                } else if (item.name === 'Analytics') {
+                  isActiveItem = isAnalyticsActive();
+                  isExpanded = analyticsExpanded;
+                  setExpanded = setAnalyticsExpanded;
+                }
+
                 return (
                   <Box key={item.name}>
                     <ListItem disablePadding>
                       <ListItemButton
                         selected={isActiveItem}
-                        onClick={() => setAnalyticsExpanded(!analyticsExpanded)}
+                        onClick={() => setExpanded(!isExpanded)}
                       >
                         <ListItemIcon>{item.icon}</ListItemIcon>
                         <ListItemText primary={item.name} />
-                        {analyticsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                        {isExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                       </ListItemButton>
                     </ListItem>
-                    <Collapse in={analyticsExpanded} timeout="auto" unmountOnExit>
+                    <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                       <List disablePadding>
                         {item.children.map((child) => (
                           <ListItem key={child.path} disablePadding>
