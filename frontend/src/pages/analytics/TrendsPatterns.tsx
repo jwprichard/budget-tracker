@@ -3,7 +3,7 @@
  * Unified trends analysis with multiple visualization options via tabs
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Container,
   Typography,
@@ -21,6 +21,7 @@ import { SpendingTrendsChart } from '../../components/analytics/SpendingTrendsCh
 import { IncomeVsExpenseChart } from '../../components/analytics/IncomeVsExpenseChart';
 import { BalanceTrendChart } from '../../components/analytics/BalanceTrendChart';
 import { getDefaultDateRange } from '../../utils/analyticsHelpers';
+import { useSidebar } from '../../hooks/useSidebar';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -48,6 +49,23 @@ export const TrendsPatterns: React.FC = () => {
     setCurrentTab(newValue);
   };
 
+  // Sidebar config - filters
+  const sidebarConfig = useMemo(
+    () => (
+      <AnalyticsFilters
+        value={filters}
+        onChange={setFilters}
+        showCategoryFilter={true}
+        compact
+      />
+    ),
+    [filters]
+  );
+
+  useSidebar({
+    config: sidebarConfig,
+  });
+
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Page Header */}
@@ -58,15 +76,6 @@ export const TrendsPatterns: React.FC = () => {
         <Typography variant="body1" color="text.secondary">
           Track your financial trends over time with multiple visualization options
         </Typography>
-      </Box>
-
-      {/* Filters */}
-      <Box sx={{ mb: 3 }}>
-        <AnalyticsFilters
-          value={filters}
-          onChange={setFilters}
-          showCategoryFilter={true}
-        />
       </Box>
 
       {/* Tabs for Different Visualizations */}
