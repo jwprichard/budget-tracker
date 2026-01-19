@@ -3,17 +3,35 @@
  * Track spending patterns over time with detailed trend analysis
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Container, Typography, Grid, Box } from '@mui/material';
 import { AnalyticsFilters, AnalyticsFiltersState } from '../../components/analytics/AnalyticsFilters';
 import { SpendingTrendsChart } from '../../components/analytics/SpendingTrendsChart';
 import { getDefaultDateRange } from '../../utils/analyticsHelpers';
+import { useSidebar } from '../../hooks/useSidebar';
 
 export const SpendingTrends: React.FC = () => {
   const [filters, setFilters] = useState<AnalyticsFiltersState>({
     dateRange: getDefaultDateRange(90), // Last 90 days by default for trends
     accountIds: [],
     categoryIds: [],
+  });
+
+  // Sidebar config - filters
+  const sidebarConfig = useMemo(
+    () => (
+      <AnalyticsFilters
+        value={filters}
+        onChange={setFilters}
+        showCategoryFilter={true}
+        compact
+      />
+    ),
+    [filters]
+  );
+
+  useSidebar({
+    config: sidebarConfig,
   });
 
   return (
@@ -26,15 +44,6 @@ export const SpendingTrends: React.FC = () => {
         <Typography variant="body1" color="text.secondary">
           Track your spending patterns over time with detailed trend analysis
         </Typography>
-      </Box>
-
-      {/* Filters */}
-      <Box sx={{ mb: 3 }}>
-        <AnalyticsFilters
-          value={filters}
-          onChange={setFilters}
-          showCategoryFilter={true}
-        />
       </Box>
 
       {/* Chart */}
