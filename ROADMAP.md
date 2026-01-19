@@ -209,29 +209,38 @@ This roadmap outlines the development milestones for the Budget Tracker applicat
 
 ---
 
-## Milestone 4: Visualization & Basic Analytics
+## Milestone 4: Visualization & Basic Analytics ✅
 
 **Objective**: Provide visual insights into spending patterns and account balances.
 
+**Status**: COMPLETE (January 20, 2026)
+**Branch**: Merged to `main`
+
 ### Deliverables
-- [ ] Calendar view with daily balances
-- [ ] Transaction display on calendar
-- [ ] Balance status color coding (green/yellow/red)
-- [ ] Pie charts for category breakdown
-- [ ] Line/bar charts for trends over time
-- [ ] Chart customization options (date range, filters)
-- [ ] Enhanced dashboard with visualizations
-- [ ] Category totals and percentage calculations
-- [ ] Spending trends by category
+- [x] Calendar view with daily balances ✓
+- [x] Transaction display on calendar ✓
+- [x] Balance status color coding (green/yellow/red) ✓
+- [x] Pie charts for category breakdown ✓
+- [x] Line/bar charts for trends over time ✓
+- [x] Chart customization options (date range, filters) ✓
+- [x] Enhanced dashboard with visualizations ✓ (dedicated analytics pages)
+- [x] Category totals and percentage calculations ✓
+- [x] Spending trends by category ✓
 
 ### Features
-- Interactive calendar navigation
+- Interactive calendar navigation (standalone Calendar page)
 - Click-through from calendar to transaction details
-- Multi-account view toggle
-- Spending by category pie charts
-- Income vs. expense charts
-- Balance trend visualization
-- Date range selection for all charts
+- Multi-account view toggle (account filter in sidebar)
+- Spending by category pie charts (Spending Analysis page)
+- Income vs. expense charts (Trends & Patterns page)
+- Balance trend visualization (Trends & Patterns page)
+- Date range selection for all charts (sidebar filters)
+
+### Implementation Notes
+- Calendar: Standalone page with FullCalendar integration, daily balance display, transaction bars
+- Spending Analysis: Tabbed interface with pie chart, bar chart, and detailed table views
+- Trends & Patterns: Tabbed interface with spending trends, income vs expense, and balance trend charts
+- All analytics pages use collapsible sidebar for filters (date range, accounts, categories)
 
 ---
 
@@ -672,13 +681,14 @@ Each milestone is considered complete when:
 
 ---
 
-**Last Updated**: January 13, 2026
-**Document Version**: 1.7
-**Latest Completion**: Milestone 8.6 - Enhanced Akahu Data Display (January 13, 2026)
+**Last Updated**: January 20, 2026
+**Document Version**: 1.8
+**Latest Completion**: Milestone 4 - Visualization & Basic Analytics (January 20, 2026)
 **In Progress**: None (ready for next milestone)
 **Recent Changes**:
+- Milestone 4 - Visualization & Basic Analytics ✅ COMPLETE (Jan 20, 2026)
+- UI/UX Improvements: Theme switching (6 palettes), collapsible sidebar layout (Jan 20, 2026)
+- Navigation reorganization: Streamlined navbar, Accounts moved to user menu (Jan 20, 2026)
+- Milestone 3.5 - Smart Categorization & Rules Engine ✅ COMPLETE (Jan 16, 2026)
 - Milestone 8.6 - Enhanced Akahu Data Display ✅ COMPLETE (Jan 13, 2026)
 - Milestone 8.5 - Bank Synchronization (Akahu Personal App) ✅ COMPLETE (Jan 12, 2026)
-- Development Tools page added (Jan 13, 2026) - Database management interface
-- Milestone 3.5 - Smart Categorization & Rules Engine (planned)
-- Full Akahu OAuth Integration moved to Future Enhancements - requires multi-account tier upgrade
