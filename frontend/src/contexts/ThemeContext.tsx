@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material';
+import { ThemeProvider as MuiThemeProvider, createTheme, Shadows } from '@mui/material';
 import { themes, getThemeById, ThemeConfig } from '../themes';
 
 interface ThemeContextValue {
@@ -74,7 +74,7 @@ const baseThemeOptions = {
     '0 25px 50px -12px rgb(0 0 0 / 0.25)',
     '0 25px 50px -12px rgb(0 0 0 / 0.25)',
     '0 25px 50px -12px rgb(0 0 0 / 0.25)',
-  ] as const,
+  ] as Shadows,
   components: {
     MuiCard: {
       styleOverrides: {

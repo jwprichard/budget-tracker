@@ -6,6 +6,7 @@ import { DatePicker } from '../common/DatePicker';
 interface TransactionFiltersProps {
   filters: TransactionQuery;
   onFiltersChange: (filters: TransactionQuery) => void;
+  compact?: boolean;
 }
 
 const transactionTypes: { value: TransactionType | ''; label: string }[] = [
@@ -22,7 +23,7 @@ const transactionStatuses: { value: TransactionStatus | ''; label: string }[] = 
   { value: 'RECONCILED', label: 'Reconciled' },
 ];
 
-export const TransactionFilters = ({ filters, onFiltersChange }: TransactionFiltersProps) => {
+export const TransactionFilters = ({ filters, onFiltersChange, compact = false }: TransactionFiltersProps) => {
   const { data: accounts = [] } = useAccounts();
 
   const handleFilterChange = (key: keyof TransactionQuery, value: string) => {
@@ -32,6 +33,74 @@ export const TransactionFilters = ({ filters, onFiltersChange }: TransactionFilt
     });
   };
 
+  // Compact mode for sidebar - stacked vertically
+  if (compact) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <TextField
+          select
+          label="Account"
+          fullWidth
+          size="small"
+          value={filters.accountId || ''}
+          onChange={(e) => handleFilterChange('accountId', e.target.value)}
+        >
+          <MenuItem value="">All Accounts</MenuItem>
+          {accounts.filter((acc) => acc.isActive).map((account) => (
+            <MenuItem key={account.id} value={account.id}>
+              {account.name}
+            </MenuItem>
+          ))}
+        </TextField>
+
+        <TextField
+          select
+          label="Type"
+          fullWidth
+          size="small"
+          value={filters.type || ''}
+          onChange={(e) => handleFilterChange('type', e.target.value)}
+        >
+          {transactionTypes.map((option) => (
+            <MenuItem key={option.value} value={option.value}>
+              {option.label}
+            </MenuItem>
+          ))}
+        </TextField>
+
+        <TextField
+          select
+          label="Status"
+          fullWidth
+          size="small"
+          value={filters.status || ''}
+          onChange={(e) => handleFilterChange('status', e.target.value)}
+        >
+          {transactionStatuses.map((option) => (
+            <MenuItem key={option.value} value={option.value}>
+              {option.label}
+            </MenuItem>
+          ))}
+        </TextField>
+
+        <DatePicker
+          label="Start Date"
+          value={filters.startDate || ''}
+          onChange={(value) => handleFilterChange('startDate', value)}
+          maxDate={filters.endDate || undefined}
+        />
+
+        <DatePicker
+          label="End Date"
+          value={filters.endDate || ''}
+          onChange={(value) => handleFilterChange('endDate', value)}
+          minDate={filters.startDate || undefined}
+        />
+      </Box>
+    );
+  }
+
+  // Standard mode for inline display
   return (
     <Box sx={{ mb: 3 }}>
       <Grid container spacing={2}>

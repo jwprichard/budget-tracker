@@ -38,10 +38,12 @@ import {
   ExpandLess as ExpandLessIcon,
   PieChart as PieChartIcon,
   TrendingUp as TrendingUpIcon,
+  Tune as TuneIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { ThemePicker } from '../common/ThemePicker';
+import { useSidebarControls } from '../../hooks/useSidebar';
 
 interface NavigationItem {
   name: string;
@@ -82,6 +84,7 @@ export const AppBar = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [userMenuAnchor, setUserMenuAnchor] = useState<null | HTMLElement>(null);
   const { user, logout } = useAuth();
+  const { hasContent: hasSidebarContent, setIsMobileOpen: setSidebarMobileOpen } = useSidebarControls();
 
   // Dropdown menu state (desktop)
   const [categorisationMenuAnchor, setCategorisationMenuAnchor] = useState<null | HTMLElement>(null);
@@ -240,6 +243,16 @@ export const AppBar = () => {
 
           {/* User Menu */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 'auto' }}>
+            {/* Mobile sidebar toggle */}
+            {isMobile && hasSidebarContent && (
+              <IconButton
+                color="inherit"
+                onClick={() => setSidebarMobileOpen(true)}
+                sx={{ mr: 1 }}
+              >
+                <TuneIcon />
+              </IconButton>
+            )}
             <ThemePicker />
             {!isMobile && user && (
               <Typography variant="body2" sx={{ color: 'white', mr: 1 }}>

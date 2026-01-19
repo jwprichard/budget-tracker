@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Box,
   Container,
@@ -16,6 +16,7 @@ import {
   useDeleteTransaction,
 } from '../hooks/useTransactions';
 import { useAccounts } from '../hooks/useAccounts';
+import { useSidebar } from '../hooks/useSidebar';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { ErrorAlert } from '../components/common/ErrorAlert';
 import { EmptyState } from '../components/common/EmptyState';
@@ -112,6 +113,22 @@ export const Transactions = () => {
 
   const activeAccounts = accounts.filter((acc) => acc.isActive);
 
+  // Sidebar content
+  const sidebarConfig = useMemo(
+    () => (
+      <TransactionFilters
+        filters={filters}
+        onFiltersChange={handleFiltersChange}
+        compact
+      />
+    ),
+    [filters]
+  );
+
+  useSidebar({
+    config: sidebarConfig,
+  });
+
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       {/* Header */}
@@ -141,9 +158,6 @@ export const Transactions = () => {
           </Button>
         </ButtonGroup>
       </Box>
-
-      {/* Filters */}
-      <TransactionFilters filters={filters} onFiltersChange={handleFiltersChange} />
 
       {/* Transaction List */}
       {transactionsLoading ? (

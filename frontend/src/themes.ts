@@ -262,5 +262,8 @@ export const themes: ThemeConfig[] = [
 ];
 
 export const getThemeById = (id: string): ThemeConfig => {
-  return themes.find((t) => t.id === id) || themes[0];
+  const found = themes.find((t) => t.id === id);
+  if (found) return found;
+  // Default to first theme (always exists)
+  return themes[0] as ThemeConfig;
 };
