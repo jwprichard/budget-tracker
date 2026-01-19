@@ -58,8 +58,10 @@ export const Budgets: React.FC = () => {
             onChange={(e: SelectChangeEvent) => setFilterPeriodType(e.target.value as FilterPeriodType)}
           >
             <MenuItem value="ALL">All Periods</MenuItem>
-            <MenuItem value="MONTHLY">Monthly</MenuItem>
+            <MenuItem value="DAILY">Daily</MenuItem>
             <MenuItem value="WEEKLY">Weekly</MenuItem>
+            <MenuItem value="FORTNIGHTLY">Fortnightly</MenuItem>
+            <MenuItem value="MONTHLY">Monthly</MenuItem>
             <MenuItem value="QUARTERLY">Quarterly</MenuItem>
             <MenuItem value="ANNUALLY">Annually</MenuItem>
           </Select>
