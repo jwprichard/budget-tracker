@@ -41,6 +41,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { ThemePicker } from '../common/ThemePicker';
 
 interface NavigationItem {
   name: string;
@@ -239,6 +240,7 @@ export const AppBar = () => {
 
           {/* User Menu */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 'auto' }}>
+            <ThemePicker />
             {!isMobile && user && (
               <Typography variant="body2" sx={{ color: 'white', mr: 1 }}>
                 {user.name}
