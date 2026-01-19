@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useImperativeHandle, forwardRef } from 'react';
 import {
   Box,
   Card,
@@ -33,6 +33,18 @@ import { formatCurrency, formatDateForInput } from '../../utils/formatters';
 
 interface CalendarViewProps {
   accountIds?: string[];
+  hideToolbar?: boolean;
+  onTitleChange?: (title: string) => void;
+  onViewChange?: (view: string) => void;
+}
+
+export interface CalendarViewHandle {
+  prev: () => void;
+  next: () => void;
+  today: () => void;
+  changeView: (view: string) => void;
+  getTitle: () => string;
+  getView: () => string;
 }
 
 /**
@@ -40,12 +52,61 @@ interface CalendarViewProps {
  * Displays daily balances in a calendar format with color-coded indicators
  * Automatically loads transactions for the displayed month
  */
-export const CalendarView: React.FC<CalendarViewProps> = ({
+export const CalendarView = forwardRef<CalendarViewHandle, CalendarViewProps>(({
   accountIds,
-}) => {
+  hideToolbar = false,
+  onTitleChange,
+  onViewChange,
+}, ref) => {
+  const calendarRef = useRef<FullCalendar>(null);
   const [selectedDate, setSelectedDate] = useState<DailyBalance | null>(null);
   const [selectedDateStr, setSelectedDateStr] = useState<string>('');
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Expose navigation methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    prev: () => {
+      if (calendarRef.current) {
+        const api = calendarRef.current.getApi();
+        api.prev();
+        onTitleChange?.(api.view.title);
+      }
+    },
+    next: () => {
+      if (calendarRef.current) {
+        const api = calendarRef.current.getApi();
+        api.next();
+        onTitleChange?.(api.view.title);
+      }
+    },
+    today: () => {
+      if (calendarRef.current) {
+        const api = calendarRef.current.getApi();
+        api.today();
+        onTitleChange?.(api.view.title);
+      }
+    },
+    changeView: (view: string) => {
+      if (calendarRef.current) {
+        const api = calendarRef.current.getApi();
+        api.changeView(view);
+        onViewChange?.(view);
+        onTitleChange?.(api.view.title);
+      }
+    },
+    getTitle: () => {
+      if (calendarRef.current) {
+        return calendarRef.current.getApi().view.title;
+      }
+      return '';
+    },
+    getView: () => {
+      if (calendarRef.current) {
+        return calendarRef.current.getApi().view.type;
+      }
+      return 'dayGridMonth';
+    },
+  }), [onTitleChange, onViewChange]);
 
   // Track the current calendar date range
   const [calendarRange, setCalendarRange] = useState(() => {
@@ -64,7 +125,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       startDate: formatDateForInput(arg.start),
       endDate: formatDateForInput(new Date(arg.end.getTime() - 1)), // Subtract 1 day since end is exclusive
     });
-  }, []);
+
+    // Notify parent of title change
+    if (calendarRef.current && onTitleChange) {
+      onTitleChange(calendarRef.current.getApi().view.title);
+    }
+  }, [onTitleChange]);
 
   // Fetch daily balances for the current calendar range
   const { data, isLoading, error } = useDailyBalances({
@@ -394,14 +460,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     }
   };
 
-  if (isLoading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   if (error) {
     return (
       <Alert severity="error" sx={{ m: 2 }}>
@@ -412,7 +470,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   return (
     <>
-      <Card elevation={2}>
+      <Card elevation={2} sx={{ position: 'relative' }}>
+        {/* Loading overlay - doesn't unmount calendar */}
+        {isLoading && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              zIndex: 1,
+            }}
+          >
+            <CircularProgress size={24} />
+          </Box>
+        )}
         <CardContent>
           <Typography variant="h6" gutterBottom>
             Balance Calendar
@@ -438,9 +509,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             },
           }}>
             <FullCalendar
+              ref={calendarRef}
               plugins={[dayGridPlugin, interactionPlugin]}
               initialView="dayGridMonth"
-              headerToolbar={{
+              headerToolbar={hideToolbar ? false : {
                 left: 'prev,next today',
                 center: 'title',
                 right: 'dayGridMonth,dayGridWeek',
@@ -760,4 +832,4 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       </Dialog>
     </>
   );
-};
+});

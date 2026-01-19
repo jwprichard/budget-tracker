@@ -6,7 +6,6 @@ import {
   IconButton,
   useTheme,
   useMediaQuery,
-  Tooltip,
 } from '@mui/material';
 import {
   ChevronLeft as CollapseIcon,
@@ -54,11 +53,9 @@ export const Sidebar: React.FC = () => {
             borderColor: 'divider',
           }}
         >
-          <Tooltip title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
-            <IconButton size="small" onClick={toggleCollapsed}>
-              {isCollapsed ? <ExpandIcon /> : <CollapseIcon />}
-            </IconButton>
-          </Tooltip>
+          <IconButton size="small" onClick={toggleCollapsed}>
+            {isCollapsed ? <ExpandIcon /> : <CollapseIcon />}
+          </IconButton>
         </Box>
       )}
 
