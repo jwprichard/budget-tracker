@@ -7,9 +7,9 @@ import { SidebarProvider } from '../../contexts/SidebarContext';
 export const Layout = () => {
   return (
     <SidebarProvider>
-      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
         <AppBar />
-        <Box sx={{ display: 'flex', flexGrow: 1 }}>
+        <Box sx={{ display: 'flex', flexGrow: 1, overflow: 'hidden' }}>
           <Sidebar />
           <Box
             component="main"
