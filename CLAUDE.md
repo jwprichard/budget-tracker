@@ -526,7 +526,7 @@ Color-coded balance status (green/yellow/red thresholds).
   - Rule management UI with category tree selection
 - **Next Phase**: Milestone 5 (Budget Management) OR Milestone 6 (Recurring Transactions)
 
-### Recent Decisions (Updated Jan 16, 2026)
+### Recent Decisions (Updated Jan 20, 2026)
 - Chose PostgreSQL over MySQL for better ACID compliance and JSON support
 - Selected Material-UI over other UI libraries for comprehensive component set
 - Using Prisma ORM for database abstraction and future flexibility
@@ -643,6 +643,33 @@ Color-coded balance status (green/yellow/red thresholds).
   - **CategorySelect Component**: Reused existing TreeSelect component for hierarchical category selection in rule builder
   - **Match Statistics**: Track matchCount and lastMatched timestamp for each rule
   - **Database Models**: CategoryRule model with priority, isEnabled, isSystem fields for flexible rule management
+- **Theme Switching (Jan 20, 2026)** - Multiple color theme support
+  - 6 built-in themes: Default (Indigo/Pink), Ocean (Blue/Teal), Forest (Green/Lime), Sunset (Orange/Red), Purple (Purple/Pink), Midnight (Dark Blue/Cyan)
+  - ThemeContext for global theme state management
+  - ThemePicker component in AppBar for easy switching
+  - Theme preference persisted in localStorage
+  - Each theme includes custom primary/secondary colors, background shades, and shadows
+- **Collapsible Sidebar Layout (Jan 20, 2026)** - Page-specific sidebar with tools and configuration
+  - SidebarContext for managing sidebar content and collapse state
+  - useSidebar hook for pages to register their sidebar content
+  - Two sections: Tools (action buttons) and Config (filters/settings)
+  - Collapsible with state persisted in localStorage
+  - Mobile-responsive: temporary drawer on small screens
+  - Auto-hides when page has no sidebar content
+  - 300px width, smooth collapse animation
+- **Navigation Reorganization (Jan 20, 2026)** - Streamlined navbar layout
+  - New navbar order: Dashboard, Calendar, Transactions, Budgets, Categorisation, Analytics
+  - Accounts moved to user menu (alongside Bank Sync, Development)
+  - Categorisation dropdown: Categories, Rules
+  - Analytics dropdown: Spending Analysis, Trends & Patterns
+- **Pages with Sidebar Support (Jan 20, 2026)** - Migrated pages to use collapsible sidebar
+  - Transactions: Add Transaction/Transfer buttons in Tools, filters in Config
+  - Calendar: Navigation controls (prev/next/today, month/week toggle) in Tools, account filter in Config
+  - Budgets: Create Budget button in Tools, period/status/sort filters in Config
+  - Spending Analysis: Transaction type toggle in Tools, date/account filters in Config
+  - Spending Trends: Date/account/category filters in Config
+  - Trends & Patterns: Date/account/category filters in Config
+  - Compact mode for AnalyticsFilters and DateRangePicker (vertical stacking in sidebar)
 
 ### Known Issues
 None - All Docker build, runtime, and CSV import issues resolved
@@ -931,7 +958,7 @@ docker system prune -a --volumes  # Removes all stopped containers, unused image
 
 ---
 
-**Last Updated**: January 14, 2026
-**Current Phase**: Milestone 4 - Visualization & Analytics (In Progress)
+**Last Updated**: January 20, 2026
+**Current Phase**: UI/UX Improvements
 **Framework/Platform**: React + Node.js + PostgreSQL (Full-Stack TypeScript)
-**Status**: Analytics implementation in progress on `feature/milestone-4-visualization-analytics` branch. Completed: Backend analytics API (daily balances, category totals, trends), calendar view with FullCalendar integration, category charts (pie/bar), spending trends charts, income vs expense comparison, standalone calendar page, sync transaction debugging view. Charts visualized with Recharts. Next: Complete Milestone 4 or begin Milestone 3 (Category System).
+**Status**: Completed theme switching (6 color palettes) and collapsible sidebar layout with page-specific tools/config sections. Migrated Transactions, Calendar, Budgets, and Analytics pages to use the new sidebar pattern. Reorganized navbar (Dashboard, Calendar, Transactions, Budgets, Categorisation, Analytics). Next: Milestone 5 (Budget Management) or Milestone 6 (Recurring Transactions).
