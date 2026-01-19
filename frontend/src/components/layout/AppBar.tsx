@@ -293,6 +293,12 @@ export const AppBar = () => {
           />
         </MenuItem>
         <Divider />
+        <MenuItem onClick={() => { handleNavigate('/accounts'); handleUserMenuClose(); }}>
+          <ListItemIcon>
+            <AccountsIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Accounts</ListItemText>
+        </MenuItem>
         <MenuItem onClick={() => { handleNavigate('/bank-sync'); handleUserMenuClose(); }}>
           <ListItemIcon>
             <SyncIcon fontSize="small" />
