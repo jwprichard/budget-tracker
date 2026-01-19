@@ -3,7 +3,7 @@
  * Unified spending analysis with multiple visualization options via tabs
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Container,
   Typography,
@@ -36,6 +36,7 @@ import { useCategoryTotals } from '../../hooks/useAnalytics';
 import { TransactionTypeFilter } from '../../types/analytics.types';
 import { formatCurrency, formatPercentage } from '../../utils/formatters';
 import { getDefaultDateRange } from '../../utils/analyticsHelpers';
+import { useSidebar } from '../../hooks/useSidebar';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -79,6 +80,51 @@ export const SpendingAnalysis: React.FC = () => {
     }
   };
 
+  // Sidebar tools - transaction type toggle
+  const sidebarTools = useMemo(
+    () => (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Typography variant="subtitle2" gutterBottom>
+          Transaction Type
+        </Typography>
+        <ToggleButtonGroup
+          value={transactionType}
+          exclusive
+          onChange={handleTypeChange}
+          size="small"
+          fullWidth
+          aria-label="transaction type"
+        >
+          <ToggleButton value="EXPENSE" aria-label="expense">
+            Expenses
+          </ToggleButton>
+          <ToggleButton value="INCOME" aria-label="income">
+            Income
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </Box>
+    ),
+    [transactionType]
+  );
+
+  // Sidebar config - filters
+  const sidebarConfig = useMemo(
+    () => (
+      <AnalyticsFilters
+        value={filters}
+        onChange={setFilters}
+        showCategoryFilter={false}
+        compact
+      />
+    ),
+    [filters]
+  );
+
+  useSidebar({
+    tools: sidebarTools,
+    config: sidebarConfig,
+  });
+
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Page Header */}
@@ -90,39 +136,6 @@ export const SpendingAnalysis: React.FC = () => {
           Analyze your spending patterns across categories with multiple visualization options
         </Typography>
       </Box>
-
-      {/* Filters and Type Toggle */}
-      <Stack spacing={2} sx={{ mb: 3 }}>
-        {/* Transaction Type Toggle */}
-        <Paper sx={{ p: 2 }}>
-          <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-              Transaction Type
-            </Typography>
-            <ToggleButtonGroup
-              value={transactionType}
-              exclusive
-              onChange={handleTypeChange}
-              size="small"
-              aria-label="transaction type"
-            >
-              <ToggleButton value="EXPENSE" aria-label="expense">
-                Expenses
-              </ToggleButton>
-              <ToggleButton value="INCOME" aria-label="income">
-                Income
-              </ToggleButton>
-            </ToggleButtonGroup>
-          </Stack>
-        </Paper>
-
-        {/* Date and Account Filters */}
-        <AnalyticsFilters
-          value={filters}
-          onChange={setFilters}
-          showCategoryFilter={false}
-        />
-      </Stack>
 
       {/* Tabs for Different Visualizations */}
       <Paper elevation={2}>

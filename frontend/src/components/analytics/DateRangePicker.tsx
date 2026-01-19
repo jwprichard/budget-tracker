@@ -21,6 +21,7 @@ interface DateRangePickerProps {
   onChange: (range: DateRange) => void;
   minDate?: string;
   maxDate?: string;
+  compact?: boolean; // Stack vertically for sidebar use
 }
 
 /**
@@ -33,6 +34,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
   onChange,
   minDate,
   maxDate = formatDateForInput(new Date()),
+  compact = false,
 }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const presetMenuOpen = Boolean(anchorEl);
@@ -139,7 +141,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
 
   return (
     <Box>
-      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+      <Stack direction={compact ? 'column' : 'row'} spacing={compact ? 2 : 1} alignItems={compact ? 'stretch' : 'center'} flexWrap="wrap">
         {/* Start Date */}
         <TextField
           label="Start Date"
@@ -147,6 +149,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
           value={value.startDate}
           onChange={handleStartDateChange}
           size="small"
+          fullWidth={compact}
           InputLabelProps={{ shrink: true }}
           inputProps={{
             min: minDate,
@@ -161,6 +164,7 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
           value={value.endDate}
           onChange={handleEndDateChange}
           size="small"
+          fullWidth={compact}
           InputLabelProps={{ shrink: true }}
           inputProps={{
             min: value.startDate,
@@ -168,23 +172,25 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
           }}
         />
 
-        {/* Preset Button */}
-        <Button
-          variant="outlined"
-          size="small"
-          onClick={handlePresetMenuOpen}
-          startIcon={<CalendarIcon />}
-        >
-          Presets
-        </Button>
+        {/* Preset Button and Days indicator */}
+        <Stack direction="row" spacing={1} alignItems="center" justifyContent={compact ? 'space-between' : 'flex-start'}>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={handlePresetMenuOpen}
+            startIcon={<CalendarIcon />}
+          >
+            Presets
+          </Button>
 
-        {/* Days indicator */}
-        <Chip
-          label={`${daysInRange} day${daysInRange !== 1 ? 's' : ''}`}
-          size="small"
-          color="primary"
-          variant="outlined"
-        />
+          {/* Days indicator */}
+          <Chip
+            label={`${daysInRange} day${daysInRange !== 1 ? 's' : ''}`}
+            size="small"
+            color="primary"
+            variant="outlined"
+          />
+        </Stack>
       </Stack>
 
       {/* Preset Menu */}
