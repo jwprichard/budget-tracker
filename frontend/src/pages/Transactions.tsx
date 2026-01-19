@@ -4,7 +4,6 @@ import {
   Container,
   Typography,
   Button,
-  ButtonGroup,
   Fab,
 } from '@mui/material';
 import { Add as AddIcon, SwapHoriz as TransferIcon } from '@mui/icons-material';
@@ -50,15 +49,15 @@ export const Transactions = () => {
   const deleteTransactionMutation = useDeleteTransaction();
 
   const handleFiltersChange = (newFilters: TransactionQuery) => {
-    setFilters({ ...newFilters, page: 1, pageSize: filters.pageSize });
+    setFilters((prev) => ({ ...prev, ...newFilters, page: 1, pageSize: filters.pageSize }));
   };
 
   const handlePageChange = (page: number) => {
-    setFilters({ ...filters, page });
+    setFilters((prev) => ({ ...prev, ...filters, page }));
   };
 
   const handlePageSizeChange = (pageSize: number) => {
-    setFilters({ ...filters, page: 1, pageSize });
+    setFilters((prev) => ({ ...prev, ...filters, page: 1, pageSize }));
   };
 
   const handleCreateTransaction = async (data: CreateTransactionDto | UpdateTransactionDto) => {
@@ -125,38 +124,47 @@ export const Transactions = () => {
     [filters]
   );
 
+  const sidebarTools = useMemo(
+    () => (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Button
+          variant="contained"
+          fullWidth
+          startIcon={<AddIcon />}
+          onClick={() => setTransactionFormOpen(true)}
+          disabled={activeAccounts.length === 0}
+        >
+          Add Transaction
+        </Button>
+        <Button
+          variant="outlined"
+          fullWidth
+          startIcon={<TransferIcon />}
+          onClick={() => setTransferFormOpen(true)}
+          disabled={activeAccounts.length < 2}
+        >
+          Create Transfer
+        </Button>
+      </Box>
+    ),
+    [activeAccounts.length]
+  );
+
   useSidebar({
     config: sidebarConfig,
+    tools: sidebarTools,
   });
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       {/* Header */}
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box>
-          <Typography variant="h4" gutterBottom>
-            Transactions
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            View and manage all transactions
-          </Typography>
-        </Box>
-        <ButtonGroup variant="contained">
-          <Button
-            startIcon={<AddIcon />}
-            onClick={() => setTransactionFormOpen(true)}
-            disabled={activeAccounts.length === 0}
-          >
-            Add Transaction
-          </Button>
-          <Button
-            startIcon={<TransferIcon />}
-            onClick={() => setTransferFormOpen(true)}
-            disabled={activeAccounts.length < 2}
-          >
-            Create Transfer
-          </Button>
-        </ButtonGroup>
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" gutterBottom>
+          Transactions
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          View and manage all transactions
+        </Typography>
       </Box>
 
       {/* Transaction List */}

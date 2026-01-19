@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Box,
+  Divider,
   Drawer,
   IconButton,
   useTheme,
@@ -10,11 +11,8 @@ import {
 import {
   ChevronLeft as CollapseIcon,
   ChevronRight as ExpandIcon,
-  Settings as ConfigIcon,
-  Build as ToolsIcon,
 } from '@mui/icons-material';
 import { useSidebarContext } from '../../contexts/SidebarContext';
-import { SidebarSection } from './SidebarSection';
 
 const SIDEBAR_WIDTH = 300;
 const SIDEBAR_COLLAPSED_WIDTH = 48;
@@ -72,20 +70,26 @@ export const Sidebar: React.FC = () => {
             overflowY: 'auto',
             overflowX: 'hidden',
             py: 2,
+            px: 2,
           }}
         >
-          {/* Configuration Section */}
-          {content.config && (
-            <SidebarSection title="Configuration" icon={<ConfigIcon fontSize="small" />}>
-              {content.config}
-            </SidebarSection>
+          {/* Tools content */}
+          {content.tools && (
+            <Box>
+              {content.tools}
+            </Box>
           )}
 
-          {/* Tools Section */}
-          {content.tools && (
-            <SidebarSection title="Tools" icon={<ToolsIcon fontSize="small" />}>
-              {content.tools}
-            </SidebarSection>
+          {/* Divider between tools and config */}
+          {content.tools && content.config && (
+            <Divider sx={{ my: 2 }} />
+          )}
+
+          {/* Configuration content */}
+          {content.config && (
+            <Box>
+              {content.config}
+            </Box>
           )}
         </Box>
       )}
