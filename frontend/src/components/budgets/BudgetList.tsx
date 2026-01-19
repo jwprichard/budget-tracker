@@ -9,11 +9,6 @@ import {
   Grid,
   Box,
   Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  SelectChangeEvent,
   Alert,
   Skeleton,
   Dialog,
@@ -32,20 +27,27 @@ import { TemplateEditDialog } from './TemplateEditDialog';
 import { useDeleteBudget } from '../../hooks/useBudgets';
 import { useBudgetTemplates, useDeleteTemplate } from '../../hooks/useBudgetTemplates';
 
+export type SortOption = 'amount' | 'spent' | 'percentage' | 'name' | 'period';
+export type FilterStatus = 'ALL' | BudgetStatus;
+export type FilterPeriodType = 'ALL' | BudgetPeriod;
+
 interface BudgetListProps {
   budgets: BudgetWithStatus[];
   isLoading?: boolean;
   error?: Error | null;
+  sortBy: SortOption;
+  filterStatus: FilterStatus;
+  filterPeriodType: FilterPeriodType;
 }
 
-type SortOption = 'amount' | 'spent' | 'percentage' | 'name' | 'period';
-type FilterStatus = 'ALL' | BudgetStatus;
-type FilterPeriodType = 'ALL' | BudgetPeriod;
-
-export const BudgetList: React.FC<BudgetListProps> = ({ budgets, isLoading, error }) => {
-  const [sortBy, setSortBy] = useState<SortOption>('period');
-  const [filterStatus, setFilterStatus] = useState<FilterStatus>('ALL');
-  const [filterPeriodType, setFilterPeriodType] = useState<FilterPeriodType>('ALL');
+export const BudgetList: React.FC<BudgetListProps> = ({
+  budgets,
+  isLoading,
+  error,
+  sortBy,
+  filterStatus,
+  filterPeriodType,
+}) => {
   const [editingBudget, setEditingBudget] = useState<BudgetWithStatus | undefined>();
   const [budgetFormOpen, setBudgetFormOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -202,122 +204,16 @@ export const BudgetList: React.FC<BudgetListProps> = ({ budgets, isLoading, erro
   // Empty state after filtering
   if (activeTemplates.length === 0 && sortedOneTimeBudgets.length === 0) {
     return (
-      <Box>
-        {/* Filter Controls */}
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} sm={4}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Period Type</InputLabel>
-              <Select
-                value={filterPeriodType}
-                label="Period Type"
-                onChange={(e: SelectChangeEvent) => setFilterPeriodType(e.target.value as FilterPeriodType)}
-              >
-                <MenuItem value="ALL">All Periods</MenuItem>
-                <MenuItem value="MONTHLY">Monthly</MenuItem>
-                <MenuItem value="WEEKLY">Weekly</MenuItem>
-                <MenuItem value="QUARTERLY">Quarterly</MenuItem>
-                <MenuItem value="ANNUALLY">Annually</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={filterStatus}
-                label="Status"
-                onChange={(e: SelectChangeEvent) => setFilterStatus(e.target.value as FilterStatus)}
-              >
-                <MenuItem value="ALL">All Statuses</MenuItem>
-                <MenuItem value="UNDER_BUDGET">Under Budget</MenuItem>
-                <MenuItem value="ON_TRACK">On Track</MenuItem>
-                <MenuItem value="WARNING">Warning</MenuItem>
-                <MenuItem value="EXCEEDED">Exceeded</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Sort By</InputLabel>
-              <Select
-                value={sortBy}
-                label="Sort By"
-                onChange={(e: SelectChangeEvent) => setSortBy(e.target.value as SortOption)}
-              >
-                <MenuItem value="period">Period (Newest)</MenuItem>
-                <MenuItem value="amount">Amount (Highest)</MenuItem>
-                <MenuItem value="spent">Spent (Highest)</MenuItem>
-                <MenuItem value="percentage">Percentage (Highest)</MenuItem>
-                <MenuItem value="name">Name (A-Z)</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-        </Grid>
-
-        <Box sx={{ textAlign: 'center', py: 4 }}>
-          <Typography variant="body1" color="text.secondary">
-            No budgets match your filters
-          </Typography>
-        </Box>
+      <Box sx={{ textAlign: 'center', py: 4 }}>
+        <Typography variant="body1" color="text.secondary">
+          No budgets match your filters
+        </Typography>
       </Box>
     );
   }
 
   return (
     <Box>
-      {/* Filter and Sort Controls */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={4}>
-          <FormControl fullWidth size="small">
-            <InputLabel>Period Type</InputLabel>
-            <Select
-              value={filterPeriodType}
-              label="Period Type"
-              onChange={(e: SelectChangeEvent) => setFilterPeriodType(e.target.value as FilterPeriodType)}
-            >
-              <MenuItem value="ALL">All Periods</MenuItem>
-              <MenuItem value="MONTHLY">Monthly</MenuItem>
-              <MenuItem value="WEEKLY">Weekly</MenuItem>
-              <MenuItem value="QUARTERLY">Quarterly</MenuItem>
-              <MenuItem value="ANNUALLY">Annually</MenuItem>
-            </Select>
-          </FormControl>
-        </Grid>
-        <Grid item xs={12} sm={4}>
-          <FormControl fullWidth size="small">
-            <InputLabel>Status</InputLabel>
-            <Select
-              value={filterStatus}
-              label="Status"
-              onChange={(e: SelectChangeEvent) => setFilterStatus(e.target.value as FilterStatus)}
-            >
-              <MenuItem value="ALL">All Statuses</MenuItem>
-              <MenuItem value="UNDER_BUDGET">Under Budget</MenuItem>
-              <MenuItem value="ON_TRACK">On Track</MenuItem>
-              <MenuItem value="WARNING">Warning</MenuItem>
-              <MenuItem value="EXCEEDED">Exceeded</MenuItem>
-            </Select>
-          </FormControl>
-        </Grid>
-        <Grid item xs={12} sm={4}>
-          <FormControl fullWidth size="small">
-            <InputLabel>Sort By</InputLabel>
-            <Select
-              value={sortBy}
-              label="Sort By"
-              onChange={(e: SelectChangeEvent) => setSortBy(e.target.value as SortOption)}
-            >
-              <MenuItem value="period">Period (Newest)</MenuItem>
-              <MenuItem value="amount">Amount (Highest)</MenuItem>
-              <MenuItem value="spent">Spent (Highest)</MenuItem>
-              <MenuItem value="percentage">Percentage (Highest)</MenuItem>
-              <MenuItem value="name">Name (A-Z)</MenuItem>
-            </Select>
-          </FormControl>
-        </Grid>
-      </Grid>
-
       {/* Recurring Budget Templates */}
       {activeTemplates.length > 0 && (
         <Box sx={{ mb: 4 }}>
