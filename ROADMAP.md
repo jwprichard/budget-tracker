@@ -244,29 +244,39 @@ This roadmap outlines the development milestones for the Budget Tracker applicat
 
 ---
 
-## Milestone 5: Budget Management
+## Milestone 5: Budget Management (Partial)
 
 **Objective**: Enable budget creation and track spending against budgets.
 
+**Status**: PARTIALLY COMPLETE (January 2026)
+**Branch**: Merged to `main`
+
 ### Deliverables
-- [ ] Budget data model and API
-- [ ] Budget CRUD operations
-- [ ] Budget creation UI for categories
-- [ ] Budget periods (weekly, monthly, quarterly, annually, custom)
-- [ ] Budget vs. actual spending comparison
-- [ ] Budget progress indicators
-- [ ] Budget performance visualization
+- [x] Budget data model and API ✓
+- [x] Budget CRUD operations ✓
+- [x] Budget creation UI for categories ✓
+- [x] Budget periods (daily, weekly, fortnightly, monthly, quarterly, annually) ✓
+- [x] Budget vs. actual spending comparison ✓
+- [x] Budget progress indicators ✓
+- [x] Budget performance visualization ✓
 - [ ] Budget alerts at configurable thresholds (50%, 80%, 100%)
 - [ ] Historical budget comparison
 - [ ] Rollover budget options
 
 ### Features
-- Category-specific budgets
-- Per-period budget limits
-- Real-time budget tracking
-- Variance analysis
-- Budget performance trends
-- Visual budget progress bars
+- Category-specific budgets ✓
+- Per-period budget limits ✓
+- Real-time budget tracking ✓
+- Variance analysis (spent vs budget vs remaining) ✓
+- Budget performance trends (deferred)
+- Visual budget progress bars ✓
+
+### Bonus Features Implemented
+- Income AND expense budget types
+- Budget templates for recurring budgets
+- Include subcategories option
+- One-time budgets (non-recurring)
+- Template-based budget instance generation
 
 ---
 
@@ -682,10 +692,13 @@ Each milestone is considered complete when:
 ---
 
 **Last Updated**: January 20, 2026
-**Document Version**: 1.8
+**Document Version**: 1.9
 **Latest Completion**: Milestone 4 - Visualization & Basic Analytics (January 20, 2026)
 **In Progress**: None (ready for next milestone)
 **Recent Changes**:
+- Milestone 5 - Budget Management marked as PARTIALLY COMPLETE (Jan 20, 2026)
+  - Core budget CRUD, periods, progress tracking, visualization all done
+  - Remaining: alerts, historical comparison, rollover options
 - Milestone 4 - Visualization & Basic Analytics ✅ COMPLETE (Jan 20, 2026)
 - UI/UX Improvements: Theme switching (6 palettes), collapsible sidebar layout (Jan 20, 2026)
 - Navigation reorganization: Streamlined navbar, Accounts moved to user menu (Jan 20, 2026)
