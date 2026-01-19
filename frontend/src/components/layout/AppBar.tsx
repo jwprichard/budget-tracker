@@ -54,8 +54,9 @@ interface NavigationItem {
 
 const navigation: NavigationItem[] = [
   { name: 'Dashboard', path: '/', icon: <DashboardIcon /> },
-  { name: 'Accounts', path: '/accounts', icon: <AccountsIcon /> },
+  { name: 'Calendar', path: '/calendar', icon: <CalendarIcon /> },
   { name: 'Transactions', path: '/transactions', icon: <TransactionsIcon /> },
+  { name: 'Budgets', path: '/budgets', icon: <BudgetIcon /> },
   {
     name: 'Categorisation',
     icon: <CategoryIcon />,
@@ -64,8 +65,6 @@ const navigation: NavigationItem[] = [
       { name: 'Rules', path: '/rules', icon: <RuleIcon /> },
     ],
   },
-  { name: 'Budgets', path: '/budgets', icon: <BudgetIcon /> },
-  { name: 'Calendar', path: '/calendar', icon: <CalendarIcon /> },
   {
     name: 'Analytics',
     icon: <AnalyticsIcon />,
