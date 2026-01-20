@@ -200,3 +200,70 @@ export interface UpdateBudgetInstanceDto {
   notes?: string | null;
   scope: UpdateScope;
 }
+
+/**
+ * Historical comparison types
+ */
+export type HistoricalComparisonType = 'previous' | 'trend' | 'yoy';
+
+/**
+ * Category budget summary for historical comparison
+ */
+export interface CategoryBudgetSummary {
+  categoryId: string;
+  categoryName: string;
+  categoryColor: string;
+  budgeted: number;
+  spent: number;
+  percentage: number;
+  status: BudgetStatus;
+}
+
+/**
+ * Period summary for trend data
+ */
+export interface TrendPeriod {
+  period: string; // e.g., "January 2026", "Week 3 2026"
+  startDate: string;
+  endDate: string;
+  totalBudgeted: number;
+  totalSpent: number;
+  percentage: number;
+  status: BudgetStatus;
+}
+
+/**
+ * Historical comparison response
+ */
+export interface BudgetHistoricalResponse {
+  type: HistoricalComparisonType;
+  current: {
+    period: string;
+    startDate: string;
+    endDate: string;
+    totalBudgeted: number;
+    totalSpent: number;
+    percentage: number;
+    status: BudgetStatus;
+    categories: CategoryBudgetSummary[];
+  };
+  comparison: {
+    period: string;
+    startDate: string;
+    endDate: string;
+    totalBudgeted: number;
+    totalSpent: number;
+    percentage: number;
+    budgetedChange: number; // percentage change from comparison period
+    spentChange: number; // percentage change from comparison period
+  } | null;
+  trend?: TrendPeriod[];
+}
+
+/**
+ * Query parameters for historical comparison
+ */
+export interface BudgetHistoricalQuery {
+  type: HistoricalComparisonType;
+  periodType?: 'WEEKLY' | 'MONTHLY';
+}

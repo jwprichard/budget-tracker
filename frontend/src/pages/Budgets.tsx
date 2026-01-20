@@ -19,6 +19,7 @@ import {
 import { Add as AddIcon } from '@mui/icons-material';
 import { BudgetList, SortOption, FilterStatus, FilterPeriodType } from '../components/budgets/BudgetList';
 import { BudgetForm } from '../components/budgets/BudgetForm';
+import { BudgetSummaryDashboard } from '../components/budgets/BudgetSummaryDashboard';
 import { useBudgets } from '../hooks/useBudgets';
 import { useSidebar } from '../hooks/useSidebar';
 
@@ -115,6 +116,9 @@ export const Budgets: React.FC = () => {
           Track your spending against category budgets
         </Typography>
       </Box>
+
+      {/* Budget Summary Dashboard */}
+      <BudgetSummaryDashboard />
 
       {/* Budget List */}
       <Paper sx={{ p: 3 }}>

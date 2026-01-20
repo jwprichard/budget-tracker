@@ -7,6 +7,7 @@ import {
   getBudgets,
   getBudgetById,
   getBudgetSummary,
+  getBudgetHistorical,
   createBudget,
   updateBudget,
   deleteBudget,
@@ -15,6 +16,8 @@ import {
   Budget,
   BudgetWithStatus,
   BudgetSummaryResponse,
+  BudgetHistoricalResponse,
+  BudgetHistoricalQuery,
   CreateBudgetDto,
   UpdateBudgetDto,
   BudgetQuery,
@@ -26,6 +29,7 @@ export const budgetKeys = {
   lists: () => [...budgetKeys.all, 'list'] as const,
   list: (query?: BudgetQuery) => [...budgetKeys.lists(), query] as const,
   summary: () => [...budgetKeys.all, 'summary'] as const,
+  historical: (query: BudgetHistoricalQuery) => [...budgetKeys.all, 'historical', query] as const,
   details: () => [...budgetKeys.all, 'detail'] as const,
   detail: (id: string) => [...budgetKeys.details(), id] as const,
 };
@@ -62,6 +66,18 @@ export const useBudgetSummary = (): UseQueryResult<BudgetSummaryResponse, Error>
   return useQuery({
     queryKey: budgetKeys.summary(),
     queryFn: getBudgetSummary,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+/**
+ * Hook to fetch budget historical comparison data
+ * @param query - Comparison type and period type
+ */
+export const useBudgetHistorical = (query: BudgetHistoricalQuery): UseQueryResult<BudgetHistoricalResponse, Error> => {
+  return useQuery({
+    queryKey: budgetKeys.historical(query),
+    queryFn: () => getBudgetHistorical(query),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };

@@ -9,6 +9,7 @@ import {
   createBudget,
   getBudgets,
   getBudgetSummary,
+  getBudgetHistorical,
   getBudgetById,
   updateBudget,
   deleteBudget,
@@ -27,6 +28,7 @@ router.use(authenticate);
 router.post('/', createBudget);
 router.get('/', getBudgets);
 router.get('/summary', getBudgetSummary); // Must be before /:id to avoid conflict
+router.get('/historical', getBudgetHistorical); // Must be before /:id to avoid conflict
 router.get('/:id', getBudgetById);
 router.put('/:id', updateBudget);
 router.delete('/:id', deleteBudget);

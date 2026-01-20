@@ -1,6 +1,14 @@
 import { PrismaClient, Budget } from '@prisma/client';
 import { CreateBudgetDto, UpdateBudgetDto, BudgetQueryDto } from '../schemas/budget.schema';
-import { BudgetWithStatus, BudgetSummaryResponse } from '../types/budget.types';
+import {
+  BudgetWithStatus,
+  BudgetSummaryResponse,
+  BudgetHistoricalResponse,
+  HistoricalComparisonType,
+  CategoryBudgetSummary,
+  TrendPeriod,
+  BudgetStatus,
+} from '../types/budget.types';
 import { AppError } from '../middlewares/errorHandler';
 import { calculateBudgetStatus } from '../utils/budgetHelpers';
 import { calculatePeriodEndDate } from '../utils/periodCalculations';
@@ -312,6 +320,311 @@ export class BudgetService {
       totalSpent,
       totalRemaining,
     };
+  }
+
+  /**
+   * Get historical comparison data for budgets
+   * @param userId - User UUID
+   * @param type - Comparison type: 'previous', 'trend', or 'yoy'
+   * @param periodType - Period granularity for comparison (defaults to 'MONTHLY')
+   */
+  async getBudgetHistoricalComparison(
+    userId: string,
+    type: HistoricalComparisonType,
+    periodType: 'WEEKLY' | 'MONTHLY' = 'MONTHLY'
+  ): Promise<BudgetHistoricalResponse> {
+    const now = new Date();
+
+    // Calculate current period boundaries
+    const { startDate: currentStart, endDate: currentEnd, periodLabel: currentLabel } =
+      this.getPeriodBoundaries(now, periodType);
+
+    // Get current period data
+    const currentData = await this.getPeriodBudgetData(userId, currentStart, currentEnd);
+
+    // Build response based on comparison type
+    const response: BudgetHistoricalResponse = {
+      type,
+      current: {
+        period: currentLabel,
+        startDate: currentStart.toISOString(),
+        endDate: currentEnd.toISOString(),
+        totalBudgeted: currentData.totalBudgeted,
+        totalSpent: currentData.totalSpent,
+        percentage: currentData.totalBudgeted > 0
+          ? Math.round((currentData.totalSpent / currentData.totalBudgeted) * 10000) / 100
+          : 0,
+        status: this.calculateOverallStatus(currentData.totalSpent, currentData.totalBudgeted),
+        categories: currentData.categories,
+      },
+      comparison: null,
+    };
+
+    if (type === 'previous') {
+      // Get previous period
+      const prevDate = this.subtractPeriod(currentStart, periodType, 1);
+      const { startDate: prevStart, endDate: prevEnd, periodLabel: prevLabel } =
+        this.getPeriodBoundaries(prevDate, periodType);
+
+      const prevData = await this.getPeriodBudgetData(userId, prevStart, prevEnd);
+
+      response.comparison = {
+        period: prevLabel,
+        startDate: prevStart.toISOString(),
+        endDate: prevEnd.toISOString(),
+        totalBudgeted: prevData.totalBudgeted,
+        totalSpent: prevData.totalSpent,
+        percentage: prevData.totalBudgeted > 0
+          ? Math.round((prevData.totalSpent / prevData.totalBudgeted) * 10000) / 100
+          : 0,
+        budgetedChange: this.calculatePercentageChange(prevData.totalBudgeted, currentData.totalBudgeted),
+        spentChange: this.calculatePercentageChange(prevData.totalSpent, currentData.totalSpent),
+      };
+    } else if (type === 'trend') {
+      // Get last 6 periods including current
+      const trendPeriods: TrendPeriod[] = [];
+
+      for (let i = 5; i >= 0; i--) {
+        const periodDate = this.subtractPeriod(currentStart, periodType, i);
+        const { startDate, endDate, periodLabel } = this.getPeriodBoundaries(periodDate, periodType);
+        const periodData = await this.getPeriodBudgetData(userId, startDate, endDate);
+
+        const percentage = periodData.totalBudgeted > 0
+          ? Math.round((periodData.totalSpent / periodData.totalBudgeted) * 10000) / 100
+          : 0;
+
+        trendPeriods.push({
+          period: periodLabel,
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+          totalBudgeted: periodData.totalBudgeted,
+          totalSpent: periodData.totalSpent,
+          percentage,
+          status: this.calculateOverallStatus(periodData.totalSpent, periodData.totalBudgeted),
+        });
+      }
+
+      response.trend = trendPeriods;
+
+      // Set comparison to the previous period (index 4, since current is index 5)
+      if (trendPeriods.length >= 2) {
+        const prevPeriod = trendPeriods[trendPeriods.length - 2]!;
+        response.comparison = {
+          period: prevPeriod.period,
+          startDate: prevPeriod.startDate,
+          endDate: prevPeriod.endDate,
+          totalBudgeted: prevPeriod.totalBudgeted,
+          totalSpent: prevPeriod.totalSpent,
+          percentage: prevPeriod.percentage,
+          budgetedChange: this.calculatePercentageChange(prevPeriod.totalBudgeted, currentData.totalBudgeted),
+          spentChange: this.calculatePercentageChange(prevPeriod.totalSpent, currentData.totalSpent),
+        };
+      }
+    } else if (type === 'yoy') {
+      // Get same period from previous year
+      const yoyDate = new Date(currentStart);
+      yoyDate.setFullYear(yoyDate.getFullYear() - 1);
+      const { startDate: yoyStart, endDate: yoyEnd, periodLabel: yoyLabel } =
+        this.getPeriodBoundaries(yoyDate, periodType);
+
+      const yoyData = await this.getPeriodBudgetData(userId, yoyStart, yoyEnd);
+
+      response.comparison = {
+        period: yoyLabel,
+        startDate: yoyStart.toISOString(),
+        endDate: yoyEnd.toISOString(),
+        totalBudgeted: yoyData.totalBudgeted,
+        totalSpent: yoyData.totalSpent,
+        percentage: yoyData.totalBudgeted > 0
+          ? Math.round((yoyData.totalSpent / yoyData.totalBudgeted) * 10000) / 100
+          : 0,
+        budgetedChange: this.calculatePercentageChange(yoyData.totalBudgeted, currentData.totalBudgeted),
+        spentChange: this.calculatePercentageChange(yoyData.totalSpent, currentData.totalSpent),
+      };
+    }
+
+    return response;
+  }
+
+  /**
+   * Get period boundaries and label
+   * @private
+   */
+  private getPeriodBoundaries(
+    date: Date,
+    periodType: 'WEEKLY' | 'MONTHLY'
+  ): { startDate: Date; endDate: Date; periodLabel: string } {
+    if (periodType === 'WEEKLY') {
+      // Get Monday of the week
+      const day = date.getDay();
+      const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+      const startDate = new Date(date);
+      startDate.setDate(diff);
+      startDate.setHours(0, 0, 0, 0);
+
+      const endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 6);
+      endDate.setHours(23, 59, 59, 999);
+
+      // Week number calculation
+      const weekNum = Math.ceil((((date.getTime() - new Date(date.getFullYear(), 0, 1).getTime()) / 86400000) + new Date(date.getFullYear(), 0, 1).getDay() + 1) / 7);
+      const periodLabel = `Week ${weekNum} ${date.getFullYear()}`;
+
+      return { startDate, endDate, periodLabel };
+    } else {
+      // Monthly
+      const startDate = new Date(date.getFullYear(), date.getMonth(), 1);
+      const endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
+
+      const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                          'July', 'August', 'September', 'October', 'November', 'December'];
+      const periodLabel = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+
+      return { startDate, endDate, periodLabel };
+    }
+  }
+
+  /**
+   * Subtract periods from a date
+   * @private
+   */
+  private subtractPeriod(date: Date, periodType: 'WEEKLY' | 'MONTHLY', count: number): Date {
+    const result = new Date(date);
+    if (periodType === 'WEEKLY') {
+      result.setDate(result.getDate() - (count * 7));
+    } else {
+      result.setMonth(result.getMonth() - count);
+    }
+    return result;
+  }
+
+  /**
+   * Get budget data for a specific period
+   * @private
+   */
+  private async getPeriodBudgetData(
+    userId: string,
+    startDate: Date,
+    endDate: Date
+  ): Promise<{
+    totalBudgeted: number;
+    totalSpent: number;
+    categories: CategoryBudgetSummary[];
+  }> {
+    // Get all budgets that overlap with this period
+    const budgets = await this.prisma.budget.findMany({
+      where: {
+        userId,
+        startDate: { lte: endDate },
+        OR: [
+          { endDate: null },
+          { endDate: { gte: startDate } },
+        ],
+      },
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
+      },
+    });
+
+    // Calculate spent for each budget/category
+    const categoryMap = new Map<string, CategoryBudgetSummary>();
+    let totalBudgeted = 0;
+    let totalSpent = 0;
+
+    for (const budget of budgets) {
+      // Get category IDs (include descendants if flag is set)
+      const categoryIds = budget.includeSubcategories
+        ? [
+            budget.categoryId,
+            ...(await this.getDescendantCategoryIds(budget.categoryId, userId)),
+          ]
+        : [budget.categoryId];
+
+      // Determine transaction type based on budget type
+      const transactionType = budget.type === 'INCOME' ? 'INCOME' : 'EXPENSE';
+
+      // Get spent amount for this period
+      const result = await this.prisma.transaction.aggregate({
+        where: {
+          userId,
+          categoryId: { in: categoryIds },
+          date: { gte: startDate, lte: endDate },
+          type: transactionType,
+        },
+        _sum: { amount: true },
+      });
+
+      const spent = budget.type === 'INCOME'
+        ? (result._sum.amount?.toNumber() || 0)
+        : Math.abs(result._sum.amount?.toNumber() || 0);
+      const budgetAmount = budget.amount.toNumber();
+      const percentage = budgetAmount > 0
+        ? Math.round((spent / budgetAmount) * 10000) / 100
+        : 0;
+
+      // Only include expense budgets in the summary (for dashboard clarity)
+      if (budget.type === 'EXPENSE') {
+        totalBudgeted += budgetAmount;
+        totalSpent += spent;
+
+        // Aggregate by category (merge if same category appears multiple times)
+        const existing = categoryMap.get(budget.categoryId);
+        if (existing) {
+          existing.budgeted += budgetAmount;
+          existing.spent += spent;
+          existing.percentage = existing.budgeted > 0
+            ? Math.round((existing.spent / existing.budgeted) * 10000) / 100
+            : 0;
+          existing.status = this.calculateOverallStatus(existing.spent, existing.budgeted);
+        } else {
+          categoryMap.set(budget.categoryId, {
+            categoryId: budget.categoryId,
+            categoryName: budget.category.name,
+            categoryColor: budget.category.color,
+            budgeted: budgetAmount,
+            spent,
+            percentage,
+            status: this.calculateOverallStatus(spent, budgetAmount),
+          });
+        }
+      }
+    }
+
+    return {
+      totalBudgeted,
+      totalSpent,
+      categories: Array.from(categoryMap.values()),
+    };
+  }
+
+  /**
+   * Calculate overall budget status
+   * @private
+   */
+  private calculateOverallStatus(spent: number, budgeted: number): BudgetStatus {
+    if (budgeted <= 0) return 'ON_TRACK';
+    const percentage = (spent / budgeted) * 100;
+    if (percentage >= 100) return 'EXCEEDED';
+    if (percentage >= 80) return 'WARNING';
+    if (percentage >= 50) return 'ON_TRACK';
+    return 'UNDER_BUDGET';
+  }
+
+  /**
+   * Calculate percentage change between two values
+   * @private
+   */
+  private calculatePercentageChange(oldValue: number, newValue: number): number {
+    if (oldValue === 0) {
+      return newValue === 0 ? 0 : 100;
+    }
+    return Math.round(((newValue - oldValue) / oldValue) * 10000) / 100;
   }
 
   /**

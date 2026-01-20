@@ -8,6 +8,8 @@ import {
   Budget,
   BudgetWithStatus,
   BudgetSummaryResponse,
+  BudgetHistoricalResponse,
+  BudgetHistoricalQuery,
   CreateBudgetDto,
   UpdateBudgetDto,
   BudgetQuery,
@@ -45,6 +47,17 @@ export const getBudgetSummary = async (): Promise<BudgetSummaryResponse> => {
 };
 
 /**
+ * Get historical comparison data for budgets
+ * @param query - Comparison type and period type
+ */
+export const getBudgetHistorical = async (query: BudgetHistoricalQuery): Promise<BudgetHistoricalResponse> => {
+  const response = await apiClient.get<SuccessResponse<BudgetHistoricalResponse>>(`${BASE_PATH}/historical`, {
+    params: query,
+  });
+  return response.data.data;
+};
+
+/**
  * Create a new budget
  * @param data - Budget creation data
  */
@@ -75,6 +88,7 @@ export const budgetService = {
   getBudgets,
   getBudgetById,
   getBudgetSummary,
+  getBudgetHistorical,
   createBudget,
   updateBudget,
   deleteBudget,

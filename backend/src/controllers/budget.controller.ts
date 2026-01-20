@@ -92,6 +92,54 @@ export const getBudgetSummary = async (
 };
 
 /**
+ * Get historical comparison data for budgets
+ * GET /api/v1/budgets/historical?type=previous|trend|yoy&periodType=WEEKLY|MONTHLY
+ */
+export const getBudgetHistorical = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const userId = req.user!.userId;
+    const type = (req.query['type'] as string) || 'previous';
+    const periodType = (req.query['periodType'] as 'WEEKLY' | 'MONTHLY') || 'MONTHLY';
+
+    // Validate type
+    if (!['previous', 'trend', 'yoy'].includes(type)) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid comparison type. Must be "previous", "trend", or "yoy"',
+      });
+      return;
+    }
+
+    // Validate periodType
+    if (!['WEEKLY', 'MONTHLY'].includes(periodType)) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid period type. Must be "WEEKLY" or "MONTHLY"',
+      });
+      return;
+    }
+
+    const historical = await budgetService.getBudgetHistoricalComparison(
+      userId,
+      type as 'previous' | 'trend' | 'yoy',
+      periodType
+    );
+
+    res.status(200).json({
+      success: true,
+      data: historical,
+      message: 'Historical comparison data retrieved successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Get a single budget by ID
  * GET /api/v1/budgets/:id
  */

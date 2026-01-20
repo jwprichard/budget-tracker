@@ -20,10 +20,61 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   ExpandMore as ExpandMoreIcon,
+  Warning as WarningIcon,
+  Error as ErrorIcon,
 } from '@mui/icons-material';
+import { keyframes } from '@mui/system';
 import { BudgetWithStatus, BudgetStatus, BudgetType } from '../../types/budget.types';
 import { BudgetProgress } from './BudgetProgress';
 import { CategoryColorBadge } from '../categories/CategoryColorBadge';
+
+// Pulse animation for warning status
+const pulseWarning = keyframes`
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(255, 152, 0, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 152, 0, 0);
+  }
+`;
+
+// Pulse animation for exceeded status
+const pulseExceeded = keyframes`
+  0% {
+    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(244, 67, 54, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0);
+  }
+`;
+
+/**
+ * Get alert styles based on status
+ */
+const getAlertStyles = (status: BudgetStatus) => {
+  switch (status) {
+    case 'WARNING':
+      return {
+        animation: `${pulseWarning} 2s ease-in-out infinite`,
+        borderColor: '#FF9800',
+        backgroundColor: 'rgba(255, 152, 0, 0.03)',
+      };
+    case 'EXCEEDED':
+      return {
+        animation: `${pulseExceeded} 1.5s ease-in-out infinite`,
+        borderColor: '#F44336',
+        backgroundColor: 'rgba(244, 67, 54, 0.05)',
+      };
+    default:
+      return {};
+  }
+};
 
 interface BudgetCardProps {
   budget: BudgetWithStatus;
@@ -88,6 +139,8 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({ budget, onEdit, onDelete
   const [expanded, setExpanded] = useState(false);
   const statusInfo = getStatusInfo(budget.status);
   const budgetTypeColor = getBudgetTypeColor(budget.type);
+  const alertStyles = getAlertStyles(budget.status);
+  const isAlertStatus = budget.status === 'WARNING' || budget.status === 'EXCEEDED';
 
   return (
     <Card
@@ -96,13 +149,58 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({ budget, onEdit, onDelete
         display: 'flex',
         flexDirection: 'column',
         transition: 'box-shadow 0.3s',
-        borderLeft: `4px solid ${budgetTypeColor}`,
+        borderLeft: `4px solid ${isAlertStatus ? alertStyles.borderColor : budgetTypeColor}`,
+        ...(isAlertStatus && {
+          ...alertStyles,
+          border: `2px solid ${alertStyles.borderColor}`,
+          borderLeft: `4px solid ${alertStyles.borderColor}`,
+        }),
         '&:hover': {
           boxShadow: 6,
         },
       }}
     >
-      <CardContent sx={{ flexGrow: 1, pb: 1 }}>
+      <CardContent sx={{ flexGrow: 1, pb: 1, position: 'relative' }}>
+        {/* Alert Badge for WARNING/EXCEEDED */}
+        {budget.status === 'EXCEEDED' && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: -8,
+              right: -8,
+              backgroundColor: '#F44336',
+              borderRadius: '50%',
+              width: 32,
+              height: 32,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: 2,
+            }}
+          >
+            <ErrorIcon sx={{ color: 'white', fontSize: 20 }} />
+          </Box>
+        )}
+        {budget.status === 'WARNING' && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: -8,
+              right: -8,
+              backgroundColor: '#FF9800',
+              borderRadius: '50%',
+              width: 32,
+              height: 32,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: 2,
+            }}
+          >
+            <WarningIcon sx={{ color: 'white', fontSize: 20 }} />
+          </Box>
+        )}
+
         {/* Header: Category and Period */}
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -125,6 +223,7 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({ budget, onEdit, onDelete
             label={statusInfo.label}
             color={statusInfo.color}
             size="small"
+            sx={isAlertStatus ? { fontWeight: 'bold' } : undefined}
           />
         </Box>
 
