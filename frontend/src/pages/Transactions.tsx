@@ -15,12 +15,13 @@ import {
   useDeleteTransaction,
 } from '../hooks/useTransactions';
 import { useAccounts } from '../hooks/useAccounts';
+import { useBudgets } from '../hooks/useBudgets';
 import { useSidebar } from '../hooks/useSidebar';
 import { LoadingSpinner } from '../components/common/LoadingSpinner';
 import { ErrorAlert } from '../components/common/ErrorAlert';
 import { EmptyState } from '../components/common/EmptyState';
 import { TransactionList } from '../components/transactions/TransactionList';
-import { TransactionFilters } from '../components/transactions/TransactionFilters';
+import { TransactionFilters, BudgetStatusFilter } from '../components/transactions/TransactionFilters';
 import { TransactionForm } from '../components/transactions/TransactionForm';
 import { TransferForm } from '../components/transactions/TransferForm';
 import { DeleteTransactionDialog } from '../components/transactions/DeleteTransactionDialog';
@@ -36,14 +37,33 @@ export const Transactions = () => {
   const [deleteTransaction, setDeleteTransaction] = useState<Transaction | null>(null);
   const [budgetFormOpen, setBudgetFormOpen] = useState(false);
   const [budgetInitialValues, setBudgetInitialValues] = useState<BudgetFormInitialValues | undefined>(undefined);
+  const [budgetStatusFilter, setBudgetStatusFilter] = useState<BudgetStatusFilter>('');
 
   // Queries
   const { data: accounts = [] } = useAccounts();
+  const { data: budgets = [] } = useBudgets();
   const {
     data: transactionsData,
     isLoading: transactionsLoading,
     error: transactionsError,
   } = useTransactions(filters);
+
+  // Get set of category IDs that have budgets
+  const budgetedCategoryIds = useMemo(() => {
+    return new Set(budgets.map((budget) => budget.categoryId));
+  }, [budgets]);
+
+  // Filter transactions by budget status (client-side)
+  const filteredTransactions = useMemo(() => {
+    if (!transactionsData?.transactions || budgetStatusFilter === '') {
+      return transactionsData?.transactions || [];
+    }
+
+    return transactionsData.transactions.filter((transaction) => {
+      const isBudgeted = transaction.categoryId && budgetedCategoryIds.has(transaction.categoryId);
+      return budgetStatusFilter === 'budgeted' ? isBudgeted : !isBudgeted;
+    });
+  }, [transactionsData?.transactions, budgetStatusFilter, budgetedCategoryIds]);
 
   // Mutations
   const createTransactionMutation = useCreateTransaction();
@@ -136,9 +156,11 @@ export const Transactions = () => {
         filters={filters}
         onFiltersChange={handleFiltersChange}
         compact
+        budgetStatusFilter={budgetStatusFilter}
+        onBudgetStatusChange={setBudgetStatusFilter}
       />
     ),
-    [filters]
+    [filters, budgetStatusFilter]
   );
 
   const sidebarTools = useMemo(
@@ -189,14 +211,15 @@ export const Transactions = () => {
         <LoadingSpinner message="Loading transactions..." />
       ) : transactionsError ? (
         <ErrorAlert error={transactionsError} title="Failed to load transactions" />
-      ) : transactionsData && transactionsData.transactions.length > 0 ? (
+      ) : transactionsData && filteredTransactions.length > 0 ? (
         <TransactionList
-          transactions={transactionsData.transactions}
+          transactions={filteredTransactions}
           pagination={transactionsData.pagination}
           onEdit={handleEditClick}
           onDelete={handleDeleteClick}
           onPageChange={handlePageChange}
           onPageSizeChange={handlePageSizeChange}
+          budgetedCategoryIds={budgetedCategoryIds}
         />
       ) : (
         <EmptyState

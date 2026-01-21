@@ -21,6 +21,7 @@ interface TransactionListProps {
   onDelete?: (transaction: Transaction) => void;
   onPageChange?: (page: number) => void;
   onPageSizeChange?: (pageSize: number) => void;
+  budgetedCategoryIds?: Set<string>;
 }
 
 export const TransactionList = ({
@@ -30,6 +31,7 @@ export const TransactionList = ({
   onDelete,
   onPageChange,
   onPageSizeChange,
+  budgetedCategoryIds,
 }: TransactionListProps) => {
   const handleChangePage = (_event: unknown, newPage: number) => {
     if (onPageChange) {
@@ -76,6 +78,7 @@ export const TransactionList = ({
                 transaction={transaction}
                 onEdit={onEdit}
                 onDelete={onDelete}
+                isBudgeted={transaction.categoryId ? budgetedCategoryIds?.has(transaction.categoryId) : false}
               />
             ))}
           </TableBody>

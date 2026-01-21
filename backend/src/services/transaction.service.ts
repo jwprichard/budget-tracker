@@ -16,7 +16,7 @@ export class TransactionService {
    * @param query - Query parameters for filtering, sorting, and pagination
    */
   async getAllTransactions(userId: string, query: TransactionQuery) {
-    const { accountId, type, status, startDate, endDate, page, pageSize, sortBy, sortOrder } = query;
+    const { accountId, type, status, startDate, endDate, search, page, pageSize, sortBy, sortOrder } = query;
 
     const where: Prisma.TransactionWhereInput = {
       userId, // Filter by user
@@ -29,6 +29,13 @@ export class TransactionService {
       where.date = {};
       if (startDate) where.date.gte = new Date(startDate);
       if (endDate) where.date.lte = new Date(endDate);
+    }
+    if (search) {
+      where.OR = [
+        { description: { contains: search, mode: 'insensitive' } },
+        { merchant: { contains: search, mode: 'insensitive' } },
+        { notes: { contains: search, mode: 'insensitive' } },
+      ];
     }
 
     const skip = (page - 1) * pageSize;

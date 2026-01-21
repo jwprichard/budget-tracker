@@ -1,5 +1,5 @@
-import { TableRow, TableCell, IconButton, Chip, Box, Typography } from '@mui/material';
-import { Delete as DeleteIcon, Edit as EditIcon, SwapHoriz as TransferIcon } from '@mui/icons-material';
+import { TableRow, TableCell, IconButton, Chip, Box, Typography, Tooltip } from '@mui/material';
+import { Delete as DeleteIcon, Edit as EditIcon, SwapHoriz as TransferIcon, AccountBalance as BudgetIcon } from '@mui/icons-material';
 import { Transaction } from '../../types';
 import { BalanceDisplay } from '../common/BalanceDisplay';
 import { TransactionStatusChip } from './TransactionStatusChip';
@@ -10,9 +10,10 @@ interface TransactionListItemProps {
   transaction: Transaction;
   onEdit?: (transaction: Transaction) => void;
   onDelete?: (transaction: Transaction) => void;
+  isBudgeted?: boolean;
 }
 
-export const TransactionListItem = ({ transaction, onEdit, onDelete }: TransactionListItemProps) => {
+export const TransactionListItem = ({ transaction, onEdit, onDelete, isBudgeted }: TransactionListItemProps) => {
   const isTransfer = !!transaction.transferToAccountId;
   const category = transaction.category;
 
@@ -91,6 +92,11 @@ export const TransactionListItem = ({ transaction, onEdit, onDelete }: Transacti
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <CategoryColorBadge color={category.color} size={12} />
             <Typography variant="body2">{category.name}</Typography>
+            {isBudgeted && (
+              <Tooltip title="Has budget">
+                <BudgetIcon sx={{ fontSize: 16, color: 'primary.main' }} />
+              </Tooltip>
+            )}
           </Box>
         ) : (
           <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>

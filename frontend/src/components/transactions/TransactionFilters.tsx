@@ -3,10 +3,14 @@ import { TransactionType, TransactionStatus, TransactionQuery } from '../../type
 import { useAccounts } from '../../hooks/useAccounts';
 import { DatePicker } from '../common/DatePicker';
 
+export type BudgetStatusFilter = '' | 'budgeted' | 'not_budgeted';
+
 interface TransactionFiltersProps {
   filters: TransactionQuery;
   onFiltersChange: (filters: TransactionQuery) => void;
   compact?: boolean;
+  budgetStatusFilter?: BudgetStatusFilter;
+  onBudgetStatusChange?: (status: BudgetStatusFilter) => void;
 }
 
 const transactionTypes: { value: TransactionType | ''; label: string }[] = [
@@ -23,7 +27,19 @@ const transactionStatuses: { value: TransactionStatus | ''; label: string }[] = 
   { value: 'RECONCILED', label: 'Reconciled' },
 ];
 
-export const TransactionFilters = ({ filters, onFiltersChange, compact = false }: TransactionFiltersProps) => {
+const budgetStatusOptions: { value: BudgetStatusFilter; label: string }[] = [
+  { value: '', label: 'All Transactions' },
+  { value: 'budgeted', label: 'Budgeted' },
+  { value: 'not_budgeted', label: 'Not Budgeted' },
+];
+
+export const TransactionFilters = ({
+  filters,
+  onFiltersChange,
+  compact = false,
+  budgetStatusFilter = '',
+  onBudgetStatusChange,
+}: TransactionFiltersProps) => {
   const { data: accounts = [] } = useAccounts();
 
   const handleFilterChange = (key: keyof TransactionQuery, value: string) => {
@@ -37,6 +53,15 @@ export const TransactionFilters = ({ filters, onFiltersChange, compact = false }
   if (compact) {
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <TextField
+          label="Search"
+          fullWidth
+          size="small"
+          placeholder="Search description..."
+          value={filters.search || ''}
+          onChange={(e) => handleFilterChange('search', e.target.value)}
+        />
+
         <TextField
           select
           label="Account"
@@ -82,6 +107,23 @@ export const TransactionFilters = ({ filters, onFiltersChange, compact = false }
             </MenuItem>
           ))}
         </TextField>
+
+        {onBudgetStatusChange && (
+          <TextField
+            select
+            label="Budget Status"
+            fullWidth
+            size="small"
+            value={budgetStatusFilter}
+            onChange={(e) => onBudgetStatusChange(e.target.value as BudgetStatusFilter)}
+          >
+            {budgetStatusOptions.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </TextField>
+        )}
 
         <DatePicker
           label="Start Date"

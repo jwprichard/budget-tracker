@@ -147,6 +147,7 @@ export interface TransactionQuery {
   status?: TransactionStatus;
   startDate?: string;
   endDate?: string;
+  search?: string;
   page?: number;
   pageSize?: number;
   sortBy?: string;

@@ -61,6 +61,7 @@ export const transactionQuerySchema = z.object({
   status: transactionStatusEnum.optional(),
   startDate: z.string().datetime({ message: 'Start date must be a valid ISO datetime string' }).optional(),
   endDate: z.string().datetime({ message: 'End date must be a valid ISO datetime string' }).optional(),
+  search: z.string().max(255, 'Search query must be at most 255 characters').optional(),
   page: z
     .string()
     .transform((val) => parseInt(val, 10))
