@@ -3,7 +3,7 @@
  * Displays budget overview with health status, period comparison, and category breakdown
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Card,
@@ -41,10 +41,54 @@ import {
 import { useBudgetSummary, useBudgetHistorical } from '../../hooks/useBudgets';
 import {
   BudgetStatus,
+  BudgetPeriod,
   HistoricalComparisonType,
-  CategoryBudgetSummary,
+  BudgetWithStatus,
 } from '../../types/budget.types';
 import { formatCurrency } from '../../utils/formatters';
+
+type FilterPeriodType = BudgetPeriod;
+
+/**
+ * Number of periods per year for each budget period type
+ * Used for normalizing budget amounts across different periods
+ */
+const PERIODS_PER_YEAR: Record<BudgetPeriod, number> = {
+  DAILY: 365,
+  WEEKLY: 52,
+  FORTNIGHTLY: 26,
+  MONTHLY: 12,
+  ANNUALLY: 1,
+};
+
+/**
+ * Normalize a budget's amounts (budgeted, spent, remaining) to the target period
+ * One-time budgets (null periodType) are not normalized - they return raw values
+ */
+const normalizeBudget = (
+  budget: BudgetWithStatus,
+  targetPeriod: BudgetPeriod
+): { amount: number; spent: number; remaining: number } => {
+  // One-time budgets (null periodType) cannot be normalized - return as-is
+  if (!budget.periodType) {
+    return {
+      amount: budget.amount,
+      spent: budget.spent,
+      remaining: budget.remaining,
+    };
+  }
+
+  const factor = PERIODS_PER_YEAR[budget.periodType] / PERIODS_PER_YEAR[targetPeriod];
+  return {
+    amount: budget.amount * factor,
+    spent: budget.spent * factor,
+    remaining: budget.remaining * factor,
+  };
+};
+
+interface BudgetSummaryDashboardProps {
+  filterPeriodType?: FilterPeriodType;
+}
 
 /**
  * Get color based on budget status
@@ -121,7 +165,9 @@ const TrendIndicator: React.FC<{ change: number; label: string }> = ({ change, l
   );
 };
 
-export const BudgetSummaryDashboard: React.FC = () => {
+export const BudgetSummaryDashboard: React.FC<BudgetSummaryDashboardProps> = ({
+  filterPeriodType = 'ANNUALLY',
+}) => {
   const [comparisonType, setComparisonType] = useState<HistoricalComparisonType>(() => {
     const saved = localStorage.getItem('budgetComparisonType');
     return (saved as HistoricalComparisonType) || 'previous';
@@ -148,6 +194,112 @@ export const BudgetSummaryDashboard: React.FC = () => {
   const isLoading = summaryLoading || historicalLoading;
   const error = summaryError || historicalError;
 
+  // Calculate totals - normalize all budgets to the selected period
+  // Example: If "Monthly" selected, weekly $100 budget becomes $433 (100 * 52/12)
+  // NOTE: useMemo must be called before any early returns to follow Rules of Hooks
+  const { totalBudgeted, totalSpent, totalRemaining } = useMemo(() => {
+    if (!summary?.budgets) {
+      return { totalBudgeted: 0, totalSpent: 0, totalRemaining: 0 };
+    }
+
+    // Only count ONE budget per recurring template
+    // This prevents counting all 12 monthly instances when viewing annually
+    let budgeted = 0;
+    let spent = 0;
+    let remaining = 0;
+    const seenTemplates = new Set<string>();
+
+    summary.budgets.forEach((budget) => {
+      // For recurring budgets, only count the first instance per template
+      if (budget.templateId) {
+        if (seenTemplates.has(budget.templateId)) {
+          return; // Skip - already counted this template
+        }
+        seenTemplates.add(budget.templateId);
+      }
+
+      const normalized = normalizeBudget(budget, filterPeriodType);
+      budgeted += normalized.amount;
+      spent += normalized.spent;
+      remaining += normalized.remaining;
+    });
+
+    return { totalBudgeted: budgeted, totalSpent: spent, totalRemaining: remaining };
+  }, [summary?.budgets, filterPeriodType]);
+
+  // Prepare category data for chart (aggregated and normalized)
+  // NOTE: useMemo must be called before any early returns to follow Rules of Hooks
+  const categoryData = useMemo(() => {
+    if (!summary?.budgets) {
+      return [];
+    }
+
+    const categoryMap = new Map<string, { name: string; spent: number; budgeted: number; color: string }>();
+    const seenTemplates = new Set<string>();
+
+    summary.budgets.forEach((budget) => {
+      // Only count ONE budget per recurring template
+      if (budget.templateId) {
+        if (seenTemplates.has(budget.templateId)) {
+          return; // Skip - already counted this template
+        }
+        seenTemplates.add(budget.templateId);
+      }
+
+      // Normalize amounts to the selected period
+      const { amount, spent } = normalizeBudget(budget, filterPeriodType);
+
+      const existing = categoryMap.get(budget.categoryId);
+      if (existing) {
+        existing.spent += spent;
+        existing.budgeted += amount;
+      } else {
+        categoryMap.set(budget.categoryId, {
+          name: budget.categoryName,
+          spent: spent,
+          budgeted: amount,
+          color: budget.categoryColor,
+        });
+      }
+    });
+
+    return Array.from(categoryMap.values())
+      .sort((a, b) => b.spent - a.spent)
+      .slice(0, 6)
+      .map((cat) => ({
+        name: cat.name,
+        spent: cat.spent,
+        budgeted: cat.budgeted,
+        color: cat.color,
+        percentage: cat.budgeted > 0 ? (cat.spent / cat.budgeted) * 100 : 0,
+      }));
+  }, [summary?.budgets, filterPeriodType]);
+
+  // Prepare trend data for mini chart
+  // NOTE: useMemo must be called before any early returns to follow Rules of Hooks
+  const trendData = useMemo(() => {
+    return historical?.trend?.map((period) => ({
+      name: period.period.split(' ')[0]?.substring(0, 3) || period.period,
+      spent: period.totalSpent,
+      budgeted: period.totalBudgeted,
+      percentage: period.percentage,
+    })) || [];
+  }, [historical?.trend]);
+
+  // Calculate derived values (these don't need useMemo as they're simple calculations)
+  const percentage = totalBudgeted > 0 ? (totalSpent / totalBudgeted) * 100 : 0;
+
+  const calculateStatus = (spent: number, budgeted: number): BudgetStatus => {
+    if (budgeted <= 0) return 'ON_TRACK';
+    const pct = (spent / budgeted) * 100;
+    if (pct >= 100) return 'EXCEEDED';
+    if (pct >= 80) return 'WARNING';
+    if (pct >= 50) return 'ON_TRACK';
+    return 'UNDER_BUDGET';
+  };
+  const overallStatus = calculateStatus(totalSpent, totalBudgeted);
+
+  // Early returns for loading/error states - AFTER all hooks
   if (isLoading) {
     return (
       <Card elevation={2} sx={{ mb: 3 }}>
@@ -175,30 +327,6 @@ export const BudgetSummaryDashboard: React.FC = () => {
   if (!summary || !historical) {
     return null;
   }
-
-  const { totalBudgeted, totalSpent, totalRemaining } = summary;
-  const percentage = totalBudgeted > 0 ? (totalSpent / totalBudgeted) * 100 : 0;
-  const overallStatus = historical.current.status;
-
-  // Prepare category data for chart
-  const categoryData = historical.current.categories
-    .sort((a, b) => b.spent - a.spent)
-    .slice(0, 6)
-    .map((cat: CategoryBudgetSummary) => ({
-      name: cat.categoryName,
-      spent: cat.spent,
-      budgeted: cat.budgeted,
-      color: cat.categoryColor,
-      percentage: cat.percentage,
-    }));
-
-  // Prepare trend data for mini chart
-  const trendData = historical.trend?.map((period) => ({
-    name: period.period.split(' ')[0]?.substring(0, 3) || period.period,
-    spent: period.totalSpent,
-    budgeted: period.totalBudgeted,
-    percentage: period.percentage,
-  }));
 
   // Custom tooltip for pie chart
   const PieTooltip = ({ active, payload }: any) => {

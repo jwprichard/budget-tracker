@@ -20,6 +20,7 @@ import { Add as AddIcon } from '@mui/icons-material';
 import { BudgetList, SortOption, FilterStatus, FilterPeriodType } from '../components/budgets/BudgetList';
 import { BudgetForm } from '../components/budgets/BudgetForm';
 import { BudgetSummaryDashboard } from '../components/budgets/BudgetSummaryDashboard';
+import { IncomeVsExpensesDashboard } from '../components/budgets/IncomeVsExpensesDashboard';
 import { useBudgets } from '../hooks/useBudgets';
 import { useSidebar } from '../hooks/useSidebar';
 
@@ -27,7 +28,7 @@ export const Budgets: React.FC = () => {
   const [budgetFormOpen, setBudgetFormOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('period');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('ALL');
-  const [filterPeriodType, setFilterPeriodType] = useState<FilterPeriodType>('ALL');
+  const [filterPeriodType, setFilterPeriodType] = useState<FilterPeriodType>('ANNUALLY');
   const { data: budgets = [], isLoading, error } = useBudgets();
 
   // Sidebar tools - action buttons
@@ -58,13 +59,11 @@ export const Budgets: React.FC = () => {
             label="Period Type"
             onChange={(e: SelectChangeEvent) => setFilterPeriodType(e.target.value as FilterPeriodType)}
           >
-            <MenuItem value="ALL">All Periods</MenuItem>
-            <MenuItem value="DAILY">Daily</MenuItem>
-            <MenuItem value="WEEKLY">Weekly</MenuItem>
-            <MenuItem value="FORTNIGHTLY">Fortnightly</MenuItem>
-            <MenuItem value="MONTHLY">Monthly</MenuItem>
-            <MenuItem value="QUARTERLY">Quarterly</MenuItem>
             <MenuItem value="ANNUALLY">Annually</MenuItem>
+            <MenuItem value="MONTHLY">Monthly</MenuItem>
+            <MenuItem value="FORTNIGHTLY">Fortnightly</MenuItem>
+            <MenuItem value="WEEKLY">Weekly</MenuItem>
+            <MenuItem value="DAILY">Daily</MenuItem>
           </Select>
         </FormControl>
         <FormControl fullWidth size="small">
@@ -118,7 +117,10 @@ export const Budgets: React.FC = () => {
       </Box>
 
       {/* Budget Summary Dashboard */}
-      <BudgetSummaryDashboard />
+      <BudgetSummaryDashboard filterPeriodType={filterPeriodType} />
+
+      {/* Income vs Expenses Comparison */}
+      <IncomeVsExpensesDashboard filterPeriodType={filterPeriodType} />
 
       {/* Budget List */}
       <Paper sx={{ p: 3 }}>

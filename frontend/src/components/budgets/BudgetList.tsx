@@ -6,7 +6,6 @@
 
 import React, { useState, useMemo } from 'react';
 import {
-  Grid,
   Box,
   Typography,
   Alert,
@@ -17,11 +16,10 @@ import {
   DialogContentText,
   DialogActions,
   Button,
-  Divider,
+  Grid,
 } from '@mui/material';
 import { BudgetWithStatus, BudgetStatus, BudgetPeriod, BudgetTemplate } from '../../types/budget.types';
-import { BudgetCard } from './BudgetCard';
-import { TemplateCard } from './TemplateCard';
+import { BudgetSection } from './BudgetSection';
 import { BudgetForm } from './BudgetForm';
 import { TemplateEditDialog } from './TemplateEditDialog';
 import { useDeleteBudget } from '../../hooks/useBudgets';
@@ -29,7 +27,7 @@ import { useBudgetTemplates, useDeleteTemplate } from '../../hooks/useBudgetTemp
 
 export type SortOption = 'amount' | 'spent' | 'percentage' | 'name' | 'period';
 export type FilterStatus = 'ALL' | BudgetStatus;
-export type FilterPeriodType = 'ALL' | BudgetPeriod;
+export type FilterPeriodType = BudgetPeriod;
 
 interface BudgetListProps {
   budgets: BudgetWithStatus[];
@@ -62,61 +60,79 @@ export const BudgetList: React.FC<BudgetListProps> = ({
   // Fetch templates
   const { data: templates = [], isLoading: templatesLoading } = useBudgetTemplates();
 
-  // Filter budgets
+  // Filter budgets (only by status - period type filter is used for totals only)
   const filteredBudgets = budgets.filter((budget) => {
     if (filterStatus !== 'ALL' && budget.status !== filterStatus) return false;
-    if (filterPeriodType !== 'ALL' && budget.periodType !== filterPeriodType) return false;
     return true;
   });
 
-  // Group budgets by template and separate one-time budgets
-  const { templateBudgetsMap, oneTimeBudgets } = useMemo(() => {
-    const templateMap = new Map<string, BudgetWithStatus[]>();
-    const oneTime: BudgetWithStatus[] = [];
+  // Sort function for budgets
+  const sortBudgets = (budgetsToSort: BudgetWithStatus[]) => {
+    return [...budgetsToSort].sort((a, b) => {
+      switch (sortBy) {
+        case 'amount':
+          return b.amount - a.amount;
+        case 'spent':
+          return b.spent - a.spent;
+        case 'percentage':
+          return b.percentage - a.percentage;
+        case 'name':
+          return (a.name || a.categoryName).localeCompare(b.name || b.categoryName);
+        case 'period':
+          return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
+        default:
+          return 0;
+      }
+    });
+  };
+
+  // Group budgets by type (INCOME/EXPENSE), then by template vs one-time
+  const { incomeBudgets, expenseBudgets, incomeTemplateMap, expenseTemplateMap, incomeOneTime, expenseOneTime } = useMemo(() => {
+    const income: BudgetWithStatus[] = [];
+    const expense: BudgetWithStatus[] = [];
+    const incomeTemplates = new Map<string, BudgetWithStatus[]>();
+    const expenseTemplates = new Map<string, BudgetWithStatus[]>();
+    const incomeOT: BudgetWithStatus[] = [];
+    const expenseOT: BudgetWithStatus[] = [];
 
     filteredBudgets.forEach((budget) => {
+      const isIncome = budget.type === 'INCOME';
+      const targetArray = isIncome ? income : expense;
+      const targetTemplateMap = isIncome ? incomeTemplates : expenseTemplates;
+      const targetOneTime = isIncome ? incomeOT : expenseOT;
+
+      targetArray.push(budget);
+
       if (budget.templateId) {
-        if (!templateMap.has(budget.templateId)) {
-          templateMap.set(budget.templateId, []);
+        if (!targetTemplateMap.has(budget.templateId)) {
+          targetTemplateMap.set(budget.templateId, []);
         }
-        templateMap.get(budget.templateId)!.push(budget);
+        targetTemplateMap.get(budget.templateId)!.push(budget);
       } else {
-        oneTime.push(budget);
+        targetOneTime.push(budget);
       }
     });
 
     // Sort budgets within each template by start date (newest first)
-    templateMap.forEach((budgets) => {
-      budgets.sort((a, b) => {
-        return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
+    [incomeTemplates, expenseTemplates].forEach((templateMap) => {
+      templateMap.forEach((budgets) => {
+        budgets.sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
       });
     });
 
-    return { templateBudgetsMap: templateMap, oneTimeBudgets: oneTime };
-  }, [filteredBudgets]);
+    return {
+      incomeBudgets: income,
+      expenseBudgets: expense,
+      incomeTemplateMap: incomeTemplates,
+      expenseTemplateMap: expenseTemplates,
+      incomeOneTime: sortBudgets(incomeOT),
+      expenseOneTime: sortBudgets(expenseOT),
+    };
+  }, [filteredBudgets, sortBy]);
 
-  // Sort one-time budgets
-  const sortedOneTimeBudgets = [...oneTimeBudgets].sort((a, b) => {
-    switch (sortBy) {
-      case 'amount':
-        return b.amount - a.amount;
-      case 'spent':
-        return b.spent - a.spent;
-      case 'percentage':
-        return b.percentage - a.percentage;
-      case 'name':
-        return (a.name || a.categoryName).localeCompare(b.name || b.categoryName);
-      case 'period':
-        return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
-      default:
-        return 0;
-    }
-  });
-
-  // Filter templates to only show those with budgets in the current filter
-  const activeTemplates = templates.filter((template) =>
-    templateBudgetsMap.has(template.id)
-  );
+  // Filter templates by type
+  const incomeTemplates = templates.filter((t) => t.type === 'INCOME' && incomeTemplateMap.has(t.id));
+  const expenseTemplates = templates.filter((t) => t.type === 'EXPENSE' && expenseTemplateMap.has(t.id));
 
   const handleEdit = (budget: BudgetWithStatus) => {
     setEditingBudget(budget);
@@ -201,8 +217,12 @@ export const BudgetList: React.FC<BudgetListProps> = ({
     );
   }
 
+  // Check if there's any content to display
+  const hasIncomeContent = incomeTemplates.length > 0 || incomeOneTime.length > 0;
+  const hasExpenseContent = expenseTemplates.length > 0 || expenseOneTime.length > 0;
+
   // Empty state after filtering
-  if (activeTemplates.length === 0 && sortedOneTimeBudgets.length === 0) {
+  if (!hasIncomeContent && !hasExpenseContent) {
     return (
       <Box sx={{ textAlign: 'center', py: 4 }}>
         <Typography variant="body1" color="text.secondary">
@@ -214,53 +234,37 @@ export const BudgetList: React.FC<BudgetListProps> = ({
 
   return (
     <Box>
-      {/* Recurring Budget Templates */}
-      {activeTemplates.length > 0 && (
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-            Recurring Budgets
-          </Typography>
-          <Grid container spacing={3}>
-            {activeTemplates.map((template) => (
-              <Grid item xs={12} sm={6} lg={4} key={template.id}>
-                <TemplateCard
-                  template={template}
-                  budgets={templateBudgetsMap.get(template.id) || []}
-                  onEdit={handleTemplateEdit}
-                  onDelete={handleTemplateDeleteClick}
-                  onEditBudget={handleEdit}
-                  onDeleteBudget={(budget) => handleDeleteClick(budget.id)}
-                />
-              </Grid>
-            ))}
-          </Grid>
-        </Box>
-      )}
+      {/* Income Section */}
+      <BudgetSection
+        title="Income"
+        type="INCOME"
+        budgets={incomeBudgets}
+        templates={incomeTemplates}
+        templateBudgetsMap={incomeTemplateMap}
+        oneTimeBudgets={incomeOneTime}
+        defaultExpanded={true}
+        filterPeriodType={filterPeriodType}
+        onEditBudget={handleEdit}
+        onDeleteBudget={handleDeleteClick}
+        onEditTemplate={handleTemplateEdit}
+        onDeleteTemplate={handleTemplateDeleteClick}
+      />
 
-      {/* Divider between sections */}
-      {activeTemplates.length > 0 && sortedOneTimeBudgets.length > 0 && (
-        <Divider sx={{ my: 4 }} />
-      )}
-
-      {/* One-Time Budget Cards */}
-      {sortedOneTimeBudgets.length > 0 && (
-        <Box>
-          <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-            One-Time Budgets
-          </Typography>
-          <Grid container spacing={3}>
-            {sortedOneTimeBudgets.map((budget) => (
-              <Grid item xs={12} sm={6} lg={4} key={budget.id}>
-                <BudgetCard
-                  budget={budget}
-                  onEdit={handleEdit}
-                  onDelete={handleDeleteClick}
-                />
-              </Grid>
-            ))}
-          </Grid>
-        </Box>
-      )}
+      {/* Expenses Section */}
+      <BudgetSection
+        title="Expenses"
+        type="EXPENSE"
+        budgets={expenseBudgets}
+        templates={expenseTemplates}
+        templateBudgetsMap={expenseTemplateMap}
+        oneTimeBudgets={expenseOneTime}
+        defaultExpanded={true}
+        filterPeriodType={filterPeriodType}
+        onEditBudget={handleEdit}
+        onDeleteBudget={handleDeleteClick}
+        onEditTemplate={handleTemplateEdit}
+        onDeleteTemplate={handleTemplateDeleteClick}
+      />
 
       {/* Budget Form Dialog */}
       <BudgetForm
