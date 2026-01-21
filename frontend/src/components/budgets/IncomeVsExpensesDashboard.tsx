@@ -13,6 +13,8 @@ import {
   LinearProgress,
   CircularProgress,
   Alert,
+  Stack,
+  Chip,
 } from '@mui/material';
 import { useBudgetSummary } from '../../hooks/useBudgets';
 import { BudgetPeriod, BudgetWithStatus } from '../../types/budget.types';
@@ -54,15 +56,25 @@ export const IncomeVsExpensesDashboard: React.FC<IncomeVsExpensesDashboardProps>
 }) => {
   const { data: summary, isLoading, error } = useBudgetSummary();
 
-  // Calculate normalized totals for income and expenses
-  const { totalIncome, totalExpenses, netDifference } = useMemo(() => {
+  // Category breakdown type
+  interface CategoryBreakdown {
+    categoryId: string;
+    categoryName: string;
+    categoryColor: string;
+    amount: number;
+  }
+
+  // Calculate normalized totals and category breakdowns for income and expenses
+  const { totalIncome, totalExpenses, netDifference, incomeCategories, expenseCategories } = useMemo(() => {
     if (!summary?.budgets) {
-      return { totalIncome: 0, totalExpenses: 0, netDifference: 0 };
+      return { totalIncome: 0, totalExpenses: 0, netDifference: 0, incomeCategories: [], expenseCategories: [] };
     }
 
     let income = 0;
     let expenses = 0;
     const seenTemplates = new Set<string>();
+    const incomeCategoryMap = new Map<string, CategoryBreakdown>();
+    const expenseCategoryMap = new Map<string, CategoryBreakdown>();
 
     summary.budgets.forEach((budget) => {
       // Only count ONE budget per recurring template
@@ -74,18 +86,40 @@ export const IncomeVsExpensesDashboard: React.FC<IncomeVsExpensesDashboardProps>
       }
 
       const normalizedAmount = normalizeAmount(budget, filterPeriodType);
+      const categoryMap = budget.type === 'INCOME' ? incomeCategoryMap : expenseCategoryMap;
 
       if (budget.type === 'INCOME') {
         income += normalizedAmount;
       } else {
         expenses += normalizedAmount;
       }
+
+      // Aggregate by category
+      const existing = categoryMap.get(budget.categoryId);
+      if (existing) {
+        existing.amount += normalizedAmount;
+      } else {
+        categoryMap.set(budget.categoryId, {
+          categoryId: budget.categoryId,
+          categoryName: budget.categoryName,
+          categoryColor: budget.categoryColor,
+          amount: normalizedAmount,
+        });
+      }
     });
+
+    // Sort categories by amount descending
+    const sortedIncomeCategories = Array.from(incomeCategoryMap.values())
+      .sort((a, b) => b.amount - a.amount);
+    const sortedExpenseCategories = Array.from(expenseCategoryMap.values())
+      .sort((a, b) => b.amount - a.amount);
 
     return {
       totalIncome: income,
       totalExpenses: expenses,
       netDifference: income - expenses,
+      incomeCategories: sortedIncomeCategories,
+      expenseCategories: sortedExpenseCategories,
     };
   }, [summary?.budgets, filterPeriodType]);
 
@@ -134,7 +168,7 @@ export const IncomeVsExpensesDashboard: React.FC<IncomeVsExpensesDashboardProps>
 
         <Box sx={{ mt: 2 }}>
           {/* Income Bar */}
-          <Box sx={{ mb: 2 }}>
+          <Box sx={{ mb: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
               <Typography variant="body2" fontWeight={500}>
                 Income
@@ -156,6 +190,31 @@ export const IncomeVsExpensesDashboard: React.FC<IncomeVsExpensesDashboardProps>
                 },
               }}
             />
+            {/* Income Category Breakdown */}
+            {incomeCategories.length > 0 && totalIncome > 0 && (
+              <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap', gap: 0.5 }}>
+                {incomeCategories.slice(0, 5).map((cat) => (
+                  <Chip
+                    key={cat.categoryId}
+                    size="small"
+                    label={`${cat.categoryName}: ${formatCurrency(cat.amount)} (${((cat.amount / totalIncome) * 100).toFixed(0)}%)`}
+                    sx={{
+                      bgcolor: cat.categoryColor + '20',
+                      borderLeft: `3px solid ${cat.categoryColor}`,
+                      fontSize: '0.75rem',
+                    }}
+                  />
+                ))}
+                {incomeCategories.length > 5 && (
+                  <Chip
+                    size="small"
+                    label={`+${incomeCategories.length - 5} more`}
+                    variant="outlined"
+                    sx={{ fontSize: '0.75rem' }}
+                  />
+                )}
+              </Stack>
+            )}
           </Box>
 
           {/* Expenses Bar */}
@@ -181,6 +240,31 @@ export const IncomeVsExpensesDashboard: React.FC<IncomeVsExpensesDashboardProps>
                 },
               }}
             />
+            {/* Expenses Category Breakdown */}
+            {expenseCategories.length > 0 && totalExpenses > 0 && (
+              <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap', gap: 0.5 }}>
+                {expenseCategories.slice(0, 5).map((cat) => (
+                  <Chip
+                    key={cat.categoryId}
+                    size="small"
+                    label={`${cat.categoryName}: ${formatCurrency(cat.amount)} (${((cat.amount / totalExpenses) * 100).toFixed(0)}%)`}
+                    sx={{
+                      bgcolor: cat.categoryColor + '20',
+                      borderLeft: `3px solid ${cat.categoryColor}`,
+                      fontSize: '0.75rem',
+                    }}
+                  />
+                ))}
+                {expenseCategories.length > 5 && (
+                  <Chip
+                    size="small"
+                    label={`+${expenseCategories.length - 5} more`}
+                    variant="outlined"
+                    sx={{ fontSize: '0.75rem' }}
+                  />
+                )}
+              </Stack>
+            )}
           </Box>
 
           {/* Net Difference */}
