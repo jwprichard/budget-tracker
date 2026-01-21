@@ -37,10 +37,22 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
+/**
+ * Initial values for pre-populating the form (e.g., from a transaction)
+ */
+export interface BudgetFormInitialValues {
+  categoryId?: string;
+  amount?: number;
+  budgetType?: BudgetType;
+  name?: string;
+  startDate?: Date;
+}
+
 interface BudgetFormProps {
   open: boolean;
   onClose: () => void;
   budget?: BudgetWithStatus; // If provided, we're editing
+  initialValues?: BudgetFormInitialValues; // For pre-populating form (e.g., from transaction)
 }
 
 const PERIOD_TYPES: { value: BudgetPeriod; label: string; singular: string; plural: string }[] = [
@@ -51,7 +63,7 @@ const PERIOD_TYPES: { value: BudgetPeriod; label: string; singular: string; plur
   { value: 'ANNUALLY', label: 'Annually', singular: 'year', plural: 'years' },
 ];
 
-export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget }) => {
+export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget, initialValues }) => {
   const [categoryId, setCategoryId] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
   const [budgetType, setBudgetType] = useState<BudgetType>('EXPENSE');
@@ -93,13 +105,13 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget })
         setIsRecurring(false);
       }
     } else {
-      // Reset form for new budget
-      setCategoryId('');
-      setAmount('');
-      setBudgetType('EXPENSE');
-      setStartDate(new Date());
+      // Reset form for new budget, with optional initial values (e.g., from transaction)
+      setCategoryId(initialValues?.categoryId || '');
+      setAmount(initialValues?.amount?.toString() || '');
+      setBudgetType(initialValues?.budgetType || 'EXPENSE');
+      setStartDate(initialValues?.startDate || new Date());
       setIncludeSubcategories(false);
-      setName('');
+      setName(initialValues?.name || '');
       setNotes('');
       setIsRecurring(false);
       setPeriodType('MONTHLY');
@@ -107,7 +119,7 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget })
       setEndDate(null);
     }
     setError('');
-  }, [budget, open]);
+  }, [budget, open, initialValues]);
 
   const getPeriodLabel = () => {
     const periodInfo = PERIOD_TYPES.find((p) => p.value === periodType);

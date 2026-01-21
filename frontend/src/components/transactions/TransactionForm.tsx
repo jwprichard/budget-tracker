@@ -9,7 +9,9 @@ import {
   TextField,
   MenuItem,
   Grid,
+  Box,
 } from '@mui/material';
+import { AccountBalance as BudgetIcon } from '@mui/icons-material';
 import { Transaction, CreateTransactionDto, UpdateTransactionDto, TransactionType, TransactionStatus } from '../../types';
 import { AmountInput } from '../common/AmountInput';
 import { DatePicker } from '../common/DatePicker';
@@ -23,6 +25,7 @@ interface TransactionFormProps {
   transaction?: Transaction | null;
   defaultAccountId?: string;
   isSubmitting?: boolean;
+  onCreateBudget?: (transaction: Transaction) => void;
 }
 
 const transactionTypes: { value: TransactionType; label: string }[] = [
@@ -44,6 +47,7 @@ export const TransactionForm = ({
   transaction,
   defaultAccountId,
   isSubmitting = false,
+  onCreateBudget,
 }: TransactionFormProps) => {
   const isEditing = !!transaction;
   const { data: accounts = [] } = useAccounts();
@@ -291,6 +295,16 @@ export const TransactionForm = ({
           <Button onClick={handleClose} disabled={isSubmitting}>
             Cancel
           </Button>
+          <Box sx={{ flex: 1 }} />
+          {isEditing && transaction && onCreateBudget && (
+            <Button
+              startIcon={<BudgetIcon />}
+              onClick={() => onCreateBudget(transaction)}
+              disabled={isSubmitting}
+            >
+              Create Budget
+            </Button>
+          )}
           <Button type="submit" variant="contained" disabled={isSubmitting}>
             {isSubmitting ? 'Saving...' : isEditing ? 'Save' : 'Create'}
           </Button>

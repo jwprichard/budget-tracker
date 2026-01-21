@@ -24,6 +24,7 @@ import { TransactionFilters } from '../components/transactions/TransactionFilter
 import { TransactionForm } from '../components/transactions/TransactionForm';
 import { TransferForm } from '../components/transactions/TransferForm';
 import { DeleteTransactionDialog } from '../components/transactions/DeleteTransactionDialog';
+import { BudgetForm, BudgetFormInitialValues } from '../components/budgets/BudgetForm';
 import { Transaction, TransactionQuery, CreateTransactionDto, UpdateTransactionDto, CreateTransferDto } from '../types';
 import { Receipt as ReceiptIcon } from '@mui/icons-material';
 
@@ -33,6 +34,8 @@ export const Transactions = () => {
   const [transferFormOpen, setTransferFormOpen] = useState(false);
   const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
   const [deleteTransaction, setDeleteTransaction] = useState<Transaction | null>(null);
+  const [budgetFormOpen, setBudgetFormOpen] = useState(false);
+  const [budgetInitialValues, setBudgetInitialValues] = useState<BudgetFormInitialValues | undefined>(undefined);
 
   // Queries
   const { data: accounts = [] } = useAccounts();
@@ -94,6 +97,20 @@ export const Transactions = () => {
 
   const handleDeleteClick = (transaction: Transaction) => {
     setDeleteTransaction(transaction);
+  };
+
+  const handleCreateBudget = (transaction: Transaction) => {
+    // Pre-populate budget form with transaction data
+    setBudgetInitialValues({
+      categoryId: transaction.categoryId || undefined,
+      amount: Math.abs(parseFloat(transaction.amount)),
+      budgetType: transaction.type === 'INCOME' ? 'INCOME' : 'EXPENSE',
+      name: transaction.description,
+      startDate: new Date(transaction.date),
+    });
+    setBudgetFormOpen(true);
+    // Close the transaction form
+    setEditTransaction(null);
   };
 
   const handleDeleteConfirm = async () => {
@@ -221,6 +238,7 @@ export const Transactions = () => {
         onSubmit={handleUpdateTransaction}
         transaction={editTransaction}
         isSubmitting={updateTransactionMutation.isPending}
+        onCreateBudget={handleCreateBudget}
       />
 
       <TransferForm
@@ -236,6 +254,15 @@ export const Transactions = () => {
         onClose={() => setDeleteTransaction(null)}
         onConfirm={handleDeleteConfirm}
         isDeleting={deleteTransactionMutation.isPending}
+      />
+
+      <BudgetForm
+        open={budgetFormOpen}
+        onClose={() => {
+          setBudgetFormOpen(false);
+          setBudgetInitialValues(undefined);
+        }}
+        initialValues={budgetInitialValues}
       />
     </Container>
   );
