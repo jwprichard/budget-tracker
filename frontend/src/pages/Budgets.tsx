@@ -7,7 +7,6 @@ import React, { useState, useMemo } from 'react';
 import {
   Container,
   Box,
-  Typography,
   Button,
   Paper,
   FormControl,
@@ -107,14 +106,14 @@ export const Budgets: React.FC = () => {
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
+      {/* <Box sx={{ mb: 4 }}>
         <Typography variant="h4" component="h1" gutterBottom>
           Budgets
         </Typography>
         <Typography variant="body1" color="text.secondary">
           Track your spending against category budgets
         </Typography>
-      </Box>
+      </Box> */}
 
       {/* Budget Summary Dashboard */}
       <BudgetSummaryDashboard filterPeriodType={filterPeriodType} />

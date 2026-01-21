@@ -44,19 +44,34 @@ export const updateBudgetTemplateSchema = z.object({
 });
 
 /**
- * Update budget instance with scope schema
+ * Create period override schema
+ * Used when customizing a specific virtual period
  */
-export const updateBudgetInstanceSchema = z.object({
+export const createOverrideSchema = z.object({
+  periodStartDate: z.string().datetime('Invalid period start date format'),
   amount: z
     .number()
     .positive('Amount must be positive')
     .max(1000000000, 'Amount too large')
     .optional(),
-  type: budgetTypeSchema.optional(),
   includeSubcategories: z.boolean().optional(),
-  name: z.string().max(100).optional().nullable(),
-  notes: z.string().max(500).optional().nullable(),
-  scope: z.enum(['THIS_ONLY', 'THIS_AND_FUTURE', 'ALL']),
+  name: z.string().max(100).optional(),
+  notes: z.string().max(500).nullable().optional(),
+});
+
+/**
+ * Update override schema
+ * Used when updating an existing override budget
+ */
+export const updateOverrideSchema = z.object({
+  amount: z
+    .number()
+    .positive('Amount must be positive')
+    .max(1000000000, 'Amount too large')
+    .optional(),
+  includeSubcategories: z.boolean().optional(),
+  name: z.string().max(100).optional(),
+  notes: z.string().max(500).nullable().optional(),
 });
 
 /**
@@ -64,4 +79,5 @@ export const updateBudgetInstanceSchema = z.object({
  */
 export type CreateBudgetTemplateDto = z.infer<typeof createBudgetTemplateSchema>;
 export type UpdateBudgetTemplateDto = z.infer<typeof updateBudgetTemplateSchema>;
-export type UpdateBudgetInstanceDto = z.infer<typeof updateBudgetInstanceSchema>;
+export type CreateOverrideDto = z.infer<typeof createOverrideSchema>;
+export type UpdateOverrideDto = z.infer<typeof updateOverrideSchema>;

@@ -41,6 +41,7 @@ export interface BudgetWithStatus {
   percentage: number;
   status: BudgetStatus;
   isComplete?: boolean; // true when one-time budget is fully spent
+  isVirtual?: boolean; // true if this is a calculated period from a template (not stored in DB)
 }
 
 /**
@@ -185,20 +186,25 @@ export interface UpdateBudgetTemplateDto {
 }
 
 /**
- * Update scope for budget instance modifications
+ * Create override for a virtual period
+ * Used when customizing a specific period from a template
  */
-export type UpdateScope = 'THIS_ONLY' | 'THIS_AND_FUTURE' | 'ALL';
+export interface CreateOverrideDto {
+  periodStartDate: string; // ISO datetime of the period to override
+  amount?: number;
+  includeSubcategories?: boolean;
+  name?: string;
+  notes?: string | null;
+}
 
 /**
- * Update budget instance with scope DTO
+ * Update an existing override
  */
-export interface UpdateBudgetInstanceDto {
+export interface UpdateOverrideDto {
   amount?: number;
-  type?: BudgetType;
   includeSubcategories?: boolean;
-  name?: string | null;
+  name?: string;
   notes?: string | null;
-  scope: UpdateScope;
 }
 
 /**

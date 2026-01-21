@@ -2,23 +2,24 @@ import { PrismaClient, BudgetTemplate, Budget } from '@prisma/client';
 import {
   CreateBudgetTemplateDto,
   UpdateBudgetTemplateDto,
-  UpdateBudgetInstanceDto,
 } from '../schemas/budgetTemplate.schema';
 import {
   BudgetTemplateWithStats,
 } from '../types/budget.types';
 import { AppError } from '../middlewares/errorHandler';
 import {
-  calculatePeriodEndDate,
-  calculateNextPeriodStart,
-} from '../utils/periodCalculations';
+  generateVirtualPeriods,
+  getCurrentPeriod,
+  getNextPeriod,
+  TemplateWithCategory,
+} from '../utils/virtualPeriods';
 
 export class BudgetTemplateService {
   constructor(private prisma: PrismaClient) {}
 
   /**
-   * Create a new budget template and generate initial budget instances
-   * Creates template + next 12 periods of budgets automatically
+   * Create a new budget template
+   * No longer generates budget instances - periods are calculated on-the-fly
    * @param data - Template creation data
    * @param userId - User UUID
    * @throws AppError if category not found, doesn't belong to user, or duplicate template name exists
@@ -51,30 +52,22 @@ export class BudgetTemplateService {
       throw new AppError('A template with this name already exists', 400);
     }
 
-    // Create template and generate initial budgets in a transaction
-    const template = await this.prisma.$transaction(async (tx) => {
-      // Create the template
-      const newTemplate = await tx.budgetTemplate.create({
-        data: {
-          userId,
-          categoryId: data.categoryId,
-          amount: data.amount,
-          type: data.type || 'EXPENSE',
-          periodType: data.periodType,
-          interval: data.interval,
-          includeSubcategories: data.includeSubcategories,
-          firstStartDate: new Date(data.firstStartDate),
-          endDate: data.endDate ? new Date(data.endDate) : null,
-          isActive: true,
-          name: data.name,
-          notes: data.notes,
-        },
-      });
-
-      // Generate next 12 periods of budgets
-      await this.generateBudgetsForTemplate(newTemplate, 12, tx);
-
-      return newTemplate;
+    // Create template only - no budget instances generated
+    const template = await this.prisma.budgetTemplate.create({
+      data: {
+        userId,
+        categoryId: data.categoryId,
+        amount: data.amount,
+        type: data.type || 'EXPENSE',
+        periodType: data.periodType,
+        interval: data.interval,
+        includeSubcategories: data.includeSubcategories,
+        firstStartDate: new Date(data.firstStartDate),
+        endDate: data.endDate ? new Date(data.endDate) : null,
+        isActive: true,
+        name: data.name,
+        notes: data.notes,
+      },
     });
 
     return template;
@@ -95,17 +88,11 @@ export class BudgetTemplateService {
             color: true,
           },
         },
-        budgets: {
-          select: {
-            id: true,
-            startDate: true,
-          },
-        },
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    // Enrich with statistics
+    // Enrich with statistics (calculated from virtual periods)
     return templates.map((template) => this.enrichTemplateWithStats(template));
   }
 
@@ -129,12 +116,6 @@ export class BudgetTemplateService {
             color: true,
           },
         },
-        budgets: {
-          select: {
-            id: true,
-            startDate: true,
-          },
-        },
       },
     });
 
@@ -146,18 +127,18 @@ export class BudgetTemplateService {
   }
 
   /**
-   * Update a budget template and optionally update linked instances
+   * Update a budget template
+   * Changes apply to all future virtual periods automatically
+   * Existing overrides are not affected
    * @param id - Template UUID
    * @param data - Update data
    * @param userId - User UUID
-   * @param updateInstances - Whether to update non-customized future instances
    * @throws AppError if template not found or doesn't belong to user
    */
   async updateTemplate(
     id: string,
     data: UpdateBudgetTemplateDto,
-    userId: string,
-    updateInstances: boolean = true
+    userId: string
   ): Promise<BudgetTemplate> {
     // Verify template exists and belongs to user
     const existing = await this.prisma.budgetTemplate.findFirst({
@@ -183,85 +164,33 @@ export class BudgetTemplateService {
       }
     }
 
-    // Update template and optionally update instances in a transaction
-    const template = await this.prisma.$transaction(async (tx) => {
-      // Check if firstStartDate or interval is changing (requires regeneration)
-      const needsRegeneration =
-        updateInstances &&
-        (data.firstStartDate !== undefined || data.interval !== undefined);
-
-      // If dates need regeneration, delete all future non-customized budgets
-      if (needsRegeneration) {
-        const now = new Date();
-
-        // Delete all future non-customized budget instances
-        await tx.budget.deleteMany({
-          where: {
-            templateId: id,
-            isCustomized: false,
-            startDate: { gte: now },
-          },
-        });
-      }
-
-      // Update the template
-      const updated = await tx.budgetTemplate.update({
-        where: { id },
-        data: {
-          ...(data.amount !== undefined && { amount: data.amount }),
-          ...(data.interval !== undefined && { interval: data.interval }),
-          ...(data.includeSubcategories !== undefined && {
-            includeSubcategories: data.includeSubcategories,
-          }),
-          ...(data.firstStartDate !== undefined && {
-            firstStartDate: new Date(data.firstStartDate),
-          }),
-          ...(data.endDate !== undefined && {
-            endDate: data.endDate ? new Date(data.endDate) : null,
-          }),
-          ...(data.isActive !== undefined && { isActive: data.isActive }),
-          ...(data.name !== undefined && { name: data.name }),
-          ...(data.notes !== undefined && { notes: data.notes }),
-        },
-      });
-
-      // Regenerate budgets if dates changed
-      if (needsRegeneration) {
-        // Generate 12 new budget periods with updated dates
-        await this.generateBudgetsForTemplate(updated, 12, tx);
-      } else if (updateInstances) {
-        // Just update properties without changing dates
-        const now = new Date();
-        const updateData: any = {};
-
-        if (data.amount !== undefined) updateData.amount = data.amount;
-        if (data.includeSubcategories !== undefined)
-          updateData.includeSubcategories = data.includeSubcategories;
-        if (data.name !== undefined) updateData.name = data.name;
-        if (data.notes !== undefined) updateData.notes = data.notes;
-
-        // Only update if there's something to update
-        if (Object.keys(updateData).length > 0) {
-          await tx.budget.updateMany({
-            where: {
-              templateId: id,
-              isCustomized: false,
-              startDate: { gte: now }, // Future budgets only
-            },
-            data: updateData,
-          });
-        }
-      }
-
-      return updated;
+    // Update the template - no instance management needed
+    // Virtual periods will automatically reflect the new values
+    const template = await this.prisma.budgetTemplate.update({
+      where: { id },
+      data: {
+        ...(data.amount !== undefined && { amount: data.amount }),
+        ...(data.interval !== undefined && { interval: data.interval }),
+        ...(data.includeSubcategories !== undefined && {
+          includeSubcategories: data.includeSubcategories,
+        }),
+        ...(data.firstStartDate !== undefined && {
+          firstStartDate: new Date(data.firstStartDate),
+        }),
+        ...(data.endDate !== undefined && {
+          endDate: data.endDate ? new Date(data.endDate) : null,
+        }),
+        ...(data.isActive !== undefined && { isActive: data.isActive }),
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.notes !== undefined && { notes: data.notes }),
+      },
     });
 
     return template;
   }
 
   /**
-   * Delete a template and all future budget instances
-   * Preserves past and current period budgets by detaching them from template
+   * Delete a template and all its override budgets
    * @param id - Template UUID
    * @param userId - User UUID
    * @throws AppError if template not found or doesn't belong to user
@@ -277,26 +206,9 @@ export class BudgetTemplateService {
     }
 
     await this.prisma.$transaction(async (tx) => {
-      const now = new Date();
-
-      // Delete future budget instances (start date after today)
+      // Delete all override budgets linked to this template
       await tx.budget.deleteMany({
-        where: {
-          templateId: id,
-          startDate: { gt: now },
-        },
-      });
-
-      // Detach past/current budgets (set templateId to null, mark as customized)
-      await tx.budget.updateMany({
-        where: {
-          templateId: id,
-          startDate: { lte: now },
-        },
-        data: {
-          templateId: null,
-          isCustomized: true,
-        },
+        where: { templateId: id },
       });
 
       // Delete the template
@@ -305,264 +217,173 @@ export class BudgetTemplateService {
   }
 
   /**
-   * Generate next N periods of budgets for a template
-   * Used for rolling window maintenance
+   * Create an override for a specific period of a template
+   * Used when a user wants to customize a virtual period
    * @param templateId - Template UUID
-   * @param count - Number of periods to generate (default: 12)
-   * @throws AppError if template not found
+   * @param periodStartDate - The start date of the period to override
+   * @param data - Override customizations
+   * @param userId - User UUID
+   * @throws AppError if template not found or period doesn't exist
    */
-  async generateBudgets(templateId: string, count: number = 12): Promise<Budget[]> {
-    const template = await this.prisma.budgetTemplate.findUnique({
-      where: { id: templateId },
+  async createPeriodOverride(
+    templateId: string,
+    periodStartDate: Date,
+    data: {
+      amount?: number;
+      name?: string;
+      notes?: string | null;
+      includeSubcategories?: boolean;
+    },
+    userId: string
+  ): Promise<Budget> {
+    // Get the template
+    const template = await this.prisma.budgetTemplate.findFirst({
+      where: { id: templateId, userId },
+      include: {
+        category: {
+          select: { id: true, name: true, color: true },
+        },
+      },
     });
 
     if (!template) {
-      throw new AppError('Template not found', 404);
+      throw new AppError('Template not found or access denied', 404);
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      return this.generateBudgetsForTemplate(template, count, tx);
+    // Verify the period exists by generating virtual periods around this date
+    const rangeStart = new Date(periodStartDate);
+    rangeStart.setDate(rangeStart.getDate() - 1); // Day before
+    const rangeEnd = new Date(periodStartDate);
+    rangeEnd.setDate(rangeEnd.getDate() + 1); // Day after
+
+    const virtualPeriods = generateVirtualPeriods(
+      template as TemplateWithCategory,
+      rangeStart,
+      rangeEnd
+    );
+
+    // Find the period that matches the start date
+    const matchingPeriod = virtualPeriods.find(
+      (p) => p.startDate.getTime() === periodStartDate.getTime()
+    );
+
+    if (!matchingPeriod) {
+      throw new AppError('No period exists for this date', 400);
+    }
+
+    // Check if an override already exists for this period
+    const existingOverride = await this.prisma.budget.findFirst({
+      where: {
+        templateId,
+        startDate: periodStartDate,
+      },
+    });
+
+    if (existingOverride) {
+      // Update existing override
+      return this.prisma.budget.update({
+        where: { id: existingOverride.id },
+        data: {
+          ...(data.amount !== undefined && { amount: data.amount }),
+          ...(data.name !== undefined && { name: data.name }),
+          ...(data.notes !== undefined && { notes: data.notes }),
+          ...(data.includeSubcategories !== undefined && {
+            includeSubcategories: data.includeSubcategories,
+          }),
+        },
+      });
+    }
+
+    // Create new override budget
+    return this.prisma.budget.create({
+      data: {
+        userId,
+        categoryId: template.categoryId,
+        amount: data.amount ?? Number(template.amount),
+        type: template.type,
+        periodType: template.periodType,
+        interval: template.interval,
+        startDate: matchingPeriod.startDate,
+        endDate: matchingPeriod.endDate,
+        includeSubcategories: data.includeSubcategories ?? template.includeSubcategories,
+        name: data.name ?? template.name,
+        notes: data.notes ?? template.notes,
+        templateId: template.id,
+        isCustomized: true,
+      },
     });
   }
 
   /**
-   * Update a specific budget instance with update scope
-   * @param budgetId - Budget UUID
-   * @param data - Update data with scope
+   * Update an existing override budget
+   * @param budgetId - Budget UUID (must be an override, i.e., has templateId)
+   * @param data - Update data
    * @param userId - User UUID
-   * @throws AppError if budget not found or doesn't belong to user
+   * @throws AppError if budget not found or is not an override
    */
-  async updateBudgetInstance(
+  async updateOverride(
     budgetId: string,
-    data: UpdateBudgetInstanceDto,
+    data: {
+      amount?: number;
+      name?: string;
+      notes?: string | null;
+      includeSubcategories?: boolean;
+    },
     userId: string
   ): Promise<Budget> {
-    // Get the budget with its template
     const budget = await this.prisma.budget.findFirst({
       where: { id: budgetId, userId },
-      include: { template: true },
     });
 
     if (!budget) {
       throw new AppError('Budget not found or access denied', 404);
     }
 
-    const updateData: any = {};
-    if (data.amount !== undefined) updateData.amount = data.amount;
-    if (data.includeSubcategories !== undefined)
-      updateData.includeSubcategories = data.includeSubcategories;
-    if (data.name !== undefined) updateData.name = data.name;
-    if (data.notes !== undefined) updateData.notes = data.notes;
-
-    switch (data.scope) {
-      case 'THIS_ONLY':
-        // Update only this budget and mark as customized
-        return this.prisma.budget.update({
-          where: { id: budgetId },
-          data: {
-            ...updateData,
-            isCustomized: true,
-          },
-        });
-
-      case 'THIS_AND_FUTURE':
-        // Update this and all future non-customized budgets
-        if (!budget.templateId) {
-          // If no template, just update this one
-          return this.prisma.budget.update({
-            where: { id: budgetId },
-            data: updateData,
-          });
-        }
-
-        await this.prisma.budget.updateMany({
-          where: {
-            templateId: budget.templateId,
-            isCustomized: false,
-            startDate: { gte: budget.startDate },
-          },
-          data: updateData,
-        });
-
-        // Return the updated budget
-        return this.prisma.budget.findUniqueOrThrow({ where: { id: budgetId } });
-
-      case 'ALL':
-        // Update all budgets from template (regardless of customization)
-        if (!budget.templateId) {
-          // If no template, just update this one
-          return this.prisma.budget.update({
-            where: { id: budgetId },
-            data: updateData,
-          });
-        }
-
-        await this.prisma.budget.updateMany({
-          where: { templateId: budget.templateId },
-          data: {
-            ...updateData,
-            isCustomized: false, // Reset customization flag
-          },
-        });
-
-        // Also update the template if we have one
-        if (budget.template) {
-          const templateUpdateData: any = {};
-          if (data.amount !== undefined) templateUpdateData.amount = data.amount;
-          if (data.includeSubcategories !== undefined)
-            templateUpdateData.includeSubcategories = data.includeSubcategories;
-          if (data.name !== undefined) templateUpdateData.name = data.name;
-          if (data.notes !== undefined) templateUpdateData.notes = data.notes;
-
-          await this.prisma.budgetTemplate.update({
-            where: { id: budget.templateId },
-            data: templateUpdateData,
-          });
-        }
-
-        // Return the updated budget
-        return this.prisma.budget.findUniqueOrThrow({ where: { id: budgetId } });
-
-      default:
-        throw new AppError('Invalid update scope', 400);
-    }
-  }
-
-  /**
-   * Maintenance job: Ensure all active templates have 12 future periods generated
-   * Should be run periodically (e.g., daily cron job)
-   */
-  async maintainTemplates(): Promise<void> {
-    const templates = await this.prisma.budgetTemplate.findMany({
-      where: { isActive: true },
-      include: {
-        budgets: {
-          select: {
-            startDate: true,
-          },
-          orderBy: [{ startDate: 'desc' }],
-        },
+    return this.prisma.budget.update({
+      where: { id: budgetId },
+      data: {
+        ...(data.amount !== undefined && { amount: data.amount }),
+        ...(data.name !== undefined && { name: data.name }),
+        ...(data.notes !== undefined && { notes: data.notes }),
+        ...(data.includeSubcategories !== undefined && {
+          includeSubcategories: data.includeSubcategories,
+        }),
+        isCustomized: true,
       },
     });
-
-    const now = new Date();
-
-    for (const template of templates) {
-      try {
-        // Check how many future periods exist
-        const futureBudgets = template.budgets.filter((b) => b.startDate >= now);
-
-        // Generate more if needed to maintain 12 future periods
-        const needed = 12 - futureBudgets.length;
-        if (needed > 0) {
-          await this.generateBudgets(template.id, needed);
-        }
-      } catch (error) {
-        console.error(`Error maintaining template ${template.id}:`, error);
-        // Continue with other templates even if one fails
-      }
-    }
   }
 
   /**
-   * Generate budget instances for a template
-   * Internal helper used during template creation and maintenance
-   * @private
+   * Delete an override, returning the period to virtual status
+   * @param budgetId - Budget UUID (must be an override)
+   * @param userId - User UUID
+   * @throws AppError if budget not found or is not an override
    */
-  private async generateBudgetsForTemplate(
-    template: BudgetTemplate,
-    count: number,
-    tx: any // Prisma transaction client
-  ): Promise<Budget[]> {
-    // Find the last generated budget
-    const lastBudget = await tx.budget.findFirst({
-      where: { templateId: template.id },
-      orderBy: [{ startDate: 'desc' }],
+  async deleteOverride(budgetId: string, userId: string): Promise<void> {
+    const budget = await this.prisma.budget.findFirst({
+      where: { id: budgetId, userId, templateId: { not: null } },
     });
 
-    // Start from the next period after last budget, or from template start
-    let currentStartDate: Date;
-
-    if (lastBudget) {
-      // Calculate next period start from last budget
-      currentStartDate = calculateNextPeriodStart(
-        lastBudget.startDate,
-        template.periodType,
-        template.interval
-      );
-    } else {
-      // Start from template's first start date
-      currentStartDate = new Date(template.firstStartDate);
+    if (!budget) {
+      throw new AppError('Override not found or access denied', 404);
     }
 
-    const budgetsToCreate: any[] = [];
+    await this.prisma.budget.delete({ where: { id: budgetId } });
+  }
 
-    // Generate up to count periods
-    for (let i = 0; i < count; i++) {
-      // Check if we've reached the end date
-      if (template.endDate && currentStartDate >= template.endDate) {
-        break;
-      }
-
-      // Calculate end date for this period
-      const endDate = calculatePeriodEndDate(
-        currentStartDate,
-        template.periodType,
-        template.interval
-      );
-
-      // Check if budget already exists (prevent duplicates)
-      const existing = await tx.budget.findFirst({
-        where: {
-          userId: template.userId,
-          categoryId: template.categoryId,
-          startDate: currentStartDate,
-        },
-      });
-
-      if (!existing) {
-        budgetsToCreate.push({
-          userId: template.userId,
-          categoryId: template.categoryId,
-          amount: template.amount,
-          type: template.type,
-          periodType: template.periodType,
-          interval: template.interval,
-          startDate: currentStartDate,
-          endDate,
-          includeSubcategories: template.includeSubcategories,
-          name: template.name,
-          notes: template.notes,
-          templateId: template.id,
-          isCustomized: false,
-        });
-      }
-
-      // Move to next period
-      currentStartDate = calculateNextPeriodStart(
-        currentStartDate,
-        template.periodType,
-        template.interval
-      );
-    }
-
-    // Create all budgets at once
-    if (budgetsToCreate.length > 0) {
-      await tx.budget.createMany({
-        data: budgetsToCreate,
-        skipDuplicates: true,
-      });
-
-      // Fetch and return created budgets
-      return tx.budget.findMany({
-        where: {
-          templateId: template.id,
-          startDate: { in: budgetsToCreate.map((b) => b.startDate) },
-        },
-      });
-    }
-
-    return [];
+  /**
+   * Get all overrides for a template
+   * @param templateId - Template UUID
+   * @param userId - User UUID
+   */
+  async getOverridesForTemplate(templateId: string, userId: string): Promise<Budget[]> {
+    return this.prisma.budget.findMany({
+      where: {
+        templateId,
+        userId,
+      },
+      orderBy: { startDate: 'desc' },
+    });
   }
 
   /**
@@ -570,21 +391,22 @@ export class BudgetTemplateService {
    * @private
    */
   private enrichTemplateWithStats(template: any): BudgetTemplateWithStats {
-    const now = new Date();
-    const futureBudgets = template.budgets.filter((b: any) => b.startDate >= now);
-
-    // Calculate next period start date
+    // Calculate next period start from virtual periods
     let nextPeriodStart: string | null = null;
-    if (template.isActive && template.budgets.length > 0) {
-      const lastBudget = template.budgets[0]; // Already sorted by desc startDate
-      const next = calculateNextPeriodStart(
-        lastBudget.startDate,
-        template.periodType,
-        template.interval
-      );
-      nextPeriodStart = next.toISOString();
-    } else if (template.isActive) {
-      nextPeriodStart = template.firstStartDate.toISOString();
+
+    if (template.isActive) {
+      const nextPeriod = getNextPeriod(template as TemplateWithCategory);
+      const currentPeriod = getCurrentPeriod(template as TemplateWithCategory);
+
+      if (nextPeriod) {
+        nextPeriodStart = nextPeriod.startDate.toISOString();
+      } else if (currentPeriod) {
+        // Current period exists but no next (template might be ending)
+        nextPeriodStart = currentPeriod.startDate.toISOString();
+      } else {
+        // Template hasn't started yet
+        nextPeriodStart = template.firstStartDate.toISOString();
+      }
     }
 
     return {
@@ -594,7 +416,7 @@ export class BudgetTemplateService {
       categoryName: template.category.name,
       categoryColor: template.category.color,
       amount: template.amount.toNumber(),
-      type: template.type, // Include budget type in template response
+      type: template.type,
       periodType: template.periodType,
       interval: template.interval,
       includeSubcategories: template.includeSubcategories,
@@ -605,8 +427,10 @@ export class BudgetTemplateService {
       notes: template.notes,
       createdAt: template.createdAt.toISOString(),
       updatedAt: template.updatedAt.toISOString(),
-      totalInstances: template.budgets.length,
-      activeInstances: futureBudgets.length,
+      // These are now less meaningful but kept for API compatibility
+      // In future, could calculate number of periods in a time range
+      totalInstances: 0,
+      activeInstances: 0,
       nextPeriodStart,
     };
   }

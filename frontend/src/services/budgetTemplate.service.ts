@@ -1,6 +1,11 @@
 /**
  * Budget Template Service
  * API client methods for budget template management
+ *
+ * With virtual periods architecture:
+ * - Templates define patterns (no instances pre-generated)
+ * - Periods are calculated on-the-fly
+ * - Overrides are created only when user customizes a period
  */
 
 import apiClient from './api';
@@ -8,8 +13,9 @@ import {
   BudgetTemplate,
   CreateBudgetTemplateDto,
   UpdateBudgetTemplateDto,
-  UpdateBudgetInstanceDto,
   Budget,
+  CreateOverrideDto,
+  UpdateOverrideDto,
 } from '../types/budget.types';
 import { SuccessResponse } from '../types';
 
@@ -34,7 +40,7 @@ export const getTemplateById = async (id: string): Promise<BudgetTemplate> => {
 
 /**
  * Create a new budget template
- * Creates template + generates next 12 periods of budgets
+ * Only creates the template - no budget instances generated
  * @param data - Template creation data
  */
 export const createTemplate = async (data: CreateBudgetTemplateDto): Promise<BudgetTemplate> => {
@@ -44,28 +50,25 @@ export const createTemplate = async (data: CreateBudgetTemplateDto): Promise<Bud
 
 /**
  * Update a budget template
+ * Changes apply to all future virtual periods automatically
+ * Existing overrides are not affected
  * @param id - Template UUID
  * @param data - Template update data
- * @param updateInstances - Whether to update linked budget instances (default: true)
  */
 export const updateTemplate = async (
   id: string,
-  data: UpdateBudgetTemplateDto,
-  updateInstances: boolean = true
+  data: UpdateBudgetTemplateDto
 ): Promise<BudgetTemplate> => {
   const response = await apiClient.put<SuccessResponse<BudgetTemplate>>(
     `${BASE_PATH}/${id}`,
-    data,
-    {
-      params: { updateInstances },
-    }
+    data
   );
   return response.data.data;
 };
 
 /**
  * Delete a budget template
- * Deletes template and future budget instances, preserves past/current
+ * Deletes template and all its override budgets
  * @param id - Template UUID
  */
 export const deleteTemplate = async (id: string): Promise<void> => {
@@ -73,46 +76,55 @@ export const deleteTemplate = async (id: string): Promise<void> => {
 };
 
 /**
- * Get all budget instances for a template
+ * Get all overrides for a template
  * @param templateId - Template UUID
  */
-export const getTemplateBudgets = async (templateId: string): Promise<Budget[]> => {
+export const getTemplateOverrides = async (templateId: string): Promise<Budget[]> => {
   const response = await apiClient.get<SuccessResponse<Budget[]>>(
-    `${BASE_PATH}/${templateId}/budgets`
+    `${BASE_PATH}/${templateId}/overrides`
   );
   return response.data.data;
 };
 
 /**
- * Generate additional budget instances for a template
+ * Create an override for a specific period
+ * Used when customizing a virtual period
  * @param templateId - Template UUID
- * @param count - Number of periods to generate (default: 12)
+ * @param data - Override creation data
  */
-export const generateBudgets = async (
+export const createPeriodOverride = async (
   templateId: string,
-  count: number = 12
-): Promise<Budget[]> => {
-  const response = await apiClient.post<SuccessResponse<Budget[]>>(
-    `${BASE_PATH}/${templateId}/generate`,
-    { count }
-  );
-  return response.data.data;
-};
-
-/**
- * Update a budget instance with scope
- * @param budgetId - Budget UUID
- * @param data - Budget update data with scope
- */
-export const updateBudgetInstance = async (
-  budgetId: string,
-  data: UpdateBudgetInstanceDto
+  data: CreateOverrideDto
 ): Promise<Budget> => {
-  const response = await apiClient.put<SuccessResponse<Budget>>(
-    `${BASE_PATH}/budgets/${budgetId}`,
+  const response = await apiClient.post<SuccessResponse<Budget>>(
+    `${BASE_PATH}/${templateId}/overrides`,
     data
   );
   return response.data.data;
+};
+
+/**
+ * Update an existing override
+ * @param budgetId - Budget UUID (must be an override)
+ * @param data - Override update data
+ */
+export const updateOverride = async (
+  budgetId: string,
+  data: UpdateOverrideDto
+): Promise<Budget> => {
+  const response = await apiClient.put<SuccessResponse<Budget>>(
+    `${BASE_PATH}/overrides/${budgetId}`,
+    data
+  );
+  return response.data.data;
+};
+
+/**
+ * Delete an override (returns period to virtual status)
+ * @param budgetId - Budget UUID (must be an override)
+ */
+export const deleteOverride = async (budgetId: string): Promise<void> => {
+  await apiClient.delete(`${BASE_PATH}/overrides/${budgetId}`);
 };
 
 export const budgetTemplateService = {
@@ -121,9 +133,10 @@ export const budgetTemplateService = {
   createTemplate,
   updateTemplate,
   deleteTemplate,
-  getTemplateBudgets,
-  generateBudgets,
-  updateBudgetInstance,
+  getTemplateOverrides,
+  createPeriodOverride,
+  updateOverride,
+  deleteOverride,
 };
 
 export default budgetTemplateService;

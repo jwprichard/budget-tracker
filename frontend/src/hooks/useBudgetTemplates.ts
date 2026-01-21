@@ -1,5 +1,10 @@
 /**
  * React Query hooks for budget template management
+ *
+ * With virtual periods architecture:
+ * - Templates define patterns (no instances pre-generated)
+ * - Periods are calculated on-the-fly
+ * - Overrides are created only when user customizes a period
  */
 
 import {
@@ -15,15 +20,17 @@ import {
   createTemplate,
   updateTemplate,
   deleteTemplate,
-  getTemplateBudgets,
-  generateBudgets,
-  updateBudgetInstance,
+  getTemplateOverrides,
+  createPeriodOverride,
+  updateOverride,
+  deleteOverride,
 } from '../services/budgetTemplate.service';
 import {
   BudgetTemplate,
   CreateBudgetTemplateDto,
   UpdateBudgetTemplateDto,
-  UpdateBudgetInstanceDto,
+  CreateOverrideDto,
+  UpdateOverrideDto,
   Budget,
 } from '../types/budget.types';
 import { budgetKeys } from './useBudgets';
@@ -34,7 +41,7 @@ export const templateKeys = {
   lists: () => [...templateKeys.all, 'list'] as const,
   details: () => [...templateKeys.all, 'detail'] as const,
   detail: (id: string) => [...templateKeys.details(), id] as const,
-  budgets: (id: string) => [...templateKeys.detail(id), 'budgets'] as const,
+  overrides: (id: string) => [...templateKeys.detail(id), 'overrides'] as const,
 };
 
 /**
@@ -64,15 +71,15 @@ export const useBudgetTemplate = (
 };
 
 /**
- * Hook to fetch budget instances for a template
+ * Hook to fetch override budgets for a template
  * @param templateId - Template UUID
  */
-export const useTemplateBudgets = (
+export const useTemplateOverrides = (
   templateId: string | undefined
 ): UseQueryResult<Budget[], Error> => {
   return useQuery({
-    queryKey: templateKeys.budgets(templateId!),
-    queryFn: () => getTemplateBudgets(templateId!),
+    queryKey: templateKeys.overrides(templateId!),
+    queryFn: () => getTemplateOverrides(templateId!),
     enabled: !!templateId,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -101,21 +108,21 @@ export const useCreateTemplate = (): UseMutationResult<
 
 /**
  * Hook to update a budget template
- * Invalidates related queries on success
+ * Changes apply to all future virtual periods automatically
+ * Existing overrides are not affected
  */
 export const useUpdateTemplate = (): UseMutationResult<
   BudgetTemplate,
   Error,
-  { id: string; data: UpdateBudgetTemplateDto; updateInstances?: boolean }
+  { id: string; data: UpdateBudgetTemplateDto }
 > => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data, updateInstances }) => updateTemplate(id, data, updateInstances),
+    mutationFn: ({ id, data }) => updateTemplate(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: templateKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: templateKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: templateKeys.budgets(id) });
       queryClient.invalidateQueries({ queryKey: budgetKeys.lists() });
       queryClient.invalidateQueries({ queryKey: budgetKeys.summary() });
     },
@@ -124,7 +131,7 @@ export const useUpdateTemplate = (): UseMutationResult<
 
 /**
  * Hook to delete a budget template
- * Invalidates all template and budget queries on success
+ * Deletes template and all its override budgets
  */
 export const useDeleteTemplate = (): UseMutationResult<void, Error, string> => {
   const queryClient = useQueryClient();
@@ -139,20 +146,20 @@ export const useDeleteTemplate = (): UseMutationResult<void, Error, string> => {
 };
 
 /**
- * Hook to generate additional budget instances for a template
- * Invalidates template budgets and budget list queries on success
+ * Hook to create an override for a specific period
+ * Used when customizing a virtual period
  */
-export const useGenerateBudgets = (): UseMutationResult<
-  Budget[],
+export const useCreatePeriodOverride = (): UseMutationResult<
+  Budget,
   Error,
-  { templateId: string; count?: number }
+  { templateId: string; data: CreateOverrideDto }
 > => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ templateId, count }) => generateBudgets(templateId, count),
+    mutationFn: ({ templateId, data }) => createPeriodOverride(templateId, data),
     onSuccess: (_, { templateId }) => {
-      queryClient.invalidateQueries({ queryKey: templateKeys.budgets(templateId) });
+      queryClient.invalidateQueries({ queryKey: templateKeys.overrides(templateId) });
       queryClient.invalidateQueries({ queryKey: budgetKeys.lists() });
       queryClient.invalidateQueries({ queryKey: budgetKeys.summary() });
     },
@@ -160,40 +167,53 @@ export const useGenerateBudgets = (): UseMutationResult<
 };
 
 /**
- * Hook to update a budget instance with scope
- * Invalidates related queries on success based on scope
+ * Hook to update an existing override
  */
-export const useUpdateBudgetInstance = (): UseMutationResult<
+export const useUpdateOverride = (): UseMutationResult<
   Budget,
   Error,
-  { budgetId: string; data: UpdateBudgetInstanceDto }
+  { budgetId: string; data: UpdateOverrideDto }
 > => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ budgetId, data }) => updateBudgetInstance(budgetId, data),
-    onSuccess: (updatedBudget, { data }) => {
-      // Invalidate the specific budget
+    mutationFn: ({ budgetId, data }) => updateOverride(budgetId, data),
+    onSuccess: (updatedBudget) => {
       queryClient.invalidateQueries({ queryKey: budgetKeys.detail(updatedBudget.id) });
+      queryClient.invalidateQueries({ queryKey: budgetKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: budgetKeys.summary() });
 
-      // If scope affects multiple budgets, invalidate all lists
-      if (data.scope === 'THIS_AND_FUTURE' || data.scope === 'ALL') {
-        queryClient.invalidateQueries({ queryKey: budgetKeys.lists() });
-        queryClient.invalidateQueries({ queryKey: budgetKeys.summary() });
+      // Invalidate template overrides if it has a templateId
+      if (updatedBudget.templateId) {
+        queryClient.invalidateQueries({
+          queryKey: templateKeys.overrides(updatedBudget.templateId),
+        });
+      }
+    },
+  });
+};
 
-        // Invalidate template if it was updated
-        if (updatedBudget.templateId) {
-          queryClient.invalidateQueries({
-            queryKey: templateKeys.detail(updatedBudget.templateId),
-          });
-          queryClient.invalidateQueries({
-            queryKey: templateKeys.budgets(updatedBudget.templateId),
-          });
-        }
-      } else {
-        // For THIS_ONLY, only invalidate specific budget and lists
-        queryClient.invalidateQueries({ queryKey: budgetKeys.lists() });
-        queryClient.invalidateQueries({ queryKey: budgetKeys.summary() });
+/**
+ * Hook to delete an override (returns period to virtual status)
+ */
+export const useDeleteOverride = (): UseMutationResult<
+  void,
+  Error,
+  { budgetId: string; templateId?: string }
+> => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ budgetId }) => deleteOverride(budgetId),
+    onSuccess: (_, { templateId }) => {
+      queryClient.invalidateQueries({ queryKey: budgetKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: budgetKeys.summary() });
+
+      // Invalidate template overrides if templateId was provided
+      if (templateId) {
+        queryClient.invalidateQueries({
+          queryKey: templateKeys.overrides(templateId),
+        });
       }
     },
   });

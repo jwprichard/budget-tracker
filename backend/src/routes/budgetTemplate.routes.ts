@@ -1,6 +1,10 @@
 /**
  * Budget Template Routes
  * Defines API routes for budget template management
+ *
+ * With virtual periods architecture:
+ * - Templates define patterns (no pre-generated instances)
+ * - Overrides are created when user customizes a virtual period
  */
 
 import { Router } from 'express';
@@ -11,9 +15,10 @@ import {
   getTemplateById,
   updateTemplate,
   deleteTemplate,
-  getTemplateBudgets,
-  generateBudgets,
-  updateBudgetInstance,
+  getTemplateOverrides,
+  createPeriodOverride,
+  updateOverride,
+  deleteOverride,
 } from '../controllers/budgetTemplate.controller';
 
 const router = Router();
@@ -33,14 +38,15 @@ router.put('/:id', updateTemplate);
 router.delete('/:id', deleteTemplate);
 
 /**
- * Template-specific operations
+ * Template override operations
  */
-router.get('/:id/budgets', getTemplateBudgets); // Get all budgets for a template
-router.post('/:id/generate', generateBudgets); // Generate additional budget instances
+router.get('/:id/overrides', getTemplateOverrides); // Get all overrides for a template
+router.post('/:id/overrides', createPeriodOverride); // Create override for a virtual period
 
 /**
- * Budget instance operations with scope
+ * Override CRUD operations
  */
-router.put('/budgets/:budgetId', updateBudgetInstance); // Update with scope
+router.put('/overrides/:budgetId', updateOverride); // Update an existing override
+router.delete('/overrides/:budgetId', deleteOverride); // Delete an override
 
 export default router;

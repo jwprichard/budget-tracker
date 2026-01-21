@@ -1,22 +1,25 @@
 /**
  * Budget Template Controller
  * Handles HTTP requests for budget template management endpoints
+ *
+ * With virtual periods architecture:
+ * - Templates define the pattern (no instances pre-generated)
+ * - Periods are calculated on-the-fly
+ * - Overrides are created only when user customizes a period
  */
 
 import { Request, Response, NextFunction } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { BudgetTemplateService } from '../services/budgetTemplate.service';
-import { BudgetService } from '../services/budget.service';
 import {
   createBudgetTemplateSchema,
   updateBudgetTemplateSchema,
-  updateBudgetInstanceSchema,
+  createOverrideSchema,
+  updateOverrideSchema,
 } from '../schemas/budgetTemplate.schema';
-import { z } from 'zod';
 
 const prisma = new PrismaClient();
 const templateService = new BudgetTemplateService(prisma);
-const budgetService = new BudgetService(prisma);
 
 /**
  * Create a new budget template
@@ -94,7 +97,8 @@ export const getTemplateById = async (
 /**
  * Update a budget template
  * PUT /api/v1/budget-templates/:id
- * Query params: ?updateInstances=true (default) to also update linked budgets
+ * Changes apply to all future virtual periods automatically
+ * Existing overrides are not affected
  */
 export const updateTemplate = async (
   req: Request,
@@ -104,14 +108,12 @@ export const updateTemplate = async (
   try {
     const userId = req.user!.userId;
     const { id } = req.params;
-    const updateInstances = (req.query['updateInstances'] as string) !== 'false'; // Default true
     const validatedData = updateBudgetTemplateSchema.parse(req.body);
 
     const template = await templateService.updateTemplate(
       id!,
       validatedData,
-      userId,
-      updateInstances
+      userId
     );
 
     res.status(200).json({
@@ -127,7 +129,7 @@ export const updateTemplate = async (
 /**
  * Delete a budget template
  * DELETE /api/v1/budget-templates/:id
- * Deletes template and future instances, preserves past/current budgets
+ * Deletes template and all its override budgets
  */
 export const deleteTemplate = async (
   req: Request,
@@ -151,10 +153,10 @@ export const deleteTemplate = async (
 };
 
 /**
- * Get all budget instances for a template
- * GET /api/v1/budget-templates/:id/budgets
+ * Get all overrides for a template
+ * GET /api/v1/budget-templates/:id/overrides
  */
-export const getTemplateBudgets = async (
+export const getTemplateOverrides = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -166,13 +168,13 @@ export const getTemplateBudgets = async (
     // Verify template exists and belongs to user
     await templateService.getTemplateById(id!, userId);
 
-    // Get budgets for this template
-    const budgets = await budgetService.getBudgetsByTemplate(id!, userId);
+    // Get overrides for this template
+    const overrides = await templateService.getOverridesForTemplate(id!, userId);
 
     res.status(200).json({
       success: true,
-      data: budgets,
-      message: 'Template budgets retrieved successfully',
+      data: overrides,
+      message: 'Template overrides retrieved successfully',
     });
   } catch (error) {
     next(error);
@@ -180,11 +182,11 @@ export const getTemplateBudgets = async (
 };
 
 /**
- * Generate additional budget instances for a template
- * POST /api/v1/budget-templates/:id/generate
- * Body: { count?: number } (default 12)
+ * Create an override for a specific period
+ * POST /api/v1/budget-templates/:id/overrides
+ * Body: { periodStartDate, amount?, name?, notes?, includeSubcategories? }
  */
-export const generateBudgets = async (
+export const createPeriodOverride = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -192,23 +194,24 @@ export const generateBudgets = async (
   try {
     const userId = req.user!.userId;
     const { id } = req.params;
+    const validatedData = createOverrideSchema.parse(req.body);
 
-    // Validate count parameter
-    const countSchema = z.object({
-      count: z.number().int().min(1).max(52).optional().default(12),
-    });
-    const { count } = countSchema.parse(req.body);
-
-    // Verify template exists and belongs to user
-    await templateService.getTemplateById(id!, userId);
-
-    // Generate budgets
-    const budgets = await templateService.generateBudgets(id!, count);
+    const override = await templateService.createPeriodOverride(
+      id!,
+      new Date(validatedData.periodStartDate),
+      {
+        amount: validatedData.amount,
+        name: validatedData.name,
+        notes: validatedData.notes,
+        includeSubcategories: validatedData.includeSubcategories,
+      },
+      userId
+    );
 
     res.status(201).json({
       success: true,
-      data: budgets,
-      message: `Generated ${budgets.length} budget instances successfully`,
+      data: override,
+      message: 'Period override created successfully',
     });
   } catch (error) {
     next(error);
@@ -216,11 +219,10 @@ export const generateBudgets = async (
 };
 
 /**
- * Update a budget instance with scope
- * PUT /api/v1/budget-templates/budgets/:budgetId
- * Body must include scope: 'THIS_ONLY' | 'THIS_AND_FUTURE' | 'ALL'
+ * Update an existing override
+ * PUT /api/v1/budget-templates/overrides/:budgetId
  */
-export const updateBudgetInstance = async (
+export const updateOverride = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -228,9 +230,9 @@ export const updateBudgetInstance = async (
   try {
     const userId = req.user!.userId;
     const { budgetId } = req.params;
-    const validatedData = updateBudgetInstanceSchema.parse(req.body);
+    const validatedData = updateOverrideSchema.parse(req.body);
 
-    const budget = await templateService.updateBudgetInstance(
+    const override = await templateService.updateOverride(
       budgetId!,
       validatedData,
       userId
@@ -238,8 +240,33 @@ export const updateBudgetInstance = async (
 
     res.status(200).json({
       success: true,
-      data: budget,
-      message: 'Budget instance updated successfully',
+      data: override,
+      message: 'Override updated successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Delete an override (returns period to virtual status)
+ * DELETE /api/v1/budget-templates/overrides/:budgetId
+ */
+export const deleteOverride = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const userId = req.user!.userId;
+    const { budgetId } = req.params;
+
+    await templateService.deleteOverride(budgetId!, userId);
+
+    res.status(200).json({
+      success: true,
+      data: null,
+      message: 'Override deleted successfully',
     });
   } catch (error) {
     next(error);

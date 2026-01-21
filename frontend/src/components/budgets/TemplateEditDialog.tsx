@@ -48,7 +48,6 @@ export const TemplateEditDialog: React.FC<TemplateEditDialogProps> = ({
   const [firstStartDate, setFirstStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [isActive, setIsActive] = useState<boolean>(true);
-  const [updateInstances, setUpdateInstances] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
 
   const updateMutation = useUpdateTemplate();
@@ -65,7 +64,6 @@ export const TemplateEditDialog: React.FC<TemplateEditDialogProps> = ({
       setFirstStartDate(new Date(template.firstStartDate));
       setEndDate(template.endDate ? new Date(template.endDate) : null);
       setIsActive(template.isActive);
-      setUpdateInstances(true);
     }
     setError('');
   }, [template, open]);
@@ -120,7 +118,6 @@ export const TemplateEditDialog: React.FC<TemplateEditDialogProps> = ({
           endDate: endDate ? endDate.toISOString() : null,
           isActive,
         },
-        updateInstances,
       });
 
       onClose();
@@ -289,25 +286,12 @@ export const TemplateEditDialog: React.FC<TemplateEditDialogProps> = ({
               />
             </Grid>
 
-            {/* Update instances checkbox */}
-            <Grid item xs={12}>
-              <Alert severity="info" sx={{ mb: 2 }}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={updateInstances}
-                      onChange={(e) => setUpdateInstances(e.target.checked)}
-                    />
-                  }
-                  label="Update all non-customized budget instances with these changes"
-                />
-              </Alert>
-            </Grid>
           </Grid>
 
           {/* Info about template changes */}
           <Alert severity="info" sx={{ mt: 2 }}>
-            Category and period type cannot be changed. Create a new template if you need different settings.
+            Changes apply to all future periods automatically. Customized periods keep their custom values.
+            Category and period type cannot be changed - create a new template if needed.
           </Alert>
         </Box>
       </DialogContent>

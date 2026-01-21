@@ -69,6 +69,65 @@ export const getBudgets = async (
 };
 
 /**
+ * Get budgets for a date range (includes virtual periods from templates)
+ * GET /api/v1/budgets/range?startDate=...&endDate=...&categoryId=...&type=...
+ */
+export const getBudgetsForRange = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const userId = req.user!.userId;
+    const { startDate, endDate, categoryId, type } = req.query;
+
+    // Validate required date parameters
+    if (!startDate || !endDate) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'startDate and endDate query parameters are required',
+        },
+      });
+      return;
+    }
+
+    const start = new Date(startDate as string);
+    const end = new Date(endDate as string);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid date format. Use ISO 8601 format.',
+        },
+      });
+      return;
+    }
+
+    const budgets = await budgetService.getBudgetsForDateRange(
+      userId,
+      start,
+      end,
+      {
+        categoryId: categoryId as string | undefined,
+        type: type as 'INCOME' | 'EXPENSE' | undefined,
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      data: budgets,
+      message: 'Budgets retrieved successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Get budget summary for current period
  * GET /api/v1/budgets/summary
  */

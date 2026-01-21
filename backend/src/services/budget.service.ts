@@ -1,4 +1,4 @@
-import { PrismaClient, Budget } from '@prisma/client';
+import { PrismaClient, Budget, BudgetType, Prisma } from '@prisma/client';
 import { CreateBudgetDto, UpdateBudgetDto, BudgetQueryDto } from '../schemas/budget.schema';
 import {
   BudgetWithStatus,
@@ -12,6 +12,11 @@ import {
 import { AppError } from '../middlewares/errorHandler';
 import { calculateBudgetStatus } from '../utils/budgetHelpers';
 import { calculatePeriodEndDate } from '../utils/periodCalculations';
+import {
+  generateVirtualPeriods,
+  VirtualPeriod,
+  TemplateWithCategory,
+} from '../utils/virtualPeriods';
 
 export class BudgetService {
   constructor(private prisma: PrismaClient) {}
@@ -278,6 +283,186 @@ export class BudgetService {
     return Promise.all(
       budgets.map((budget) => this.enrichBudgetWithStatus(budget as any, userId))
     );
+  }
+
+  /**
+   * Get all budgets for a date range with virtual period expansion
+   * This is the main query method for the virtual periods architecture:
+   * 1. Fetch templates and expand to virtual periods in range
+   * 2. Fetch one-time budgets in range
+   * 3. Fetch override budgets in range
+   * 4. Merge (overrides replace matching virtual periods)
+   * 5. Calculate spent/remaining/status for each
+   *
+   * @param userId - User UUID
+   * @param startDate - Start of date range
+   * @param endDate - End of date range
+   * @param options - Optional filters (categoryId, type)
+   */
+  async getBudgetsForDateRange(
+    userId: string,
+    startDate: Date,
+    endDate: Date,
+    options?: {
+      categoryId?: string;
+      type?: BudgetType;
+    }
+  ): Promise<BudgetWithStatus[]> {
+    // 1. Fetch all active templates for user
+    const templates = await this.prisma.budgetTemplate.findMany({
+      where: {
+        userId,
+        isActive: true,
+        ...(options?.categoryId && { categoryId: options.categoryId }),
+        ...(options?.type && { type: options.type }),
+      },
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+          },
+        },
+      },
+    });
+
+    // 2. Generate virtual periods for each template
+    const virtualPeriods: VirtualPeriod[] = [];
+    for (const template of templates) {
+      const periods = generateVirtualPeriods(
+        template as TemplateWithCategory,
+        startDate,
+        endDate
+      );
+      virtualPeriods.push(...periods);
+    }
+
+    // 3. Fetch override budgets in range (budgets with templateId)
+    const overrides = await this.prisma.budget.findMany({
+      where: {
+        userId,
+        templateId: { not: null },
+        startDate: { gte: startDate },
+        endDate: { lte: endDate },
+        ...(options?.categoryId && { categoryId: options.categoryId }),
+        ...(options?.type && { type: options.type }),
+      },
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            parentId: true,
+          },
+        },
+      },
+    });
+
+    // 4. Fetch one-time budgets in range (budgets without templateId)
+    const oneTimeBudgets = await this.prisma.budget.findMany({
+      where: {
+        userId,
+        templateId: null,
+        startDate: { gte: startDate },
+        OR: [
+          { endDate: null },
+          { endDate: { lte: endDate } },
+        ],
+        ...(options?.categoryId && { categoryId: options.categoryId }),
+        ...(options?.type && { type: options.type }),
+      },
+      include: {
+        category: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            parentId: true,
+          },
+        },
+      },
+    });
+
+    // 5. Build override lookup map (templateId + startDate -> override)
+    const overrideMap = new Map<string, Budget & { category: any }>();
+    for (const override of overrides) {
+      const key = `${override.templateId}_${override.startDate.toISOString()}`;
+      overrideMap.set(key, override);
+    }
+
+    // 6. Merge virtual periods with overrides
+    const allBudgets: Array<{
+      budget: Budget & { category: any };
+      isVirtual: boolean;
+    }> = [];
+
+    // Add virtual periods (replaced by overrides if they exist)
+    for (const vp of virtualPeriods) {
+      const key = `${vp.templateId}_${vp.startDate.toISOString()}`;
+      const override = overrideMap.get(key);
+
+      if (override) {
+        // Use the override instead of virtual period
+        allBudgets.push({ budget: override, isVirtual: false });
+        // Remove from map so we don't add it again
+        overrideMap.delete(key);
+      } else {
+        // Convert virtual period to Budget-like object
+        const template = templates.find((t) => t.id === vp.templateId);
+        if (template) {
+          const virtualBudget: Budget & { category: any } = {
+            id: vp.id,
+            userId: vp.userId,
+            categoryId: vp.categoryId,
+            amount: new Prisma.Decimal(vp.amount),
+            type: vp.type,
+            periodType: vp.periodType,
+            interval: vp.interval,
+            startDate: vp.startDate,
+            endDate: vp.endDate,
+            includeSubcategories: vp.includeSubcategories,
+            name: vp.name,
+            notes: vp.notes,
+            templateId: vp.templateId,
+            isCustomized: false,
+            createdAt: template.createdAt,
+            updatedAt: template.updatedAt,
+            category: template.category,
+          };
+          allBudgets.push({ budget: virtualBudget, isVirtual: true });
+        }
+      }
+    }
+
+    // Add any overrides that weren't matched (shouldn't happen normally)
+    for (const override of overrideMap.values()) {
+      allBudgets.push({ budget: override, isVirtual: false });
+    }
+
+    // Add one-time budgets
+    for (const budget of oneTimeBudgets) {
+      allBudgets.push({ budget, isVirtual: false });
+    }
+
+    // 7. Calculate status for each budget
+    const budgetsWithStatus = await Promise.all(
+      allBudgets.map(async ({ budget, isVirtual }) => {
+        const enriched = await this.enrichBudgetWithStatus(budget, userId);
+        return {
+          ...enriched,
+          isVirtual,
+        };
+      })
+    );
+
+    // Sort by start date descending
+    budgetsWithStatus.sort((a, b) =>
+      new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+    );
+
+    return budgetsWithStatus;
   }
 
   /**
