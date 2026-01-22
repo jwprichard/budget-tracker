@@ -177,7 +177,6 @@ function calculateExpectedDate(
     return result;
   }
 
-  const year = result.getFullYear();
   const month = result.getMonth();
 
   switch (dayOfMonthType) {
@@ -374,8 +373,8 @@ export function findOccurrenceForDate(
   }
 
   // Find the closest occurrence
-  let closest = occurrences[0];
-  let minDiff = Math.abs(occurrences[0].expectedDate.getTime() - targetDate.getTime());
+  let closest = occurrences[0]!;
+  let minDiff = Math.abs(closest.expectedDate.getTime() - targetDate.getTime());
 
   for (const occurrence of occurrences) {
     const diff = Math.abs(occurrence.expectedDate.getTime() - targetDate.getTime());

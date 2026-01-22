@@ -12,7 +12,6 @@ import {
 import { AppError } from '../middlewares/errorHandler';
 import {
   generateVirtualPlannedTransactions,
-  VirtualPlannedTransaction,
   TemplateWithRelations,
   parseVirtualPlannedTransactionId,
   isVirtualPlannedTransactionId,

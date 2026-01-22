@@ -423,6 +423,7 @@ export class BudgetService {
             startDate: vp.startDate,
             endDate: vp.endDate,
             includeSubcategories: vp.includeSubcategories,
+            implicitSpendMode: template.implicitSpendMode,
             name: vp.name,
             notes: vp.notes,
             templateId: vp.templateId,

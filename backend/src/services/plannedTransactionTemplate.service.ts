@@ -408,8 +408,8 @@ export class PlannedTransactionTemplateService {
 
     // Combine and sort by expected date
     const all = [...filteredVirtual, ...overrides].sort((a, b) => {
-      const dateA = 'expectedDate' in a ? a.expectedDate : a.expectedDate;
-      const dateB = 'expectedDate' in b ? b.expectedDate : b.expectedDate;
+      const dateA = new Date(a.expectedDate);
+      const dateB = new Date(b.expectedDate);
       return dateA.getTime() - dateB.getTime();
     });
 

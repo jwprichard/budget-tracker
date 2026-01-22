@@ -3,12 +3,8 @@
  * Calculates future balance projections based on planned transactions and budget implicit spend
  */
 
-import { PrismaClient, TransactionType, ImplicitSpendMode, BudgetType } from '@prisma/client';
+import { PrismaClient, TransactionType, ImplicitSpendMode } from '@prisma/client';
 import { PlannedTransactionService, PlannedTransactionWithRelations } from './plannedTransaction.service';
-import {
-  generateVirtualPlannedTransactions,
-  TemplateWithRelations,
-} from '../utils/virtualPlannedTransactions';
 import { generateVirtualPeriods, TemplateWithCategory } from '../utils/virtualPeriods';
 
 // ============================================================================
@@ -421,11 +417,6 @@ export class ForecastService {
     // Initialize balances from current account balances
     const balances = new Map<string, number>(
       accounts.map((a) => [a.id, a.currentBalance])
-    );
-
-    // Create account name lookup
-    const accountNames = new Map<string, string>(
-      accounts.map((a) => [a.id, a.name])
     );
 
     // Group planned transactions by date
