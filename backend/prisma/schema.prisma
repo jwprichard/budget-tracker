@@ -16,17 +16,20 @@ model User {
   email     String   @unique
   password  String // bcrypt hashed (12 rounds)
   name      String
+  timezone  String   @default("UTC") // IANA timezone (e.g., "Pacific/Auckland", "America/New_York")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  accounts        Account[]
-  transactions    Transaction[]
-  categories      Category[]
-  categoryRules   CategoryRule[]
-  budgets         Budget[]
-  budgetTemplates BudgetTemplate[]
-  bankConnections BankConnection[]
+  accounts                    Account[]
+  transactions                Transaction[]
+  categories                  Category[]
+  categoryRules               CategoryRule[]
+  budgets                     Budget[]
+  budgetTemplates             BudgetTemplate[]
+  bankConnections             BankConnection[]
+  plannedTransactionTemplates PlannedTransactionTemplate[]
+  plannedTransactions         PlannedTransaction[]
 
   @@index([email])
   @@map("users")
@@ -67,6 +70,28 @@ enum BudgetType {
   EXPENSE
 }
 
+// Planned Transaction Enums
+enum DayOfMonthType {
+  FIXED // Use dayOfMonth field (1-31)
+  LAST_DAY // Last day of month
+  FIRST_WEEKDAY // First Monday-Friday of month
+  LAST_WEEKDAY // Last Monday-Friday of month
+  FIRST_OF_WEEK // First occurrence of dayOfWeek in month
+  LAST_OF_WEEK // Last occurrence of dayOfWeek in month
+}
+
+enum ImplicitSpendMode {
+  DAILY // Spread evenly across days in period
+  END_OF_PERIOD // Assume spent at end of period
+  NONE // Don't include in forecast (tracking only)
+}
+
+enum MatchMethod {
+  AUTO // System auto-matched, high confidence
+  AUTO_REVIEWED // System suggested, user confirmed
+  MANUAL // User manually linked
+}
+
 // Account model - Represents financial accounts (checking, savings, credit cards, etc.)
 model Account {
   id             String      @id @default(uuid())
@@ -86,10 +111,14 @@ model Account {
   updatedAt DateTime @updatedAt
 
   // Relations
-  user                 User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions         Transaction[]  @relation("AccountTransactions")
-  transferTransactions Transaction[]  @relation("TransferDestination")
-  linkedAccount        LinkedAccount? // One-to-one with external account
+  user                              User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions                      Transaction[]                @relation("AccountTransactions")
+  transferTransactions              Transaction[]                @relation("TransferDestination")
+  linkedAccount                     LinkedAccount? // One-to-one with external account
+  plannedTransactionTemplates       PlannedTransactionTemplate[] @relation("PlannedTemplateAccount")
+  plannedTransactionTransferTo      PlannedTransactionTemplate[] @relation("PlannedTemplateTransferTo")
+  plannedTransactions               PlannedTransaction[]         @relation("PlannedTransactionAccount")
+  plannedTransactionTransferToPlans PlannedTransaction[]         @relation("PlannedTransactionTransferTo")
 
   @@index([userId])
   @@index([isActive])
@@ -108,13 +137,15 @@ model Category {
   updatedAt DateTime @updatedAt
 
   // Relations
-  user            User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent          Category?        @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
-  children        Category[]       @relation("CategoryHierarchy")
-  transactions    Transaction[]
-  rules           CategoryRule[]
-  budgets         Budget[]
-  budgetTemplates BudgetTemplate[]
+  user                        User?                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent                      Category?                    @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children                    Category[]                   @relation("CategoryHierarchy")
+  transactions                Transaction[]
+  rules                       CategoryRule[]
+  budgets                     Budget[]
+  budgetTemplates             BudgetTemplate[]
+  plannedTransactionTemplates PlannedTransactionTemplate[]
+  plannedTransactions         PlannedTransaction[]
 
   @@index([userId])
   @@index([parentId])
@@ -169,8 +200,9 @@ model Budget {
   endDate    DateTime? // Calculated end date (NULL for one-time budgets)
 
   // Configuration
-  includeSubcategories Boolean    @default(false)
-  type                 BudgetType @default(EXPENSE) // Budget type: income vs expense
+  includeSubcategories Boolean           @default(false)
+  type                 BudgetType        @default(EXPENSE) // Budget type: income vs expense
+  implicitSpendMode    ImplicitSpendMode @default(DAILY) // How to distribute unplanned budget spend in forecasts
 
   // Metadata
   name  String? // Optional custom name
@@ -184,9 +216,11 @@ model Budget {
   updatedAt DateTime @updatedAt
 
   // Relations
-  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  template BudgetTemplate? @relation("TemplateBudgets", fields: [templateId], references: [id], onDelete: SetNull)
+  user                        User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category                    Category                     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  template                    BudgetTemplate?              @relation("TemplateBudgets", fields: [templateId], references: [id], onDelete: SetNull)
+  plannedTransactionTemplates PlannedTransactionTemplate[]
+  plannedTransactions         PlannedTransaction[]
 
   @@index([userId])
   @@index([categoryId])
@@ -202,11 +236,12 @@ model BudgetTemplate {
   categoryId String
 
   // Template configuration
-  amount               Decimal      @db.Decimal(15, 2)
+  amount               Decimal           @db.Decimal(15, 2)
   periodType           BudgetPeriod
-  interval             Int          @default(1) // How often (1 = every period, 2 = every 2 periods)
-  includeSubcategories Boolean      @default(false)
-  type                 BudgetType   @default(EXPENSE) // Budget type: income vs expense
+  interval             Int               @default(1) // How often (1 = every period, 2 = every 2 periods)
+  includeSubcategories Boolean           @default(false)
+  type                 BudgetType        @default(EXPENSE) // Budget type: income vs expense
+  implicitSpendMode    ImplicitSpendMode @default(DAILY) // How to distribute unplanned budget spend in forecasts
 
   // Recurrence settings
   firstStartDate DateTime // When the first budget instance starts
@@ -261,6 +296,7 @@ model Transaction {
   category            Category?            @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   transferAccount     Account?             @relation("TransferDestination", fields: [transferToAccountId], references: [id], onDelete: SetNull)
   externalTransaction ExternalTransaction? // One-to-one with external transaction
+  matchedTransaction  MatchedTransaction? // One-to-one with matched planned transaction
 
   @@index([userId])
   @@index([accountId])
@@ -412,4 +448,163 @@ model SyncHistory {
   @@index([connectionId])
   @@index([status])
   @@index([startedAt])
+}
+
+// ============================================================================
+// Planned Transactions & Forecasting Models
+// ============================================================================
+
+// PlannedTransactionTemplate - Defines a recurring pattern for planned transactions
+model PlannedTransactionTemplate {
+  id     String @id @default(uuid())
+  userId String
+
+  // Transaction details
+  accountId  String
+  categoryId String?
+
+  // For transfers
+  isTransfer          Boolean @default(false)
+  transferToAccountId String?
+
+  // Amount and type
+  amount Decimal         @db.Decimal(12, 2) // Positive for income, negative for expense
+  type   TransactionType // INCOME, EXPENSE, TRANSFER
+
+  // Description
+  name        String // e.g., "Monthly Rent", "Salary"
+  description String? // Optional detailed description
+  notes       String?
+
+  // Recurrence pattern
+  periodType      BudgetPeriod // DAILY, WEEKLY, FORTNIGHTLY, MONTHLY, ANNUALLY
+  interval        Int          @default(1) // Every N periods
+  firstOccurrence DateTime // When the pattern starts (stored in UTC)
+  endDate         DateTime? // Optional end date (null = indefinite)
+
+  // Day-of-period specification (for flexibility)
+  dayOfMonth     Int? // 1-31, null for non-monthly or when using dayOfMonthType
+  dayOfMonthType DayOfMonthType? // For floating days (last day, first weekday, etc.)
+  dayOfWeek      Int? // 0-6 (Sunday-Saturday), for weekly or "first/last X of month"
+
+  // Matching configuration
+  autoMatchEnabled Boolean  @default(true) // Whether to auto-match actual transactions
+  skipReview       Boolean  @default(false) // Skip review queue for high-trust items
+  matchTolerance   Decimal? @db.Decimal(12, 2) // Amount tolerance for matching (e.g., $5)
+  matchWindowDays  Int      @default(7) // Days before/after expected date to match
+
+  // Budget linkage (optional)
+  budgetId String?
+
+  // Status
+  isActive Boolean @default(true)
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account           Account              @relation("PlannedTemplateAccount", fields: [accountId], references: [id], onDelete: Cascade)
+  category          Category?            @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  transferToAccount Account?             @relation("PlannedTemplateTransferTo", fields: [transferToAccountId], references: [id], onDelete: SetNull)
+  budget            Budget?              @relation(fields: [budgetId], references: [id], onDelete: SetNull)
+  overrides         PlannedTransaction[] // Customized instances
+
+  @@index([userId])
+  @@index([accountId])
+  @@index([categoryId])
+  @@index([budgetId])
+  @@index([isActive])
+  @@index([firstOccurrence])
+  @@map("planned_transaction_templates")
+}
+
+// PlannedTransaction - Individual planned transaction instance
+// Created when user customizes a specific occurrence or creates one-time planned transaction
+model PlannedTransaction {
+  id     String @id @default(uuid())
+  userId String
+
+  // Link to template (null for one-time planned transactions)
+  templateId String?
+
+  // Transaction details (can override template values)
+  accountId  String
+  categoryId String?
+
+  // For transfers
+  isTransfer          Boolean @default(false)
+  transferToAccountId String?
+
+  // Amount and type
+  amount Decimal         @db.Decimal(12, 2)
+  type   TransactionType
+
+  // Description
+  name        String
+  description String?
+  notes       String?
+
+  // Timing
+  expectedDate DateTime // When this transaction is expected
+
+  // Override flag
+  isOverride Boolean @default(false) // True if this overrides a template instance
+
+  // Matching (inherited from template or set directly)
+  autoMatchEnabled Boolean  @default(true)
+  skipReview       Boolean  @default(false)
+  matchTolerance   Decimal? @db.Decimal(12, 2)
+  matchWindowDays  Int      @default(7)
+
+  // Budget linkage
+  budgetId String?
+
+  // Metadata
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user              User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template          PlannedTransactionTemplate? @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  account           Account                     @relation("PlannedTransactionAccount", fields: [accountId], references: [id], onDelete: Cascade)
+  category          Category?                   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  transferToAccount Account?                    @relation("PlannedTransactionTransferTo", fields: [transferToAccountId], references: [id], onDelete: SetNull)
+  budget            Budget?                     @relation(fields: [budgetId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([templateId])
+  @@index([accountId])
+  @@index([categoryId])
+  @@index([budgetId])
+  @@index([expectedDate])
+  @@index([isOverride])
+  @@map("planned_transactions")
+}
+
+// MatchedTransaction - Track which actual transactions matched which planned transactions
+// Stores match history since we delete the planned transaction after matching
+model MatchedTransaction {
+  id String @id @default(uuid())
+
+  transactionId String @unique
+
+  // Store the planned transaction details at time of match (since we delete the planned tx)
+  plannedTemplateId   String? // Template that generated the planned tx
+  plannedExpectedDate DateTime // When it was expected
+  plannedAmount       Decimal  @db.Decimal(12, 2)
+
+  // Match metadata
+  matchConfidence Decimal     @db.Decimal(5, 2) // 0-100%
+  matchedAt       DateTime    @default(now())
+  matchMethod     MatchMethod // AUTO, MANUAL, AUTO_REVIEWED
+
+  // Relations
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+  @@index([plannedTemplateId])
+  @@index([matchedAt])
+  @@map("matched_transactions")
 }
