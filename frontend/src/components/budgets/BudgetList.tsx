@@ -130,9 +130,10 @@ export const BudgetList: React.FC<BudgetListProps> = ({
     };
   }, [filteredBudgets, sortBy]);
 
-  // Filter templates by type
-  const incomeTemplates = templates.filter((t) => t.type === 'INCOME' && incomeTemplateMap.has(t.id));
-  const expenseTemplates = templates.filter((t) => t.type === 'EXPENSE' && expenseTemplateMap.has(t.id));
+  // Filter templates by type - show all active templates (even if they don't have periods in current range)
+  // Templates without periods in the current range will be shown with empty instance lists
+  const incomeTemplates = templates.filter((t) => t.type === 'INCOME' && t.isActive);
+  const expenseTemplates = templates.filter((t) => t.type === 'EXPENSE' && t.isActive);
 
   const handleEdit = (budget: BudgetWithStatus) => {
     setEditingBudget(budget);

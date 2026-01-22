@@ -20,15 +20,31 @@ import { BudgetList, SortOption, FilterStatus, FilterPeriodType } from '../compo
 import { BudgetForm } from '../components/budgets/BudgetForm';
 import { BudgetSummaryDashboard } from '../components/budgets/BudgetSummaryDashboard';
 import { IncomeVsExpensesDashboard } from '../components/budgets/IncomeVsExpensesDashboard';
-import { useBudgets } from '../hooks/useBudgets';
+import { useBudgetsForRange } from '../hooks/useBudgets';
 import { useSidebar } from '../hooks/useSidebar';
+
+// Calculate date range for fetching budgets (current year with padding)
+const getDateRange = () => {
+  const now = new Date();
+  // Start from beginning of current year
+  const startDate = new Date(now.getFullYear(), 0, 1);
+  // End at the end of current year
+  const endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+  return {
+    startDate: startDate.toISOString(),
+    endDate: endDate.toISOString(),
+  };
+};
 
 export const Budgets: React.FC = () => {
   const [budgetFormOpen, setBudgetFormOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('period');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('ALL');
   const [filterPeriodType, setFilterPeriodType] = useState<FilterPeriodType>('ANNUALLY');
-  const { data: budgets = [], isLoading, error } = useBudgets();
+
+  // Use memoized date range to prevent unnecessary re-fetches
+  const dateRange = useMemo(() => getDateRange(), []);
+  const { data: budgets = [], isLoading, error } = useBudgetsForRange(dateRange);
 
   // Sidebar tools - action buttons
   const sidebarTools = useMemo(
@@ -105,15 +121,6 @@ export const Budgets: React.FC = () => {
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
-      {/* Header */}
-      {/* <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Budgets
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Track your spending against category budgets
-        </Typography>
-      </Box> */}
 
       {/* Budget Summary Dashboard */}
       <BudgetSummaryDashboard filterPeriodType={filterPeriodType} />

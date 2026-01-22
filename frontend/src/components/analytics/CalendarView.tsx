@@ -26,9 +26,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { DayCellContentArg, DatesSetArg } from '@fullcalendar/core';
 import { DateClickArg } from '@fullcalendar/interaction';
 import { useDailyBalances } from '../../hooks/useAnalytics';
-import { useBudgets } from '../../hooks/useBudgets';
 import { DailyBalance, AccountDailyBalance } from '../../types/analytics.types';
-import { BudgetWithStatus } from '../../types/budget.types';
 import { formatCurrency, formatDateForInput } from '../../utils/formatters';
 
 interface CalendarViewProps {
@@ -139,13 +137,6 @@ export const CalendarView = forwardRef<CalendarViewHandle, CalendarViewProps>(({
     accountIds,
   });
 
-  // Fetch budgets for the current calendar range (only current/future)
-  const today = formatDateForInput(new Date());
-  const { data: budgetsData } = useBudgets({
-    startDate: today, // Only fetch current/future budgets
-    endDate: calendarRange.endDate,
-  });
-
   // Create a map for quick date lookups
   const balanceMap = useMemo(() => {
     if (!data?.dailyBalances) return new Map<string, DailyBalance>();
@@ -156,29 +147,6 @@ export const CalendarView = forwardRef<CalendarViewHandle, CalendarViewProps>(({
     return map;
   }, [data]);
 
-  // Create a map of budgets by date (using startDate)
-  const budgetsByDate = useMemo(() => {
-    if (!budgetsData) return new Map<string, BudgetWithStatus[]>();
-    const map = new Map<string, BudgetWithStatus[]>();
-    budgetsData.forEach((budget) => {
-      // Extract date from startDate in local timezone (not UTC)
-      const date = new Date(budget.startDate);
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const dateStr = `${year}-${month}-${day}`;
-
-      if (!map.has(dateStr)) {
-        map.set(dateStr, []);
-      }
-      const existingBudgets = map.get(dateStr);
-      if (existingBudgets) {
-        existingBudgets.push(budget);
-      }
-    });
-    return map;
-  }, [budgetsData]);
-
   // Handle date click
   const handleDateClick = useCallback(
     (arg: DateClickArg) => {
@@ -188,15 +156,14 @@ export const CalendarView = forwardRef<CalendarViewHandle, CalendarViewProps>(({
       const day = String(arg.date.getDate()).padStart(2, '0');
       const dateStr = `${year}-${month}-${day}`;
       const balance = balanceMap.get(dateStr);
-      const budgets = budgetsByDate.get(dateStr);
-      // Show dialog if there's balance data or budgets
-      if (balance || budgets) {
-        setSelectedDate(balance || null);
+      // Show dialog if there's balance data
+      if (balance) {
+        setSelectedDate(balance);
         setSelectedDateStr(dateStr);
         setDialogOpen(true);
       }
     },
-    [balanceMap, budgetsByDate]
+    [balanceMap]
   );
 
   // Handle dialog close
@@ -253,29 +220,7 @@ export const CalendarView = forwardRef<CalendarViewHandle, CalendarViewProps>(({
         }))
       );
 
-      // Get budgets for this day (to display on the day)
-      const dayBudgets = budgetsByDate.get(dateStr) || [];
-
-      // Calculate total budget amounts for ALL budgets that have started on or before this day
-      const currentDate = new Date(dateStr);
-      let cumulativeBudgetAmount = 0;
-      budgetsByDate.forEach((budgets, budgetDateStr) => {
-        const budgetDate = new Date(budgetDateStr);
-        if (budgetDate <= currentDate) {
-          budgets.forEach((budget) => {
-            // INCOME budgets are ADDED to balance, EXPENSE budgets are SUBTRACTED
-            if (budget.type === 'INCOME') {
-              cumulativeBudgetAmount -= budget.amount; // Subtract so it adds to balance
-            } else {
-              cumulativeBudgetAmount += budget.amount; // Add so it subtracts from balance
-            }
-          });
-        }
-      });
-
-      // Calculate adjusted balance (balance - cumulative expense budgets + cumulative income budgets)
-      const adjustedBalance = balance.balance - cumulativeBudgetAmount;
-      const adjustedBalanceColor = getBalanceColor(adjustedBalance);
+      const balanceColor = getBalanceColor(balance.balance);
 
       return (
         <Box
@@ -297,10 +242,9 @@ export const CalendarView = forwardRef<CalendarViewHandle, CalendarViewProps>(({
             {arg.dayNumberText || ''}
           </Typography>
 
-          {/* Transaction and Budget bars */}
+          {/* Transaction bars */}
           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.25, overflow: 'auto', minHeight: 0 }}>
-            {/* Transaction bars */}
-            {allTransactions.slice(0, 3).map((tx, index) => {
+            {allTransactions.slice(0, 4).map((tx, index) => {
               const txColor = getTransactionColor(tx.type);
               return (
                 <Box
@@ -347,59 +291,8 @@ export const CalendarView = forwardRef<CalendarViewHandle, CalendarViewProps>(({
               );
             })}
 
-            {/* Budget bars */}
-            {dayBudgets.slice(0, 2).map((budget, index) => {
-              const budgetColor = budget.type === 'INCOME' ? '#4caf50' : '#9c27b0'; // Green for income, purple for expense
-              const budgetName = budget.name || budget.categoryName;
-              const budgetPrefix = budget.type === 'INCOME' ? '+' : '-'; // Show +/- prefix
-              return (
-                <Box
-                  key={`budget-${index}`}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    backgroundColor: `${budgetColor}20`,
-                    borderLeft: `2px solid ${budgetColor}`,
-                    px: 0.5,
-                    py: 0.2,
-                    minHeight: '16px',
-                    flexShrink: 0,
-                  }}
-                >
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      fontSize: '0.65rem',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      flex: 1,
-                      mr: 0.5,
-                      fontStyle: 'italic',
-                    }}
-                  >
-                    {budgetName.length > 18
-                      ? `${budgetName.substring(0, 17)}...`
-                      : budgetName}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      fontSize: '0.65rem',
-                      fontWeight: 'bold',
-                      color: budgetColor,
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {budgetPrefix}{formatCurrency(budget.amount)}
-                  </Typography>
-                </Box>
-              );
-            })}
-
             {/* Show "more" indicator if items exceed limit */}
-            {(allTransactions.length > 3 || dayBudgets.length > 2) && (
+            {allTransactions.length > 4 && (
               <Typography
                 variant="caption"
                 sx={{
@@ -410,12 +303,12 @@ export const CalendarView = forwardRef<CalendarViewHandle, CalendarViewProps>(({
                   flexShrink: 0,
                 }}
               >
-                +{Math.max(allTransactions.length - 3, 0) + Math.max(dayBudgets.length - 2, 0)} more
+                +{allTransactions.length - 4} more
               </Typography>
             )}
           </Box>
 
-          {/* Final balance at bottom (after budgets) */}
+          {/* Balance at bottom */}
           <Box
             sx={{
               mt: 0.5,
@@ -424,26 +317,23 @@ export const CalendarView = forwardRef<CalendarViewHandle, CalendarViewProps>(({
               pb: 0.5,
               textAlign: 'right',
               flexShrink: 0,
-            //   backgroundColor: `${adjustedBalanceColor}20`,
-            //   borderLeft: `3px solid ${adjustedBalanceColor}`,
-            //   borderRadius: 0.5,
             }}
           >
             <Typography
               variant="caption"
               sx={{
-                color: adjustedBalanceColor,
+                color: balanceColor,
                 fontWeight: 'bold',
                 fontSize: '0.7rem',
               }}
             >
-              {formatCurrency(adjustedBalance)}
+              {formatCurrency(balance.balance)}
             </Typography>
           </Box>
         </Box>
       );
     },
-    [balanceMap, budgetsByDate]
+    [balanceMap]
   );
 
   // Get transaction type color
@@ -489,7 +379,7 @@ export const CalendarView = forwardRef<CalendarViewHandle, CalendarViewProps>(({
             Balance Calendar
           </Typography>
           <Typography variant="body2" color="text.secondary" gutterBottom>
-            Click on any date to view detailed transactions and budgets
+            Click on any date to view detailed transactions
           </Typography>
 
           <Box sx={{
@@ -531,7 +421,7 @@ export const CalendarView = forwardRef<CalendarViewHandle, CalendarViewProps>(({
           {/* Legend */}
           <Box sx={{ mt: 2 }}>
             <Typography variant="caption" fontWeight="bold" display="block" gutterBottom>
-              Balance Status (after budgets):
+              Balance Status:
             </Typography>
             <Stack direction="row" spacing={2} sx={{ mb: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -608,33 +498,6 @@ export const CalendarView = forwardRef<CalendarViewHandle, CalendarViewProps>(({
               </Box>
             </Stack>
 
-            <Typography variant="caption" fontWeight="bold" display="block" gutterBottom>
-              Budgets:
-            </Typography>
-            <Stack direction="row" spacing={2} sx={{ justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box
-                  sx={{
-                    width: 20,
-                    height: 20,
-                    backgroundColor: '#4caf50',
-                    borderRadius: 0.5,
-                  }}
-                />
-                <Typography variant="caption">Income Budget (expected income)</Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box
-                  sx={{
-                    width: 20,
-                    height: 20,
-                    backgroundColor: '#9c27b0',
-                    borderRadius: 0.5,
-                  }}
-                />
-                <Typography variant="caption">Expense Budget (spending limit)</Typography>
-              </Box>
-            </Stack>
           </Box>
         </CardContent>
       </Card>
@@ -646,7 +509,7 @@ export const CalendarView = forwardRef<CalendarViewHandle, CalendarViewProps>(({
         maxWidth="md"
         fullWidth
       >
-        {(selectedDate || selectedDateStr) && (
+        {selectedDate && selectedDateStr && (
           <>
             <DialogTitle>
               <Box
@@ -673,27 +536,6 @@ export const CalendarView = forwardRef<CalendarViewHandle, CalendarViewProps>(({
                   <Typography variant="h5" color="primary">
                     Total Balance: {formatCurrency(selectedDate.balance)}
                   </Typography>
-                  {budgetsByDate.get(selectedDateStr) && budgetsByDate.get(selectedDateStr)!.length > 0 && (
-                    <>
-                      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                        Budgets: {formatCurrency(
-                          budgetsByDate.get(selectedDateStr)!.reduce((sum, b) => {
-                            // INCOME budgets add to balance (negative), EXPENSE budgets subtract (positive)
-                            return sum + (b.type === 'INCOME' ? -b.amount : b.amount);
-                          }, 0)
-                        )}
-                      </Typography>
-                      <Typography variant="h6" color="secondary" sx={{ mt: 0.5 }}>
-                        Available: {formatCurrency(
-                          selectedDate.balance -
-                          budgetsByDate.get(selectedDateStr)!.reduce((sum, b) => {
-                            // INCOME budgets add to balance (negative), EXPENSE budgets subtract (positive)
-                            return sum + (b.type === 'INCOME' ? -b.amount : b.amount);
-                          }, 0)
-                        )}
-                      </Typography>
-                    </>
-                  )}
                 </Box>
               )}
             </DialogTitle>
@@ -752,77 +594,6 @@ export const CalendarView = forwardRef<CalendarViewHandle, CalendarViewProps>(({
                 </Box>
               ))}
 
-              {/* Budgets Section */}
-              {budgetsByDate.get(selectedDateStr) && budgetsByDate.get(selectedDateStr)!.length > 0 && (
-                <Box sx={{ mb: 3 }}>
-                  <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                    Budgets Starting on This Day
-                  </Typography>
-                  <List dense>
-                    {budgetsByDate.get(selectedDateStr)!.map((budget) => (
-                      <ListItem
-                        key={budget.id}
-                        sx={{
-                          border: 1,
-                          borderColor: 'divider',
-                          borderRadius: 1,
-                          mb: 1,
-                          backgroundColor: '#9c27b020',
-                        }}
-                      >
-                        <ListItemText
-                          primary={
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Typography variant="body2" fontWeight="bold">
-                                {budget.name || budget.categoryName}
-                              </Typography>
-                              {budget.periodType && (
-                                <Chip
-                                  label={budget.periodType}
-                                  size="small"
-                                  variant="outlined"
-                                  sx={{ height: 20, fontSize: '0.7rem' }}
-                                />
-                              )}
-                            </Box>
-                          }
-                          secondary={
-                            <Box sx={{ mt: 0.5 }}>
-                              <Chip
-                                label={`Budget: ${formatCurrency(budget.amount)}`}
-                                size="small"
-                                sx={{
-                                  mr: 1,
-                                  backgroundColor: budget.type === 'INCOME' ? '#4caf50' : '#9c27b0',
-                                  color: 'white',
-                                }}
-                              />
-                              <Chip
-                                label={`Spent: ${formatCurrency(budget.spent)}`}
-                                size="small"
-                                sx={{ mr: 1 }}
-                              />
-                              <Chip
-                                label={`${budget.percentage.toFixed(0)}%`}
-                                size="small"
-                                color={
-                                  budget.status === 'UNDER_BUDGET'
-                                    ? 'success'
-                                    : budget.status === 'ON_TRACK'
-                                    ? 'info'
-                                    : budget.status === 'WARNING'
-                                    ? 'warning'
-                                    : 'error'
-                                }
-                              />
-                            </Box>
-                          }
-                        />
-                      </ListItem>
-                    ))}
-                  </List>
-                </Box>
-              )}
             </DialogContent>
             <DialogActions>
               <Button onClick={handleDialogClose}>Close</Button>

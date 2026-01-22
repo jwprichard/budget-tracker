@@ -24,12 +24,13 @@ import {
 } from '@mui/material';
 import { CategorySelect } from '../categories/CategorySelect';
 import { useCreateBudget, useUpdateBudget } from '../../hooks/useBudgets';
-import { useCreateTemplate } from '../../hooks/useBudgetTemplates';
+import { useCreateTemplate, useCreatePeriodOverride } from '../../hooks/useBudgetTemplates';
 import {
   BudgetWithStatus,
   CreateBudgetDto,
   UpdateBudgetDto,
   CreateBudgetTemplateDto,
+  CreateOverrideDto,
   BudgetPeriod,
   BudgetType,
 } from '../../types/budget.types';
@@ -82,8 +83,11 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget, i
   const createMutation = useCreateBudget();
   const updateMutation = useUpdateBudget();
   const createTemplateMutation = useCreateTemplate();
+  const createOverrideMutation = useCreatePeriodOverride();
 
   const isEditing = !!budget;
+  // Check if this is a virtual budget (not yet stored in DB)
+  const isVirtualBudget = budget?.isVirtual === true || budget?.id?.startsWith('virtual_');
 
   // Initialize form with budget data if editing
   useEffect(() => {
@@ -164,7 +168,27 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget, i
     setError('');
 
     try {
-      if (isEditing) {
+      if (isEditing && isVirtualBudget) {
+        // Virtual budget - create an override instead of updating
+        // This stores a customized version of this specific period
+        if (!budget.templateId) {
+          setError('Cannot edit virtual budget without template ID');
+          return;
+        }
+
+        const overrideData: CreateOverrideDto = {
+          periodStartDate: budget.startDate, // The period we're overriding
+          amount: amountNum,
+          includeSubcategories,
+          name: name.trim() || undefined,
+          notes: notes.trim() || null,
+        };
+
+        await createOverrideMutation.mutateAsync({
+          templateId: budget.templateId,
+          data: overrideData,
+        });
+      } else if (isEditing) {
         // Update existing budget (only amount, type, includeSubcategories, name, notes)
         const updateData: UpdateBudgetDto = {
           amount: amountNum,
@@ -428,10 +452,11 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget, i
           disabled={
             createMutation.isPending ||
             updateMutation.isPending ||
-            createTemplateMutation.isPending
+            createTemplateMutation.isPending ||
+            createOverrideMutation.isPending
           }
         >
-          {isEditing ? 'Update' : isRecurring ? 'Create Recurring' : 'Create'} Budget
+          {isEditing ? (isVirtualBudget ? 'Customize' : 'Update') : isRecurring ? 'Create Recurring' : 'Create'} Budget
         </Button>
       </DialogActions>
     </Dialog>

@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import {
   Box,
   Container,
-  Typography,
   Button,
   Fab,
 } from '@mui/material';
@@ -196,16 +195,7 @@ export const Transactions = () => {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          Transactions
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          View and manage all transactions
-        </Typography>
-      </Box>
-
+		
       {/* Transaction List */}
       {transactionsLoading ? (
         <LoadingSpinner message="Loading transactions..." />

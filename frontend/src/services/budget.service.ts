@@ -13,6 +13,7 @@ import {
   CreateBudgetDto,
   UpdateBudgetDto,
   BudgetQuery,
+  BudgetRangeQuery,
 } from '../types/budget.types';
 import { SuccessResponse } from '../types';
 
@@ -24,6 +25,17 @@ const BASE_PATH = '/v1/budgets';
  */
 export const getBudgets = async (query?: BudgetQuery): Promise<BudgetWithStatus[]> => {
   const response = await apiClient.get<SuccessResponse<BudgetWithStatus[]>>(BASE_PATH, {
+    params: query,
+  });
+  return response.data.data;
+};
+
+/**
+ * Get budgets for a date range (includes virtual periods from templates)
+ * @param query - Required startDate and endDate, optional categoryId and type filters
+ */
+export const getBudgetsForRange = async (query: BudgetRangeQuery): Promise<BudgetWithStatus[]> => {
+  const response = await apiClient.get<SuccessResponse<BudgetWithStatus[]>>(`${BASE_PATH}/range`, {
     params: query,
   });
   return response.data.data;
@@ -86,6 +98,7 @@ export const deleteBudget = async (id: string): Promise<void> => {
 
 export const budgetService = {
   getBudgets,
+  getBudgetsForRange,
   getBudgetById,
   getBudgetSummary,
   getBudgetHistorical,

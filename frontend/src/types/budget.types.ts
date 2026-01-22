@@ -273,3 +273,14 @@ export interface BudgetHistoricalQuery {
   type: HistoricalComparisonType;
   periodType?: 'WEEKLY' | 'MONTHLY';
 }
+
+/**
+ * Query parameters for fetching budgets in a date range
+ * Used with GET /api/v1/budgets/range - includes virtual periods from templates
+ */
+export interface BudgetRangeQuery {
+  startDate: string; // ISO datetime
+  endDate: string; // ISO datetime
+  categoryId?: string;
+  type?: BudgetType;
+}

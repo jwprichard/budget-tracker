@@ -161,6 +161,7 @@ export const useCreatePeriodOverride = (): UseMutationResult<
     onSuccess: (_, { templateId }) => {
       queryClient.invalidateQueries({ queryKey: templateKeys.overrides(templateId) });
       queryClient.invalidateQueries({ queryKey: budgetKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: budgetKeys.ranges() });
       queryClient.invalidateQueries({ queryKey: budgetKeys.summary() });
     },
   });

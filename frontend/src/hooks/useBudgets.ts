@@ -5,6 +5,7 @@
 import { useQuery, useMutation, useQueryClient, UseQueryResult, UseMutationResult } from '@tanstack/react-query';
 import {
   getBudgets,
+  getBudgetsForRange,
   getBudgetById,
   getBudgetSummary,
   getBudgetHistorical,
@@ -21,6 +22,7 @@ import {
   CreateBudgetDto,
   UpdateBudgetDto,
   BudgetQuery,
+  BudgetRangeQuery,
 } from '../types/budget.types';
 
 // Query keys for cache management
@@ -28,6 +30,8 @@ export const budgetKeys = {
   all: ['budgets'] as const,
   lists: () => [...budgetKeys.all, 'list'] as const,
   list: (query?: BudgetQuery) => [...budgetKeys.lists(), query] as const,
+  ranges: () => [...budgetKeys.all, 'range'] as const,
+  range: (query: BudgetRangeQuery) => [...budgetKeys.ranges(), query] as const,
   summary: () => [...budgetKeys.all, 'summary'] as const,
   historical: (query: BudgetHistoricalQuery) => [...budgetKeys.all, 'historical', query] as const,
   details: () => [...budgetKeys.all, 'detail'] as const,
@@ -42,6 +46,19 @@ export const useBudgets = (query?: BudgetQuery): UseQueryResult<BudgetWithStatus
   return useQuery({
     queryKey: budgetKeys.list(query),
     queryFn: () => getBudgets(query),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+/**
+ * Hook to fetch budgets for a date range (includes virtual periods from templates)
+ * This is the preferred method for displaying budgets as it expands template periods
+ * @param query - Required startDate and endDate, optional categoryId and type filters
+ */
+export const useBudgetsForRange = (query: BudgetRangeQuery): UseQueryResult<BudgetWithStatus[], Error> => {
+  return useQuery({
+    queryKey: budgetKeys.range(query),
+    queryFn: () => getBudgetsForRange(query),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };

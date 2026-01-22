@@ -222,15 +222,14 @@ export const BudgetSection: React.FC<BudgetSectionProps> = ({
       }
     });
 
-    // Group templates by period type
+    // Group templates by period type (show all templates, even if no periods in current range)
     templates.forEach((template) => {
-      if (templateBudgetsMap.has(template.id)) {
-        const period = template.periodType;
-        const group = groups.get(period);
-        if (group) {
-          group.templates.push(template);
-          group.templateBudgets.set(template.id, templateBudgetsMap.get(template.id) || []);
-        }
+      const period = template.periodType;
+      const group = groups.get(period);
+      if (group) {
+        group.templates.push(template);
+        // Use budgets from map if available, otherwise empty array
+        group.templateBudgets.set(template.id, templateBudgetsMap.get(template.id) || []);
       }
     });
 
