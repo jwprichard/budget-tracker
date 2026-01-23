@@ -25,6 +25,7 @@ import { TransactionForm } from '../components/transactions/TransactionForm';
 import { TransferForm } from '../components/transactions/TransferForm';
 import { DeleteTransactionDialog } from '../components/transactions/DeleteTransactionDialog';
 import { BudgetForm, BudgetFormInitialValues } from '../components/budgets/BudgetForm';
+import { PlannedTransactionForm, PlannedTransactionFormInitialValues } from '../components/planned/PlannedTransactionForm';
 import { Transaction, TransactionQuery, CreateTransactionDto, UpdateTransactionDto, CreateTransferDto } from '../types';
 import { Receipt as ReceiptIcon } from '@mui/icons-material';
 
@@ -36,6 +37,8 @@ export const Transactions = () => {
   const [deleteTransaction, setDeleteTransaction] = useState<Transaction | null>(null);
   const [budgetFormOpen, setBudgetFormOpen] = useState(false);
   const [budgetInitialValues, setBudgetInitialValues] = useState<BudgetFormInitialValues | undefined>(undefined);
+  const [plannedFormOpen, setPlannedFormOpen] = useState(false);
+  const [plannedInitialValues, setPlannedInitialValues] = useState<PlannedTransactionFormInitialValues | undefined>(undefined);
   const [budgetStatusFilter, setBudgetStatusFilter] = useState<BudgetStatusFilter>('');
 
   // Queries
@@ -128,6 +131,21 @@ export const Transactions = () => {
       startDate: new Date(transaction.date),
     });
     setBudgetFormOpen(true);
+    // Close the transaction form
+    setEditTransaction(null);
+  };
+
+  const handleCreatePlannedTransaction = (transaction: Transaction) => {
+    // Pre-populate planned transaction form with transaction data
+    setPlannedInitialValues({
+      name: transaction.description,
+      type: transaction.type === 'TRANSFER' ? 'EXPENSE' : transaction.type,
+      amount: Math.abs(parseFloat(transaction.amount)),
+      accountId: transaction.accountId,
+      categoryId: transaction.categoryId || undefined,
+      description: transaction.description,
+    });
+    setPlannedFormOpen(true);
     // Close the transaction form
     setEditTransaction(null);
   };
@@ -252,6 +270,7 @@ export const Transactions = () => {
         transaction={editTransaction}
         isSubmitting={updateTransactionMutation.isPending}
         onCreateBudget={handleCreateBudget}
+        onCreatePlannedTransaction={handleCreatePlannedTransaction}
       />
 
       <TransferForm
@@ -276,6 +295,15 @@ export const Transactions = () => {
           setBudgetInitialValues(undefined);
         }}
         initialValues={budgetInitialValues}
+      />
+
+      <PlannedTransactionForm
+        open={plannedFormOpen}
+        onClose={() => {
+          setPlannedFormOpen(false);
+          setPlannedInitialValues(undefined);
+        }}
+        initialValues={plannedInitialValues}
       />
     </Container>
   );

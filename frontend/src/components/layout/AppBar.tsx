@@ -39,6 +39,9 @@ import {
   PieChart as PieChartIcon,
   TrendingUp as TrendingUpIcon,
   Tune as TuneIcon,
+  EventRepeat as PlannedIcon,
+  ShowChart as ForecastIcon,
+  CompareArrows as MatchIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -57,6 +60,15 @@ const navigation: NavigationItem[] = [
   { name: 'Calendar', path: '/calendar', icon: <CalendarIcon /> },
   { name: 'Transactions', path: '/transactions', icon: <TransactionsIcon /> },
   { name: 'Budgets', path: '/budgets', icon: <BudgetIcon /> },
+  {
+    name: 'Planning',
+    icon: <PlannedIcon />,
+    children: [
+      { name: 'Planned Transactions', path: '/planned-transactions', icon: <PlannedIcon /> },
+      { name: 'Cash Flow Forecast', path: '/forecast', icon: <ForecastIcon /> },
+      { name: 'Match Review', path: '/match-review', icon: <MatchIcon /> },
+    ],
+  },
   {
     name: 'Categorisation',
     icon: <CategoryIcon />,
@@ -86,10 +98,12 @@ export const AppBar = () => {
   const { hasContent: hasSidebarContent, setIsMobileOpen: setSidebarMobileOpen } = useSidebarControls();
 
   // Dropdown menu state (desktop)
+  const [planningMenuAnchor, setPlanningMenuAnchor] = useState<null | HTMLElement>(null);
   const [categorisationMenuAnchor, setCategorisationMenuAnchor] = useState<null | HTMLElement>(null);
   const [analyticsMenuAnchor, setAnalyticsMenuAnchor] = useState<null | HTMLElement>(null);
 
   // Collapse state (mobile)
+  const [planningExpanded, setPlanningExpanded] = useState(false);
   const [categorisationExpanded, setCategorisationExpanded] = useState(false);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(false);
 
@@ -97,12 +111,19 @@ export const AppBar = () => {
     navigate(path);
     setDrawerOpen(false);
     // Close all menus
+    setPlanningMenuAnchor(null);
     setCategorisationMenuAnchor(null);
     setAnalyticsMenuAnchor(null);
   };
 
   const isActive = (path: string) => {
     return location.pathname === path;
+  };
+
+  const isPlanningActive = () => {
+    return location.pathname === '/planned-transactions' ||
+           location.pathname === '/forecast' ||
+           location.pathname === '/match-review';
   };
 
   const isCategorisationActive = () => {
@@ -175,7 +196,11 @@ export const AppBar = () => {
                   let menuAnchor = null;
                   let setMenuAnchor: (anchor: HTMLElement | null) => void = () => {};
 
-                  if (item.name === 'Categorisation') {
+                  if (item.name === 'Planning') {
+                    isActiveItem = isPlanningActive();
+                    menuAnchor = planningMenuAnchor;
+                    setMenuAnchor = setPlanningMenuAnchor;
+                  } else if (item.name === 'Categorisation') {
                     isActiveItem = isCategorisationActive();
                     menuAnchor = categorisationMenuAnchor;
                     setMenuAnchor = setCategorisationMenuAnchor;
@@ -335,7 +360,11 @@ export const AppBar = () => {
                 let isExpanded = false;
                 let setExpanded: (expanded: boolean) => void = () => {};
 
-                if (item.name === 'Categorisation') {
+                if (item.name === 'Planning') {
+                  isActiveItem = isPlanningActive();
+                  isExpanded = planningExpanded;
+                  setExpanded = setPlanningExpanded;
+                } else if (item.name === 'Categorisation') {
                   isActiveItem = isCategorisationActive();
                   isExpanded = categorisationExpanded;
                   setExpanded = setCategorisationExpanded;

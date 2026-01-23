@@ -15,6 +15,9 @@ import { Rules } from './pages/Rules';
 import { BankSync } from './pages/BankSync';
 import { Calendar } from './pages/Calendar';
 import { Development } from './pages/Development';
+import { PlannedTransactions } from './pages/PlannedTransactions';
+import { Forecast } from './pages/Forecast';
+import { MatchReview } from './pages/MatchReview';
 import Login from './pages/Login';
 import Register from './pages/Register';
 
@@ -57,6 +60,11 @@ function App() {
                   <Route path="/rules" element={<Rules />} />
                   <Route path="/bank-sync" element={<BankSync />} />
                   <Route path="/calendar" element={<Calendar />} />
+
+                  {/* Planned Transactions & Forecasting Routes */}
+                  <Route path="/planned-transactions" element={<PlannedTransactions />} />
+                  <Route path="/forecast" element={<Forecast />} />
+                  <Route path="/match-review" element={<MatchReview />} />
 
                   {/* Analytics Routes */}
                   <Route path="/analytics/spending-analysis" element={<SpendingAnalysis />} />

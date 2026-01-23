@@ -11,7 +11,7 @@ import {
   Grid,
   Box,
 } from '@mui/material';
-import { AccountBalance as BudgetIcon } from '@mui/icons-material';
+import { AccountBalance as BudgetIcon, EventRepeat as PlannedIcon } from '@mui/icons-material';
 import { Transaction, CreateTransactionDto, UpdateTransactionDto, TransactionType, TransactionStatus } from '../../types';
 import { AmountInput } from '../common/AmountInput';
 import { DatePicker } from '../common/DatePicker';
@@ -26,6 +26,7 @@ interface TransactionFormProps {
   defaultAccountId?: string;
   isSubmitting?: boolean;
   onCreateBudget?: (transaction: Transaction) => void;
+  onCreatePlannedTransaction?: (transaction: Transaction) => void;
 }
 
 const transactionTypes: { value: TransactionType; label: string }[] = [
@@ -48,6 +49,7 @@ export const TransactionForm = ({
   defaultAccountId,
   isSubmitting = false,
   onCreateBudget,
+  onCreatePlannedTransaction,
 }: TransactionFormProps) => {
   const isEditing = !!transaction;
   const { data: accounts = [] } = useAccounts();
@@ -296,6 +298,15 @@ export const TransactionForm = ({
             Cancel
           </Button>
           <Box sx={{ flex: 1 }} />
+          {isEditing && transaction && onCreatePlannedTransaction && (
+            <Button
+              startIcon={<PlannedIcon />}
+              onClick={() => onCreatePlannedTransaction(transaction)}
+              disabled={isSubmitting}
+            >
+              Create Planned
+            </Button>
+          )}
           {isEditing && transaction && onCreateBudget && (
             <Button
               startIcon={<BudgetIcon />}
