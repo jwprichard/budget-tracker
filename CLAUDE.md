@@ -17,8 +17,8 @@ Full-Stack Web Application (Self-Hosted)
 ## Current Status
 
 - **Current Branch**: `feature/planned-transactions-forecasting`
-- **Phase**: Milestone 6 - Planned Transactions & Forecasting 🔄 IN PROGRESS
-- **Last Feature Completed**: One-off planned transactions support (January 24, 2026)
+- **Phase**: Milestone 6 - Planned Transactions & Forecasting ✅ COMPLETE
+- **Last Feature Completed**: Match dismiss persistence (January 25, 2026)
 - **Completed Milestones**:
   - Milestone 1 - Foundation & Core Setup ✅
   - Milestone 1.5 - Authentication & Multi-User Support ✅
@@ -28,8 +28,9 @@ Full-Stack Web Application (Self-Hosted)
   - Milestone 8.6 - Enhanced Akahu Data Display ✅
   - Milestone 4 - Visualization & Analytics (Partial - Calendar, Category Charts, Trends) ✅
   - Milestone 3.5 - Smart Categorization & Rules Engine ✅
-- **Current Milestone**: Milestone 6 - Planned Transactions & Forecasting
-- **Current Focus**: Planned transactions, forecasting, and transaction matching
+  - Milestone 6 - Planned Transactions & Forecasting ✅
+- **Next Milestone**: Ready for merge to main, then Milestone 7 (Advanced Analytics) or Milestone 9 (Alerts)
+- **Current Focus**: Feature complete, ready for merge
 - **Tests**: Not yet implemented (testing infrastructure planned for Milestone 11)
 
 ## Technology Stack

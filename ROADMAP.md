@@ -280,30 +280,47 @@ This roadmap outlines the development milestones for the Budget Tracker applicat
 
 ---
 
-## Milestone 6: Recurring Transactions & Forecasting
+## Milestone 6: Planned Transactions & Forecasting ✅
 
-**Objective**: Automate recurring transactions and provide future balance predictions.
+**Objective**: Enable planned transactions (recurring and one-off) and provide future balance predictions.
+
+**Status**: COMPLETE (January 2026)
+**Branch**: `feature/planned-transactions-forecasting`
 
 ### Deliverables
-- [ ] Recurring transaction data model
-- [ ] Recurrence pattern engine (daily, weekly, monthly, quarterly, etc.)
-- [ ] Recurring transaction CRUD operations and UI
-- [ ] Automatic transaction generation system
-- [ ] Transaction creation modes (pending, automatic, forecast-only)
-- [ ] Next occurrence calculation
-- [ ] Balance prediction algorithm
-- [ ] Cash flow forecasting
-- [ ] Future balance projections on calendar
-- [ ] Upcoming bills view
+- [x] Planned transaction data models (templates + instances) ✓
+- [x] Recurrence pattern engine (daily, weekly, fortnightly, monthly, annually) ✓
+- [x] Planned transaction CRUD operations and UI ✓
+- [x] One-off planned transactions support ✓
+- [x] Virtual transaction generation (on-the-fly future occurrences) ✓
+- [x] Day-of-month options (fixed, last day, first/last weekday) ✓
+- [x] Balance prediction algorithm ✓
+- [x] Cash flow forecasting page ✓
+- [x] Future balance projections on calendar ✓
+- [x] Transaction matching system (auto, reviewed, manual) ✓
+- [x] Match review queue ✓
+- [x] Planned transfers support ✓
+- [x] Low balance warnings ✓
 
 ### Features
-- Flexible recurrence patterns (extensible design)
-- Scheduled income and expense tracking
-- Automatic pending transaction creation
-- Balance prediction with confidence intervals
-- 7-day, 30-day, 90-day, and 12-month forecasts
-- Low balance warnings
-- Recurring payment management
+- Flexible recurrence patterns with interval support (every N periods)
+- Recurring and one-off planned transactions
+- Virtual transactions generated without database storage
+- Scheduled income, expense, and transfer tracking
+- Balance prediction with budget spending integration
+- 30, 60, 90, 180, and 365 day forecasts
+- Low balance threshold warnings
+- Calendar integration with forecast data
+- Transaction matching with confidence scoring
+- Match dismiss persistence
+
+### Nice-to-Have (Deferred)
+- [ ] Skip/pause individual occurrences
+- [ ] Edit series vs single occurrence options
+- [ ] Automatic pending transaction creation (currently forecast-only)
+- [ ] Recurring payment detection from transaction history
+- [ ] Confidence intervals on balance predictions
+- [ ] Email/push notifications for upcoming bills
 
 ---
 
@@ -691,11 +708,18 @@ Each milestone is considered complete when:
 
 ---
 
-**Last Updated**: January 20, 2026
-**Document Version**: 1.9
-**Latest Completion**: Milestone 4 - Visualization & Basic Analytics (January 20, 2026)
+**Last Updated**: January 25, 2026
+**Document Version**: 2.0
+**Latest Completion**: Milestone 6 - Planned Transactions & Forecasting (January 25, 2026)
 **In Progress**: None (ready for next milestone)
 **Recent Changes**:
+- Milestone 6 - Planned Transactions & Forecasting ✅ COMPLETE (Jan 25, 2026)
+  - Recurring and one-off planned transactions
+  - Cash flow forecasting with low balance warnings
+  - Calendar integration with future projections
+  - Transaction matching system with review queue
+  - Planned transfers with correct balance impact
+  - Match dismiss persistence
 - Milestone 5 - Budget Management marked as PARTIALLY COMPLETE (Jan 20, 2026)
   - Core budget CRUD, periods, progress tracking, visualization all done
   - Remaining: alerts, historical comparison, rollover options
