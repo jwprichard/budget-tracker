@@ -16,9 +16,9 @@ Full-Stack Web Application (Self-Hosted)
 
 ## Current Status
 
-- **Current Branch**: `main`
-- **Phase**: Milestone 3.5 - Smart Categorization & Rules Engine ✅ COMPLETE
-- **Last Feature Completed**: Bulk Apply Rules (January 16, 2026) ✓
+- **Current Branch**: `feature/planned-transactions-forecasting`
+- **Phase**: Milestone 6 - Planned Transactions & Forecasting 🔄 IN PROGRESS
+- **Last Feature Completed**: One-off planned transactions support (January 24, 2026)
 - **Completed Milestones**:
   - Milestone 1 - Foundation & Core Setup ✅
   - Milestone 1.5 - Authentication & Multi-User Support ✅
@@ -28,8 +28,8 @@ Full-Stack Web Application (Self-Hosted)
   - Milestone 8.6 - Enhanced Akahu Data Display ✅
   - Milestone 4 - Visualization & Analytics (Partial - Calendar, Category Charts, Trends) ✅
   - Milestone 3.5 - Smart Categorization & Rules Engine ✅
-- **Next Milestone**: Milestone 5 - Budget Management OR Milestone 6 - Recurring Transactions
-- **Current Focus**: Ready for next feature - Budget Management or Recurring Transactions
+- **Current Milestone**: Milestone 6 - Planned Transactions & Forecasting
+- **Current Focus**: Planned transactions, forecasting, and transaction matching
 - **Tests**: Not yet implemented (testing infrastructure planned for Milestone 11)
 
 ## Technology Stack
@@ -513,18 +513,21 @@ Color-coded balance status (green/yellow/red thresholds).
 ## Current Development Context
 
 ### What We're Working On
-- **Phase**: Milestone 3.5 - Smart Categorization & Rules Engine ✅ COMPLETE (Jan 16, 2026)
-- **Current Task**: All phases complete
-- **Branch**: `main`
-- **Status**: Feature complete and merged to main
+- **Phase**: Milestone 6 - Planned Transactions & Forecasting 🔄 IN PROGRESS (Jan 24, 2026)
+- **Current Task**: Polishing UI and testing
+- **Branch**: `feature/planned-transactions-forecasting`
+- **Status**: Core features implemented, refining UI
 - **Completed Features**:
-  - Phase 1: Akahu category mapping with hierarchical structure (parent → child)
-  - Phase 2: Text-based categorization rules with CRUD operations
-  - Phase 3: Bulk apply rules to existing uncategorized transactions
-  - Auto-categorization from bank sync transactions
-  - Priority-based rule evaluation system
-  - Rule management UI with category tree selection
-- **Next Phase**: Milestone 5 (Budget Management) OR Milestone 6 (Recurring Transactions)
+  - Phase 1: Database models for PlannedTransactionTemplate, PlannedTransaction, TransactionMatch
+  - Phase 2: Backend services (planned transactions, forecast, matching)
+  - Phase 3: API endpoints for templates, one-offs, forecast, and matching
+  - Phase 4: Transaction matching service with confidence scoring
+  - Phase 5: Frontend UI (forms, list views, forecast charts, match review)
+  - Calendar integration showing planned transactions on future dates
+  - One-time and recurring planned transaction support
+  - Visual distinction for projected balances (~prefix, blue tint, dashed borders)
+  - Create Planned Transaction from existing transaction
+- **Next Phase**: Merge to main, then Milestone 5 (Budget Management)
 
 ### Recent Decisions (Updated Jan 20, 2026)
 - Chose PostgreSQL over MySQL for better ACID compliance and JSON support
@@ -670,6 +673,25 @@ Color-coded balance status (green/yellow/red thresholds).
   - Spending Trends: Date/account/category filters in Config
   - Trends & Patterns: Date/account/category filters in Config
   - Compact mode for AnalyticsFilters and DateRangePicker (vertical stacking in sidebar)
+- **Planned Transactions & Forecasting (Jan 24, 2026)** - Milestone 6 implementation
+  - **Database Models**: PlannedTransactionTemplate (recurring), PlannedTransaction (one-off/overrides), TransactionMatch
+  - **Recurrence Engine**: Supports DAILY, WEEKLY, FORTNIGHTLY, MONTHLY, ANNUALLY with intervals
+  - **Day Selection Options**: Fixed day, last day of month, first/last weekday for monthly recurrences
+  - **Virtual Transactions**: Generate future occurrences on-the-fly without storing in database
+  - **Forecast Service**: Projects balances considering planned transactions and budget spending
+  - **Transaction Matching**: Confidence-based matching (amount, date, description) with AUTO/AUTO_REVIEWED/MANUAL methods
+  - **Match Review Queue**: Pending matches requiring user confirmation
+  - **One-off Transactions**: Support for single planned transactions with expectedDate
+  - **Schedule Toggle**: Form UI differentiates between one-time and recurring transactions
+- **Calendar Forecast Integration (Jan 24, 2026)** - Visual forecasting in calendar view
+  - Future dates show blue tint background for visual distinction
+  - Planned transactions display with dashed borders and italic text
+  - Projected balances prefixed with ~ symbol
+  - Implicit budget spending aggregated as "Budget spending" item
+  - Lazy loading: Forecast data only fetched when viewing future dates
+  - Dialog shows planned transactions and budget breakdown for future dates
+  - Legend updated with forecast indicators
+  - Fixed timezone issues using local date formatting
 
 ### Known Issues
 None - All Docker build, runtime, and CSV import issues resolved
@@ -705,7 +727,17 @@ None - All Docker build, runtime, and CSV import issues resolved
    - ✅ Auto-categorization during bank sync
    - ✅ Priority-based rule evaluation system
    - ✅ Rule management UI with category tree selection
-11. OPTION A: Implement Budget Management (Milestone 5)
+11. 🔄 Implement Planned Transactions & Forecasting (Milestone 6) (IN PROGRESS - Jan 24, 2026)
+   - ✅ Phase 1: Database models (PlannedTransactionTemplate, PlannedTransaction, TransactionMatch)
+   - ✅ Phase 2: Backend services (planned transactions, forecast, matching)
+   - ✅ Phase 3: API endpoints for templates, one-offs, forecast, and matching
+   - ✅ Phase 4: Transaction matching service with confidence scoring
+   - ✅ Phase 5: Frontend UI (forms, list views, forecast charts, match review)
+   - ✅ Calendar integration with forecast data and visual styling
+   - ✅ One-off planned transactions support (create, edit, delete)
+   - 🔲 Final testing and polish
+   - 🔲 Merge to main branch
+12. NEXT: Implement Budget Management (Milestone 5)
     - Monthly/yearly budget setting per category
     - Budget vs actual spending comparison
     - Budget alerts and notifications
@@ -958,7 +990,7 @@ docker system prune -a --volumes  # Removes all stopped containers, unused image
 
 ---
 
-**Last Updated**: January 20, 2026
-**Current Phase**: UI/UX Improvements
+**Last Updated**: January 24, 2026
+**Current Phase**: Milestone 6 - Planned Transactions & Forecasting
 **Framework/Platform**: React + Node.js + PostgreSQL (Full-Stack TypeScript)
-**Status**: Completed theme switching (6 color palettes) and collapsible sidebar layout with page-specific tools/config sections. Migrated Transactions, Calendar, Budgets, and Analytics pages to use the new sidebar pattern. Reorganized navbar (Dashboard, Calendar, Transactions, Budgets, Categorisation, Analytics). Next: Milestone 5 (Budget Management) or Milestone 6 (Recurring Transactions).
+**Status**: Implemented planned transactions (recurring templates and one-off), forecasting service, transaction matching, and calendar integration showing projected balances. Features include: recurrence engine (daily/weekly/fortnightly/monthly/annually), virtual transaction generation, confidence-based matching, match review queue, and visual forecast indicators on calendar (blue tint, dashed borders, ~prefix for projections). Next: Final testing, merge to main, then Milestone 5 (Budget Management).
