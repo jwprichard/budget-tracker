@@ -608,3 +608,17 @@ model MatchedTransaction {
   @@index([matchedAt])
   @@map("matched_transactions")
 }
+
+// DismissedMatch - Track dismissed match suggestions so they don't reappear
+model DismissedMatch {
+  id String @id @default(uuid())
+
+  transactionId         String
+  plannedTransactionId  String // Can be virtual ID like "virtual_{templateId}_{date}"
+
+  dismissedAt DateTime @default(now())
+
+  @@unique([transactionId, plannedTransactionId])
+  @@index([transactionId])
+  @@map("dismissed_matches")
+}

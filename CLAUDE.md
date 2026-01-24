@@ -692,6 +692,14 @@ Color-coded balance status (green/yellow/red thresholds).
   - Dialog shows planned transactions and budget breakdown for future dates
   - Legend updated with forecast indicators
   - Fixed timezone issues using local date formatting
+- **Forecast Transfer Handling Fix (Jan 24, 2026)** - Correct transfer impact on account balances
+  - Transfers now properly subtract from source account and add to destination
+  - Account filter includes transfers where destination matches filter
+  - Total balance calculation only sums filtered accounts
+- **Match Dismiss Persistence (Jan 24, 2026)** - Dismissed matches now persist
+  - Added DismissedMatch database model to store dismissed suggestions
+  - Dismiss action uses upsert to prevent duplicates
+  - getPendingMatches filters out previously dismissed transaction+planned pairs
 
 ### Known Issues
 None - All Docker build, runtime, and CSV import issues resolved

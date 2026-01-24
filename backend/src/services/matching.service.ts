@@ -215,6 +215,19 @@ export class MatchingService {
       endDate: maxDate.toISOString(),
     });
 
+    // Get all dismissed matches for these transactions
+    const transactionIds = unmatchedTransactions.map((t) => t.id);
+    const dismissedMatches = await this.prisma.dismissedMatch.findMany({
+      where: {
+        transactionId: { in: transactionIds },
+      },
+    });
+
+    // Create a set of dismissed transaction+planned pairs for quick lookup
+    const dismissedPairs = new Set(
+      dismissedMatches.map((d) => `${d.transactionId}_${d.plannedTransactionId}`)
+    );
+
     // Find matches for each transaction
     const pendingMatches: PendingMatch[] = [];
     const matchedPlannedIds = new Set<string>();
@@ -229,8 +242,12 @@ export class MatchingService {
 
       // Only include medium confidence matches (70-94%) for review
       // High confidence (>=95%) should auto-match, low (<70%) not suggested
+      // Also filter out dismissed matches
       const reviewCandidates = candidates.filter(
-        (c) => c.confidence >= 70 && c.confidence < 95
+        (c) =>
+          c.confidence >= 70 &&
+          c.confidence < 95 &&
+          !dismissedPairs.has(`${transaction.id}_${c.plannedTransaction.id}`)
       );
 
       if (reviewCandidates.length > 0) {
@@ -439,12 +456,11 @@ export class MatchingService {
 
   /**
    * Dismiss a pending match suggestion
-   * Note: This doesn't persist anything, just filters it out of future suggestions
-   * We could add a DismissedMatch table if needed for persistence
+   * Persists the dismissal so the match won't reappear in future suggestions
    */
   async dismissMatch(
     transactionId: string,
-    _plannedTransactionId: string,
+    plannedTransactionId: string,
     userId: string
   ): Promise<void> {
     // Verify transaction exists and belongs to user
@@ -456,12 +472,22 @@ export class MatchingService {
       throw new AppError('Transaction not found', 404);
     }
 
-    // For now, dismissing just means the match won't appear in the review queue
-    // since getPendingMatches recalculates each time.
-    // If persistence is needed, we can add a dismissed_matches table
-
-    // No-op for now - the match will naturally fall out of the queue
-    // as it doesn't meet the confidence threshold after user reviews
+    // Store the dismissed match so it won't appear again
+    await this.prisma.dismissedMatch.upsert({
+      where: {
+        transactionId_plannedTransactionId: {
+          transactionId,
+          plannedTransactionId,
+        },
+      },
+      update: {
+        dismissedAt: new Date(),
+      },
+      create: {
+        transactionId,
+        plannedTransactionId,
+      },
+    });
   }
 
   /**
