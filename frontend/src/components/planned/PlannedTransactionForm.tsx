@@ -31,10 +31,15 @@ import { useAccounts } from '../../hooks/useAccounts';
 import {
   useCreatePlannedTransactionTemplate,
   useUpdatePlannedTransactionTemplate,
+  useCreatePlannedTransaction,
+  useUpdatePlannedTransaction,
 } from '../../hooks/usePlannedTransactions';
 import {
   PlannedTransactionTemplate,
+  PlannedTransaction,
   CreatePlannedTransactionTemplateDto,
+  CreatePlannedTransactionDto,
+  UpdatePlannedTransactionDto,
   BudgetPeriod,
   DayOfMonthType,
 } from '../../types/plannedTransaction.types';
@@ -56,6 +61,7 @@ interface PlannedTransactionFormProps {
   open: boolean;
   onClose: () => void;
   template?: PlannedTransactionTemplate;
+  oneOffTransaction?: PlannedTransaction;
   initialValues?: PlannedTransactionFormInitialValues;
 }
 
@@ -88,6 +94,7 @@ export const PlannedTransactionForm: React.FC<PlannedTransactionFormProps> = ({
   open,
   onClose,
   template,
+  oneOffTransaction,
   initialValues,
 }) => {
   // Basic fields
@@ -102,6 +109,10 @@ export const PlannedTransactionForm: React.FC<PlannedTransactionFormProps> = ({
   // Transfer fields
   const [isTransfer, setIsTransfer] = useState(false);
   const [transferToAccountId, setTransferToAccountId] = useState('');
+
+  // One-time vs Recurring
+  const [isOneTime, setIsOneTime] = useState(false);
+  const [expectedDate, setExpectedDate] = useState<Date>(new Date());
 
   // Recurrence fields
   const [periodType, setPeriodType] = useState<BudgetPeriod>('MONTHLY');
@@ -122,14 +133,19 @@ export const PlannedTransactionForm: React.FC<PlannedTransactionFormProps> = ({
   const [error, setError] = useState('');
 
   const { data: accounts } = useAccounts();
-  const createMutation = useCreatePlannedTransactionTemplate();
-  const updateMutation = useUpdatePlannedTransactionTemplate();
+  const createTemplateMutation = useCreatePlannedTransactionTemplate();
+  const updateTemplateMutation = useUpdatePlannedTransactionTemplate();
+  const createOneTimeMutation = useCreatePlannedTransaction();
+  const updateOneTimeMutation = useUpdatePlannedTransaction();
 
-  const isEditing = !!template;
+  const isEditingTemplate = !!template;
+  const isEditingOneOff = !!oneOffTransaction;
+  const isEditing = isEditingTemplate || isEditingOneOff;
 
-  // Initialize form with template data or initial values
+  // Initialize form with template, one-off transaction, or initial values
   useEffect(() => {
     if (template) {
+      // Editing a recurring template
       setName(template.name);
       setType(template.type);
       setAmount(Math.abs(template.amount).toString());
@@ -139,6 +155,7 @@ export const PlannedTransactionForm: React.FC<PlannedTransactionFormProps> = ({
       setNotes(template.notes || '');
       setIsTransfer(template.isTransfer);
       setTransferToAccountId(template.transferToAccountId || '');
+      setIsOneTime(false);
       setPeriodType(template.periodType);
       setInterval(template.interval);
       setFirstOccurrence(new Date(template.firstOccurrence));
@@ -150,6 +167,23 @@ export const PlannedTransactionForm: React.FC<PlannedTransactionFormProps> = ({
       setSkipReview(template.skipReview);
       setMatchTolerance(template.matchTolerance?.toString() || '');
       setMatchWindowDays(template.matchWindowDays);
+    } else if (oneOffTransaction) {
+      // Editing a one-off transaction
+      setName(oneOffTransaction.name);
+      setType(oneOffTransaction.type);
+      setAmount(Math.abs(oneOffTransaction.amount).toString());
+      setAccountId(oneOffTransaction.accountId);
+      setCategoryId(oneOffTransaction.categoryId || '');
+      setDescription(oneOffTransaction.description || '');
+      setNotes(oneOffTransaction.notes || '');
+      setIsTransfer(oneOffTransaction.isTransfer);
+      setTransferToAccountId(oneOffTransaction.transferToAccountId || '');
+      setIsOneTime(true);
+      setExpectedDate(new Date(oneOffTransaction.expectedDate));
+      setAutoMatchEnabled(oneOffTransaction.autoMatchEnabled);
+      setSkipReview(oneOffTransaction.skipReview);
+      setMatchTolerance(oneOffTransaction.matchTolerance?.toString() || '');
+      setMatchWindowDays(oneOffTransaction.matchWindowDays);
     } else if (initialValues) {
       // Pre-populate from initial values (e.g., from existing transaction)
       resetForm();
@@ -162,7 +196,7 @@ export const PlannedTransactionForm: React.FC<PlannedTransactionFormProps> = ({
     } else {
       resetForm();
     }
-  }, [template, initialValues, open]);
+  }, [template, oneOffTransaction, initialValues, open]);
 
   const resetForm = () => {
     setName('');
@@ -174,6 +208,8 @@ export const PlannedTransactionForm: React.FC<PlannedTransactionFormProps> = ({
     setNotes('');
     setIsTransfer(false);
     setTransferToAccountId('');
+    setIsOneTime(false);
+    setExpectedDate(new Date());
     setPeriodType('MONTHLY');
     setInterval(1);
     setFirstOccurrence(new Date());
@@ -212,34 +248,75 @@ export const PlannedTransactionForm: React.FC<PlannedTransactionFormProps> = ({
     const parsedAmount = parseFloat(amount);
     const finalAmount = type === 'EXPENSE' ? -Math.abs(parsedAmount) : Math.abs(parsedAmount);
 
-    const data: CreatePlannedTransactionTemplateDto = {
-      name: name.trim(),
-      type: isTransfer ? 'TRANSFER' : type,
-      amount: finalAmount,
-      accountId,
-      categoryId: categoryId || undefined,
-      description: description.trim() || undefined,
-      notes: notes.trim() || undefined,
-      isTransfer,
-      transferToAccountId: isTransfer ? transferToAccountId : undefined,
-      periodType,
-      interval,
-      firstOccurrence: firstOccurrence.toISOString(),
-      endDate: endDate?.toISOString(),
-      dayOfMonth: periodType === 'MONTHLY' && dayOfMonthType === 'FIXED' ? dayOfMonth ?? undefined : undefined,
-      dayOfMonthType: periodType === 'MONTHLY' ? dayOfMonthType : undefined,
-      dayOfWeek: periodType === 'WEEKLY' ? dayOfWeek ?? undefined : undefined,
-      autoMatchEnabled,
-      skipReview,
-      matchTolerance: matchTolerance ? parseFloat(matchTolerance) : undefined,
-      matchWindowDays,
-    };
-
     try {
-      if (isEditing && template) {
-        await updateMutation.mutateAsync({ id: template.id, data });
+      if (isEditingOneOff && oneOffTransaction) {
+        // Update a one-off transaction
+        const updateData: UpdatePlannedTransactionDto = {
+          name: name.trim(),
+          type: isTransfer ? 'TRANSFER' : type,
+          amount: finalAmount,
+          accountId,
+          categoryId: categoryId || null,
+          description: description.trim() || null,
+          notes: notes.trim() || null,
+          isTransfer,
+          transferToAccountId: isTransfer ? transferToAccountId : null,
+          expectedDate: expectedDate.toISOString(),
+          autoMatchEnabled,
+          skipReview,
+          matchTolerance: matchTolerance ? parseFloat(matchTolerance) : null,
+          matchWindowDays,
+        };
+        await updateOneTimeMutation.mutateAsync({ id: oneOffTransaction.id, data: updateData });
+      } else if (isOneTime && !isEditing) {
+        // Create a one-time planned transaction
+        const oneTimeData: CreatePlannedTransactionDto = {
+          name: name.trim(),
+          type: isTransfer ? 'TRANSFER' : type,
+          amount: finalAmount,
+          accountId,
+          categoryId: categoryId || undefined,
+          description: description.trim() || undefined,
+          notes: notes.trim() || undefined,
+          isTransfer,
+          transferToAccountId: isTransfer ? transferToAccountId : undefined,
+          expectedDate: expectedDate.toISOString(),
+          autoMatchEnabled,
+          skipReview,
+          matchTolerance: matchTolerance ? parseFloat(matchTolerance) : undefined,
+          matchWindowDays,
+        };
+        await createOneTimeMutation.mutateAsync(oneTimeData);
       } else {
-        await createMutation.mutateAsync(data);
+        // Create or update a recurring template
+        const templateData: CreatePlannedTransactionTemplateDto = {
+          name: name.trim(),
+          type: isTransfer ? 'TRANSFER' : type,
+          amount: finalAmount,
+          accountId,
+          categoryId: categoryId || undefined,
+          description: description.trim() || undefined,
+          notes: notes.trim() || undefined,
+          isTransfer,
+          transferToAccountId: isTransfer ? transferToAccountId : undefined,
+          periodType,
+          interval,
+          firstOccurrence: firstOccurrence.toISOString(),
+          endDate: endDate?.toISOString(),
+          dayOfMonth: periodType === 'MONTHLY' && dayOfMonthType === 'FIXED' ? dayOfMonth ?? undefined : undefined,
+          dayOfMonthType: periodType === 'MONTHLY' ? dayOfMonthType : undefined,
+          dayOfWeek: periodType === 'WEEKLY' ? dayOfWeek ?? undefined : undefined,
+          autoMatchEnabled,
+          skipReview,
+          matchTolerance: matchTolerance ? parseFloat(matchTolerance) : undefined,
+          matchWindowDays,
+        };
+
+        if (isEditing && template) {
+          await updateTemplateMutation.mutateAsync({ id: template.id, data: templateData });
+        } else {
+          await createTemplateMutation.mutateAsync(templateData);
+        }
       }
       onClose();
     } catch (err: any) {
@@ -368,112 +445,144 @@ export const PlannedTransactionForm: React.FC<PlannedTransactionFormProps> = ({
                 </Grid>
               )}
 
-              {/* Period Type */}
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  select
-                  label="Frequency"
-                  value={periodType}
-                  onChange={(e) => setPeriodType(e.target.value as BudgetPeriod)}
-                  fullWidth
-                >
-                  {PERIOD_TYPES.map((pt) => (
-                    <MenuItem key={pt.value} value={pt.value}>
-                      {pt.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-
-              {/* Interval */}
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="Every"
-                  value={interval}
-                  onChange={(e) => setInterval(parseInt(e.target.value) || 1)}
-                  fullWidth
-                  type="number"
-                  InputProps={{
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        {periodType.toLowerCase().replace('ly', interval === 1 ? '' : 's')}
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-
-              {/* Day of Month Type (for Monthly) */}
-              {periodType === 'MONTHLY' && (
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    select
-                    label="Day Selection"
-                    value={dayOfMonthType}
-                    onChange={(e) => setDayOfMonthType(e.target.value as DayOfMonthType)}
-                    fullWidth
+              {/* One-time vs Recurring Toggle - only show when creating new */}
+              {!isEditing && (
+                <Grid item xs={12}>
+                  <FormLabel>Schedule</FormLabel>
+                  <RadioGroup
+                    row
+                    value={isOneTime ? 'one-time' : 'recurring'}
+                    onChange={(e) => setIsOneTime(e.target.value === 'one-time')}
                   >
-                    {DAY_OF_MONTH_TYPES.map((d) => (
-                      <MenuItem key={d.value} value={d.value}>
-                        {d.label}
-                      </MenuItem>
-                    ))}
-                  </TextField>
+                    <FormControlLabel value="one-time" control={<Radio />} label="One-time" />
+                    <FormControlLabel value="recurring" control={<Radio />} label="Recurring" />
+                  </RadioGroup>
                 </Grid>
               )}
 
-              {/* Fixed Day of Month */}
-              {periodType === 'MONTHLY' && dayOfMonthType === 'FIXED' && (
+              {/* Expected Date - for one-time transactions (creating or editing) */}
+              {isOneTime && (
                 <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="Day of Month"
-                    value={dayOfMonth ?? ''}
-                    onChange={(e) => setDayOfMonth(parseInt(e.target.value) || null)}
-                    fullWidth
-                    type="number"
-                    inputProps={{ min: 1, max: 31 }}
+                  <DatePicker
+                    label="Expected Date"
+                    value={expectedDate}
+                    onChange={(date) => date && setExpectedDate(date)}
+                    slotProps={{ textField: { fullWidth: true, required: true } }}
                   />
                 </Grid>
               )}
 
-              {/* Day of Week (for Weekly) */}
-              {periodType === 'WEEKLY' && (
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    select
-                    label="Day of Week"
-                    value={dayOfWeek ?? ''}
-                    onChange={(e) => setDayOfWeek(parseInt(e.target.value))}
-                    fullWidth
-                  >
-                    {DAYS_OF_WEEK.map((d) => (
-                      <MenuItem key={d.value} value={d.value}>
-                        {d.label}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
+              {/* Recurring transaction fields */}
+              {!isOneTime && (
+                <>
+                  {/* Period Type */}
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      select
+                      label="Frequency"
+                      value={periodType}
+                      onChange={(e) => setPeriodType(e.target.value as BudgetPeriod)}
+                      fullWidth
+                    >
+                      {PERIOD_TYPES.map((pt) => (
+                        <MenuItem key={pt.value} value={pt.value}>
+                          {pt.label}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+
+                  {/* Interval */}
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      label="Every"
+                      value={interval}
+                      onChange={(e) => setInterval(parseInt(e.target.value) || 1)}
+                      fullWidth
+                      type="number"
+                      InputProps={{
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            {periodType.toLowerCase().replace('ly', interval === 1 ? '' : 's')}
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Grid>
+
+                  {/* Day of Month Type (for Monthly) */}
+                  {periodType === 'MONTHLY' && (
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        select
+                        label="Day Selection"
+                        value={dayOfMonthType}
+                        onChange={(e) => setDayOfMonthType(e.target.value as DayOfMonthType)}
+                        fullWidth
+                      >
+                        {DAY_OF_MONTH_TYPES.map((d) => (
+                          <MenuItem key={d.value} value={d.value}>
+                            {d.label}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+                  )}
+
+                  {/* Fixed Day of Month */}
+                  {periodType === 'MONTHLY' && dayOfMonthType === 'FIXED' && (
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        label="Day of Month"
+                        value={dayOfMonth ?? ''}
+                        onChange={(e) => setDayOfMonth(parseInt(e.target.value) || null)}
+                        fullWidth
+                        type="number"
+                        inputProps={{ min: 1, max: 31 }}
+                      />
+                    </Grid>
+                  )}
+
+                  {/* Day of Week (for Weekly) */}
+                  {periodType === 'WEEKLY' && (
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        select
+                        label="Day of Week"
+                        value={dayOfWeek ?? ''}
+                        onChange={(e) => setDayOfWeek(parseInt(e.target.value))}
+                        fullWidth
+                      >
+                        {DAYS_OF_WEEK.map((d) => (
+                          <MenuItem key={d.value} value={d.value}>
+                            {d.label}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+                  )}
+
+                  {/* First Occurrence */}
+                  <Grid item xs={12} sm={6}>
+                    <DatePicker
+                      label="First Occurrence"
+                      value={firstOccurrence}
+                      onChange={(date) => date && setFirstOccurrence(date)}
+                      slotProps={{ textField: { fullWidth: true } }}
+                    />
+                  </Grid>
+
+                  {/* End Date */}
+                  <Grid item xs={12} sm={6}>
+                    <DatePicker
+                      label="End Date (Optional)"
+                      value={endDate}
+                      onChange={(date) => setEndDate(date)}
+                      slotProps={{ textField: { fullWidth: true } }}
+                    />
+                  </Grid>
+                </>
               )}
-
-              {/* First Occurrence */}
-              <Grid item xs={12} sm={6}>
-                <DatePicker
-                  label="First Occurrence"
-                  value={firstOccurrence}
-                  onChange={(date) => date && setFirstOccurrence(date)}
-                  slotProps={{ textField: { fullWidth: true } }}
-                />
-              </Grid>
-
-              {/* End Date */}
-              <Grid item xs={12} sm={6}>
-                <DatePicker
-                  label="End Date (Optional)"
-                  value={endDate}
-                  onChange={(date) => setEndDate(date)}
-                  slotProps={{ textField: { fullWidth: true } }}
-                />
-              </Grid>
 
               {/* Description */}
               <Grid item xs={12}>
@@ -577,7 +686,7 @@ export const PlannedTransactionForm: React.FC<PlannedTransactionFormProps> = ({
         <Button
           onClick={handleSubmit}
           variant="contained"
-          disabled={createMutation.isPending || updateMutation.isPending}
+          disabled={createTemplateMutation.isPending || updateTemplateMutation.isPending || createOneTimeMutation.isPending || updateOneTimeMutation.isPending}
         >
           {isEditing ? 'Save Changes' : 'Create'}
         </Button>
