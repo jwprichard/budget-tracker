@@ -59,12 +59,12 @@ const navigation: NavigationItem[] = [
   { name: 'Dashboard', path: '/', icon: <DashboardIcon /> },
   { name: 'Calendar', path: '/calendar', icon: <CalendarIcon /> },
   { name: 'Transactions', path: '/transactions', icon: <TransactionsIcon /> },
-  { name: 'Budgets', path: '/budgets', icon: <BudgetIcon /> },
   {
     name: 'Planning',
     icon: <PlannedIcon />,
     children: [
       { name: 'Planned Transactions', path: '/planned-transactions', icon: <PlannedIcon /> },
+      { name: 'Budgets', path: '/budgets', icon: <BudgetIcon /> },
       { name: 'Cash Flow Forecast', path: '/forecast', icon: <ForecastIcon /> },
       { name: 'Match Review', path: '/match-review', icon: <MatchIcon /> },
     ],
@@ -122,6 +122,7 @@ export const AppBar = () => {
 
   const isPlanningActive = () => {
     return location.pathname === '/planned-transactions' ||
+           location.pathname === '/budgets' ||
            location.pathname === '/forecast' ||
            location.pathname === '/match-review';
   };
