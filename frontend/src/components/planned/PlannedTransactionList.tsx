@@ -92,20 +92,20 @@ export const PlannedTransactionList: React.FC<PlannedTransactionListProps> = ({
       if (!matchesSearch) return false;
     }
 
-    // Type filter
+    // Type filter - use type field as single source of truth
     if (typeFilter !== 'ALL') {
-      if (typeFilter === 'TRANSFER' && !template.isTransfer) return false;
-      if (typeFilter === 'INCOME' && (template.type !== 'INCOME' || template.isTransfer)) return false;
-      if (typeFilter === 'EXPENSE' && (template.type !== 'EXPENSE' || template.isTransfer)) return false;
+      if (typeFilter === 'TRANSFER' && template.type !== 'TRANSFER') return false;
+      if (typeFilter === 'INCOME' && template.type !== 'INCOME') return false;
+      if (typeFilter === 'EXPENSE' && template.type !== 'EXPENSE') return false;
     }
 
     return true;
   });
 
-  // Split templates into income, expense, and transfer sections
-  const incomeTemplates = filteredTemplates?.filter((t) => t.type === 'INCOME' && !t.isTransfer) || [];
-  const expenseTemplates = filteredTemplates?.filter((t) => t.type === 'EXPENSE' && !t.isTransfer) || [];
-  const transferTemplates = filteredTemplates?.filter((t) => t.isTransfer || t.type === 'TRANSFER') || [];
+  // Split templates into income, expense, and transfer sections - use type field as single source of truth
+  const incomeTemplates = filteredTemplates?.filter((t) => t.type === 'INCOME') || [];
+  const expenseTemplates = filteredTemplates?.filter((t) => t.type === 'EXPENSE') || [];
+  const transferTemplates = filteredTemplates?.filter((t) => t.type === 'TRANSFER') || [];
 
   // Filter one-off transactions
   const displayedOneOffs = filteredOneOffs?.filter((tx) => {
@@ -120,11 +120,11 @@ export const PlannedTransactionList: React.FC<PlannedTransactionListProps> = ({
       if (!matchesSearch) return false;
     }
 
-    // Type filter
+    // Type filter - use type field as single source of truth
     if (typeFilter !== 'ALL') {
-      if (typeFilter === 'TRANSFER' && !tx.isTransfer) return false;
-      if (typeFilter === 'INCOME' && (tx.type !== 'INCOME' || tx.isTransfer)) return false;
-      if (typeFilter === 'EXPENSE' && (tx.type !== 'EXPENSE' || tx.isTransfer)) return false;
+      if (typeFilter === 'TRANSFER' && tx.type !== 'TRANSFER') return false;
+      if (typeFilter === 'INCOME' && tx.type !== 'INCOME') return false;
+      if (typeFilter === 'EXPENSE' && tx.type !== 'EXPENSE') return false;
     }
 
     return true;
@@ -307,7 +307,7 @@ export const PlannedTransactionList: React.FC<PlannedTransactionListProps> = ({
           <Grid container spacing={2}>
             {displayedOneOffs.map((tx) => {
               const isIncome = tx.type === 'INCOME';
-              const isTransfer = tx.isTransfer;
+              const isTransfer = tx.type === 'TRANSFER';
               const getTypeIcon = () => {
                 if (isTransfer) return <SwapHorizIcon sx={{ color: 'info.main' }} />;
                 if (isIncome) return <TrendingUpIcon sx={{ color: 'success.main' }} />;

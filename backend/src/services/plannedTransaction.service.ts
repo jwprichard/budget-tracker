@@ -157,10 +157,16 @@ export class PlannedTransactionService {
     const includeVirtual = query?.includeVirtual ?? true;
 
     // Get stored planned transactions (one-time and overrides)
+    // For account filter, include transfers where account is source OR destination
     const storedTransactions = await this.prisma.plannedTransaction.findMany({
       where: {
         userId,
-        ...(query?.accountId && { accountId: query.accountId }),
+        ...(query?.accountId && {
+          OR: [
+            { accountId: query.accountId },
+            { transferToAccountId: query.accountId },
+          ],
+        }),
         ...(query?.categoryId && { categoryId: query.categoryId }),
         ...(query?.type && { type: query.type as TransactionType }),
         ...(query?.templateId && { templateId: query.templateId }),
@@ -222,11 +228,17 @@ export class PlannedTransactionService {
       const endDate = new Date(query.endDate);
 
       // Get all active templates
+      // For account filter, include transfers where account is source OR destination
       const templates = await this.prisma.plannedTransactionTemplate.findMany({
         where: {
           userId,
           isActive: true,
-          ...(query?.accountId && { accountId: query.accountId }),
+          ...(query?.accountId && {
+            OR: [
+              { accountId: query.accountId },
+              { transferToAccountId: query.accountId },
+            ],
+          }),
           ...(query?.categoryId && { categoryId: query.categoryId }),
           ...(query?.type && { type: query.type as TransactionType }),
           ...(query?.templateId && { id: query.templateId }),

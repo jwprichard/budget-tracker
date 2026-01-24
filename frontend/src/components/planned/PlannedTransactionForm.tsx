@@ -55,6 +55,7 @@ export interface PlannedTransactionFormInitialValues {
   accountId?: string;
   categoryId?: string;
   description?: string;
+  transferToAccountId?: string;
 }
 
 interface PlannedTransactionFormProps {
@@ -188,11 +189,16 @@ export const PlannedTransactionForm: React.FC<PlannedTransactionFormProps> = ({
       // Pre-populate from initial values (e.g., from existing transaction)
       resetForm();
       if (initialValues.name) setName(initialValues.name);
-      if (initialValues.type) setType(initialValues.type);
+      if (initialValues.type) {
+        setType(initialValues.type);
+        // Set isTransfer based on type
+        setIsTransfer(initialValues.type === 'TRANSFER');
+      }
       if (initialValues.amount) setAmount(initialValues.amount.toString());
       if (initialValues.accountId) setAccountId(initialValues.accountId);
       if (initialValues.categoryId) setCategoryId(initialValues.categoryId);
       if (initialValues.description) setDescription(initialValues.description);
+      if (initialValues.transferToAccountId) setTransferToAccountId(initialValues.transferToAccountId);
     } else {
       resetForm();
     }

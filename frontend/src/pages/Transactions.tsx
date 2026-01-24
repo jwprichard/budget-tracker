@@ -139,11 +139,12 @@ export const Transactions = () => {
     // Pre-populate planned transaction form with transaction data
     setPlannedInitialValues({
       name: transaction.description,
-      type: transaction.type === 'TRANSFER' ? 'EXPENSE' : transaction.type,
+      type: transaction.type,
       amount: Math.abs(parseFloat(transaction.amount)),
       accountId: transaction.accountId,
       categoryId: transaction.categoryId || undefined,
       description: transaction.description,
+      transferToAccountId: transaction.transferToAccountId || undefined,
     });
     setPlannedFormOpen(true);
     // Close the transaction form

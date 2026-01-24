@@ -60,7 +60,7 @@ export const PlannedTransactionCard: React.FC<PlannedTransactionCardProps> = ({
   onDelete,
 }) => {
   const isIncome = template.type === 'INCOME';
-  const isTransfer = template.isTransfer;
+  const isTransfer = template.type === 'TRANSFER';
 
   const getTypeIcon = () => {
     if (isTransfer) return <SwapHorizIcon sx={{ color: 'info.main' }} />;

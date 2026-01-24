@@ -154,10 +154,16 @@ export class PlannedTransactionTemplateService {
     userId: string,
     query?: PlannedTransactionTemplateQuery
   ): Promise<PlannedTransactionTemplateWithStats[]> {
+    // For account filter, include transfers where account is source OR destination
     const templates = await this.prisma.plannedTransactionTemplate.findMany({
       where: {
         userId,
-        ...(query?.accountId && { accountId: query.accountId }),
+        ...(query?.accountId && {
+          OR: [
+            { accountId: query.accountId },
+            { transferToAccountId: query.accountId },
+          ],
+        }),
         ...(query?.categoryId && { categoryId: query.categoryId }),
         ...(query?.type && { type: query.type }),
         ...(query?.isActive !== undefined && { isActive: query.isActive }),
