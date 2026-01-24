@@ -102,6 +102,11 @@ export const PlannedTransactionList: React.FC<PlannedTransactionListProps> = ({
     return true;
   });
 
+  // Split templates into income, expense, and transfer sections
+  const incomeTemplates = filteredTemplates?.filter((t) => t.type === 'INCOME' && !t.isTransfer) || [];
+  const expenseTemplates = filteredTemplates?.filter((t) => t.type === 'EXPENSE' && !t.isTransfer) || [];
+  const transferTemplates = filteredTemplates?.filter((t) => t.isTransfer || t.type === 'TRANSFER') || [];
+
   // Filter one-off transactions
   const displayedOneOffs = filteredOneOffs?.filter((tx) => {
     // Search filter
@@ -224,14 +229,63 @@ export const PlannedTransactionList: React.FC<PlannedTransactionListProps> = ({
         </TextField>
       </Box>
 
-      {/* Recurring Templates Section */}
-      {filteredTemplates && filteredTemplates.length > 0 && (
+      {/* Recurring Income Section */}
+      {incomeTemplates.length > 0 && (
         <>
-          <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>
-            Recurring Transactions
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <TrendingUpIcon sx={{ color: 'success.main' }} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              Recurring Income
+            </Typography>
+          </Box>
           <Grid container spacing={2}>
-            {filteredTemplates.map((template) => (
+            {incomeTemplates.map((template) => (
+              <Grid item xs={12} sm={6} md={4} key={template.id}>
+                <PlannedTransactionCard
+                  template={template}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        </>
+      )}
+
+      {/* Recurring Expenses Section */}
+      {expenseTemplates.length > 0 && (
+        <>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, mt: incomeTemplates.length > 0 ? 4 : 0 }}>
+            <TrendingDownIcon sx={{ color: 'error.main' }} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              Recurring Expenses
+            </Typography>
+          </Box>
+          <Grid container spacing={2}>
+            {expenseTemplates.map((template) => (
+              <Grid item xs={12} sm={6} md={4} key={template.id}>
+                <PlannedTransactionCard
+                  template={template}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        </>
+      )}
+
+      {/* Recurring Transfers Section */}
+      {transferTemplates.length > 0 && (
+        <>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, mt: (incomeTemplates.length > 0 || expenseTemplates.length > 0) ? 4 : 0 }}>
+            <SwapHorizIcon sx={{ color: 'info.main' }} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+              Recurring Transfers
+            </Typography>
+          </Box>
+          <Grid container spacing={2}>
+            {transferTemplates.map((template) => (
               <Grid item xs={12} sm={6} md={4} key={template.id}>
                 <PlannedTransactionCard
                   template={template}
@@ -347,7 +401,7 @@ export const PlannedTransactionList: React.FC<PlannedTransactionListProps> = ({
       )}
 
       {/* Empty State */}
-      {(!filteredTemplates || filteredTemplates.length === 0) && (!displayedOneOffs || displayedOneOffs.length === 0) && (
+      {incomeTemplates.length === 0 && expenseTemplates.length === 0 && transferTemplates.length === 0 && (!displayedOneOffs || displayedOneOffs.length === 0) && (
         <Box sx={{ textAlign: 'center', py: 4 }}>
           <Typography variant="body1" color="text.secondary">
             {(templates?.length === 0 && (!filteredOneOffs || filteredOneOffs.length === 0))

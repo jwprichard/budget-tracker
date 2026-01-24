@@ -273,6 +273,8 @@ export class ForecastService {
 
   /**
    * Get all planned transactions in range (including virtual occurrences)
+   * For accurate forecasting, we fetch ALL planned transactions when accountIds are specified
+   * because transfers affect both source and destination accounts
    */
   private async getPlannedTransactionsInRange(
     userId: string,
@@ -281,18 +283,24 @@ export class ForecastService {
     accountIds?: string[]
   ): Promise<PlannedTransactionWithRelations[]> {
     // Use the planned transaction service to get all transactions including virtual
+    // Don't filter by accountId here - we need ALL transactions to properly handle transfers
+    // where the source or destination might be in the accountIds list
     const query = {
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
       includeVirtual: true,
-      ...(accountIds && accountIds.length > 0 ? { accountId: accountIds[0] } : {}),
     };
 
     const transactions = await this.plannedTransactionService.getPlannedTransactions(userId, query);
 
-    // If we have multiple account IDs, filter
-    if (accountIds && accountIds.length > 1) {
-      return transactions.filter((t) => accountIds.includes(t.accountId));
+    // If filtering by account IDs, include transactions where:
+    // - The source account is in the list, OR
+    // - The destination account (for transfers) is in the list
+    if (accountIds && accountIds.length > 0) {
+      return transactions.filter((t) =>
+        accountIds.includes(t.accountId) ||
+        (t.isTransfer && t.transferToAccountId && accountIds.includes(t.transferToAccountId))
+      );
     }
 
     return transactions;
@@ -453,13 +461,19 @@ export class ForecastService {
 
       // Apply planned transactions
       for (const pt of dayPlanned) {
-        const currentBalance = balances.get(pt.accountId) || 0;
-        balances.set(pt.accountId, currentBalance + pt.amount);
-
-        // Handle transfers - also update destination account
         if (pt.isTransfer && pt.transferToAccountId) {
+          // For transfers: subtract from source, add to destination
+          // Transfer amounts are stored as positive, so we negate for source
+          const sourceBalance = balances.get(pt.accountId) || 0;
+          balances.set(pt.accountId, sourceBalance - Math.abs(pt.amount));
+
           const destBalance = balances.get(pt.transferToAccountId) || 0;
           balances.set(pt.transferToAccountId, destBalance + Math.abs(pt.amount));
+        } else {
+          // For regular income/expense: amount is already signed correctly
+          // (positive for income, negative for expense)
+          const currentBalance = balances.get(pt.accountId) || 0;
+          balances.set(pt.accountId, currentBalance + pt.amount);
         }
       }
 
@@ -481,8 +495,12 @@ export class ForecastService {
         closingBalance: balances.get(account.id) || 0,
       }));
 
-      // Calculate total balance
-      const totalBalance = Array.from(balances.values()).reduce((a, b) => a + b, 0);
+      // Calculate total balance - only sum accounts that are in the filtered list
+      // (not all accounts that may have been touched by transfers)
+      const totalBalance = accounts.reduce(
+        (sum, account) => sum + (balances.get(account.id) || 0),
+        0
+      );
 
       // Check for low balance
       const hasLowBalance = accountBalances.some(
