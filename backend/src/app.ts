@@ -38,13 +38,21 @@ app.use(
   })
 );
 
-// Rate limiting
-const limiter = rateLimit({
+// Rate limiting - relaxed for self-hosted app, strict only for auth
+const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later',
+  max: 20, // Limit auth attempts to prevent brute force
+  message: 'Too many authentication attempts, please try again later',
 });
-app.use('/api', limiter);
+
+const generalLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 300, // 300 requests per minute - generous for single-user app
+  message: 'Too many requests, please try again later',
+});
+
+app.use('/api/v1/auth', authLimiter);
+app.use('/api', generalLimiter);
 
 // Body parsing middleware
 app.use(express.json());
