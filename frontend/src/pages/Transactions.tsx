@@ -4,8 +4,9 @@ import {
   Container,
   Button,
   Fab,
+  Badge,
 } from '@mui/material';
-import { Add as AddIcon, SwapHoriz as TransferIcon } from '@mui/icons-material';
+import { Add as AddIcon, SwapHoriz as TransferIcon, RateReview as ReviewIcon } from '@mui/icons-material';
 import {
   useTransactions,
   useCreateTransaction,
@@ -28,6 +29,8 @@ import { BudgetForm, BudgetFormInitialValues } from '../components/budgets/Budge
 import { PlannedTransactionForm, PlannedTransactionFormInitialValues } from '../components/planned/PlannedTransactionForm';
 import { Transaction, TransactionQuery, CreateTransactionDto, UpdateTransactionDto, CreateTransferDto } from '../types';
 import { Receipt as ReceiptIcon } from '@mui/icons-material';
+import { TransferReviewDialog } from '../components/transfers/TransferReviewDialog';
+import { usePendingTransfersCount } from '../hooks/usePotentialTransfers';
 
 export const Transactions = () => {
   const [filters, setFilters] = useState<TransactionQuery>({ page: 1, pageSize: 50 });
@@ -40,9 +43,11 @@ export const Transactions = () => {
   const [plannedFormOpen, setPlannedFormOpen] = useState(false);
   const [plannedInitialValues, setPlannedInitialValues] = useState<PlannedTransactionFormInitialValues | undefined>(undefined);
   const [budgetStatusFilter, setBudgetStatusFilter] = useState<BudgetStatusFilter>('');
+  const [transferReviewOpen, setTransferReviewOpen] = useState(false);
 
   // Queries
   const { data: accounts = [] } = useAccounts();
+  const { data: pendingTransfersCount = 0 } = usePendingTransfersCount();
   const { data: budgets = [] } = useBudgets();
   const {
     data: transactionsData,
@@ -202,9 +207,23 @@ export const Transactions = () => {
         >
           Create Transfer
         </Button>
+        <Badge
+          badgeContent={pendingTransfersCount}
+          color="warning"
+          sx={{ '& .MuiBadge-badge': { right: 16, top: 8 } }}
+        >
+          <Button
+            variant="outlined"
+            fullWidth
+            startIcon={<ReviewIcon />}
+            onClick={() => setTransferReviewOpen(true)}
+          >
+            Review Transfers
+          </Button>
+        </Badge>
       </Box>
     ),
-    [activeAccounts.length]
+    [activeAccounts.length, pendingTransfersCount]
   );
 
   useSidebar({
@@ -305,6 +324,11 @@ export const Transactions = () => {
           setPlannedInitialValues(undefined);
         }}
         initialValues={plannedInitialValues}
+      />
+
+      <TransferReviewDialog
+        open={transferReviewOpen}
+        onClose={() => setTransferReviewOpen(false)}
       />
     </Container>
   );
