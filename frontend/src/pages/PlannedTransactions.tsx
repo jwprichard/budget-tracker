@@ -15,18 +15,23 @@ import {
   Select,
   MenuItem,
   SelectChangeEvent,
+  Badge,
 } from '@mui/material';
-import { Add as AddIcon } from '@mui/icons-material';
+import { Add as AddIcon, SwapHoriz as TransferIcon } from '@mui/icons-material';
 import { PlannedTransactionList } from '../components/planned/PlannedTransactionList';
 import { PlannedTransactionForm } from '../components/planned/PlannedTransactionForm';
+import { TransferReviewDialog } from '../components/transfers/TransferReviewDialog';
 import { useSidebar } from '../hooks/useSidebar';
 import { useAccounts } from '../hooks/useAccounts';
+import { usePendingTransfersCount } from '../hooks/usePotentialTransfers';
 
 export const PlannedTransactions: React.FC = () => {
   const [formOpen, setFormOpen] = useState(false);
+  const [transferReviewOpen, setTransferReviewOpen] = useState(false);
   const [accountFilter, setAccountFilter] = useState<string>('ALL');
 
   const { data: accounts = [] } = useAccounts();
+  const { data: pendingTransfersCount = 0 } = usePendingTransfersCount();
 
   // Sidebar tools - action buttons
   const sidebarTools = useMemo(
@@ -40,9 +45,23 @@ export const PlannedTransactions: React.FC = () => {
         >
           Create Planned Transaction
         </Button>
+        <Badge
+          badgeContent={pendingTransfersCount}
+          color="warning"
+          sx={{ '& .MuiBadge-badge': { right: 16, top: 8 } }}
+        >
+          <Button
+            variant="outlined"
+            fullWidth
+            startIcon={<TransferIcon />}
+            onClick={() => setTransferReviewOpen(true)}
+          >
+            Review Transfers
+          </Button>
+        </Badge>
       </Box>
     ),
-    []
+    [pendingTransfersCount]
   );
 
   // Sidebar config - filters
@@ -98,6 +117,12 @@ export const PlannedTransactions: React.FC = () => {
       <PlannedTransactionForm
         open={formOpen}
         onClose={() => setFormOpen(false)}
+      />
+
+      {/* Transfer Review Dialog */}
+      <TransferReviewDialog
+        open={transferReviewOpen}
+        onClose={() => setTransferReviewOpen(false)}
       />
     </Container>
   );

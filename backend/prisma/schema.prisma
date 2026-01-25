@@ -291,12 +291,14 @@ model Transaction {
   updatedAt DateTime @updatedAt
 
   // Relations
-  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  account             Account              @relation("AccountTransactions", fields: [accountId], references: [id], onDelete: Cascade)
-  category            Category?            @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  transferAccount     Account?             @relation("TransferDestination", fields: [transferToAccountId], references: [id], onDelete: SetNull)
-  externalTransaction ExternalTransaction? // One-to-one with external transaction
-  matchedTransaction  MatchedTransaction? // One-to-one with matched planned transaction
+  user                      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account                   Account              @relation("AccountTransactions", fields: [accountId], references: [id], onDelete: Cascade)
+  category                  Category?            @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  transferAccount           Account?             @relation("TransferDestination", fields: [transferToAccountId], references: [id], onDelete: SetNull)
+  externalTransaction       ExternalTransaction? // One-to-one with external transaction
+  matchedTransaction        MatchedTransaction?  // One-to-one with matched planned transaction
+  potentialTransferAsSource PotentialTransfer?   @relation("PotentialTransferSource")
+  potentialTransferAsTarget PotentialTransfer?   @relation("PotentialTransferTarget")
 
   @@index([userId])
   @@index([accountId])
@@ -621,4 +623,41 @@ model DismissedMatch {
   @@unique([transactionId, plannedTransactionId])
   @@index([transactionId])
   @@map("dismissed_matches")
+}
+
+// PotentialTransfer - Detected transfer pairs from bank sync awaiting user review
+model PotentialTransfer {
+  id     String @id @default(uuid())
+  userId String
+
+  // The two transactions that might form a transfer
+  sourceTransactionId String @unique // The outgoing (expense/debit) transaction
+  targetTransactionId String @unique // The incoming (income/credit) transaction
+
+  // Detection metadata
+  confidence  Int      @default(0) // 0-100 confidence score
+  detectedAt  DateTime @default(now())
+
+  // Status
+  status String @default("PENDING") // PENDING, CONFIRMED, DISMISSED
+
+  // Store account info for display without joins
+  sourceAccountId   String
+  sourceAccountName String
+  targetAccountId   String
+  targetAccountName String
+  amount            Decimal  @db.Decimal(15, 2)
+  date              DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  sourceTransaction Transaction @relation("PotentialTransferSource", fields: [sourceTransactionId], references: [id], onDelete: Cascade)
+  targetTransaction Transaction @relation("PotentialTransferTarget", fields: [targetTransactionId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([detectedAt])
+  @@map("potential_transfers")
 }

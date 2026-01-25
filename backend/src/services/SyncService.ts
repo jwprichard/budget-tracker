@@ -2,6 +2,7 @@ import { IBankingDataProvider } from '../interfaces/IBankingDataProvider';
 import { DuplicateDetectionService } from './DuplicateDetectionService';
 import { TransactionMappingService } from './TransactionMappingService';
 import { CategorizationService } from './CategorizationService';
+import { PotentialTransferService } from './potentialTransfer.service';
 import { PrismaClient } from '@prisma/client';
 import logger from '../utils/logger';
 
@@ -170,6 +171,27 @@ export class SyncService {
           lastError: result.errors.length > 0 ? result.errors.join('; ') : null,
         },
       });
+
+      // Step 6: Detect potential transfers
+      try {
+        const connection = await prisma.bankConnection.findUnique({
+          where: { id: connectionId },
+          select: { userId: true },
+        });
+        if (connection) {
+          const potentialTransferService = new PotentialTransferService(prisma);
+          const detectedTransfers = await potentialTransferService.detectPotentialTransfers(connection.userId, 30);
+          if (detectedTransfers > 0) {
+            logger.info('[SyncService] Detected potential transfers', {
+              connectionId,
+              detectedTransfers,
+            });
+          }
+        }
+      } catch (transferError) {
+        // Don't fail sync if transfer detection fails
+        logger.warn('[SyncService] Transfer detection failed', { error: transferError });
+      }
 
       logger.info('[SyncService] Sync completed', {
         connectionId,

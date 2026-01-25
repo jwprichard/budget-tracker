@@ -18,6 +18,7 @@ import syncRoutes from './routes/syncRoutes';
 import analyticsRoutes from './routes/analytics.routes';
 import devRoutes from './routes/dev.routes';
 import ruleRoutes from './routes/rule.routes';
+import potentialTransferRoutes from './routes/potentialTransfer.routes';
 
 const app: Application = express();
 
@@ -67,6 +68,7 @@ app.use(`/api/${API_VERSION}/matching`, matchingRoutes);
 app.use(`/api/${API_VERSION}/sync`, syncRoutes);
 app.use(`/api/${API_VERSION}/analytics`, analyticsRoutes);
 app.use(`/api/${API_VERSION}/rules`, ruleRoutes);
+app.use(`/api/${API_VERSION}/potential-transfers`, potentialTransferRoutes);
 app.use(`/api/${API_VERSION}/dev`, devRoutes);
 app.use('/api', healthRoutes); // Also mount at /api for backwards compatibility
 
