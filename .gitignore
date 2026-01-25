@@ -27,6 +27,7 @@ docker-compose.override.yml
 
 # Database
 *.sql
+!backend/prisma/migrations/**/*.sql
 *.db
 *.sqlite
 
