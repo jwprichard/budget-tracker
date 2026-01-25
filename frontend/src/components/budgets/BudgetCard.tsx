@@ -227,9 +227,10 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({ budget, onEdit, onDelete
           />
         </Box>
 
-        {/* Period Display */}
+        {/* Period and Account Display */}
         <Typography variant="body2" color="text.secondary" gutterBottom>
           {formatBudgetPeriod(budget.startDate, budget.periodType)}
+          {budget.accountName && ` • ${budget.accountName}`}
         </Typography>
 
         {/* Budget Name (if exists) */}
@@ -292,6 +293,15 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({ budget, onEdit, onDelete
                 <Typography variant="body2">
                   Every {budget.interval} {budget.interval === 1 ? budget.periodType.toLowerCase() : `${budget.periodType.toLowerCase()}s`}
                 </Typography>
+              </Box>
+            )}
+
+            {budget.accountName && (
+              <Box sx={{ mt: 1 }}>
+                <Typography variant="caption" color="text.secondary" display="block">
+                  Account
+                </Typography>
+                <Typography variant="body2">{budget.accountName}</Typography>
               </Box>
             )}
 

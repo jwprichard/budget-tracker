@@ -21,12 +21,18 @@ import {
   Radio,
   RadioGroup,
   Typography,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  SelectChangeEvent,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { BudgetTemplate, BudgetType } from '../../types/budget.types';
 import { useUpdateTemplate } from '../../hooks/useBudgetTemplates';
+import { useAccounts } from '../../hooks/useAccounts';
 
 interface TemplateEditDialogProps {
   open: boolean;
@@ -48,8 +54,10 @@ export const TemplateEditDialog: React.FC<TemplateEditDialogProps> = ({
   const [firstStartDate, setFirstStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [isActive, setIsActive] = useState<boolean>(true);
+  const [accountId, setAccountId] = useState<string>('');
   const [error, setError] = useState<string>('');
 
+  const { data: accounts = [] } = useAccounts();
   const updateMutation = useUpdateTemplate();
 
   // Initialize form with template data
@@ -64,6 +72,7 @@ export const TemplateEditDialog: React.FC<TemplateEditDialogProps> = ({
       setFirstStartDate(new Date(template.firstStartDate));
       setEndDate(template.endDate ? new Date(template.endDate) : null);
       setIsActive(template.isActive);
+      setAccountId(template.accountId || '');
     }
     setError('');
   }, [template, open]);
@@ -72,6 +81,11 @@ export const TemplateEditDialog: React.FC<TemplateEditDialogProps> = ({
     if (!template) return;
 
     // Validation
+    if (!accountId) {
+      setError('Please select an account');
+      return;
+    }
+
     if (!name.trim()) {
       setError('Template name is required');
       return;
@@ -109,6 +123,7 @@ export const TemplateEditDialog: React.FC<TemplateEditDialogProps> = ({
       await updateMutation.mutateAsync({
         id: template.id,
         data: {
+          accountId: accountId || undefined,
           amount: amountNum,
           interval,
           includeSubcategories,
@@ -141,7 +156,7 @@ export const TemplateEditDialog: React.FC<TemplateEditDialogProps> = ({
 
           <Grid container spacing={2}>
             {/* Template Name */}
-            <Grid item xs={12}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="Template Name"
@@ -151,6 +166,30 @@ export const TemplateEditDialog: React.FC<TemplateEditDialogProps> = ({
                 inputProps={{ maxLength: 100 }}
                 helperText="Name for this recurring budget template"
               />
+            </Grid>
+
+            {/* Account Selection */}
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth required error={!accountId}>
+                <InputLabel id="template-account-select-label">Account</InputLabel>
+                <Select
+                  labelId="template-account-select-label"
+                  value={accountId}
+                  label="Account"
+                  onChange={(e: SelectChangeEvent) => setAccountId(e.target.value)}
+                >
+                  {accounts.map((account) => (
+                    <MenuItem key={account.id} value={account.id}>
+                      {account.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+                {!accountId && (
+                  <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
+                    Please select an account for this template
+                  </Typography>
+                )}
+              </FormControl>
             </Grid>
 
             {/* Budget Type (Read-Only) */}

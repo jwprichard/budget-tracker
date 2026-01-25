@@ -21,6 +21,7 @@ export const budgetTypeSchema = z.enum(['INCOME', 'EXPENSE']);
 export const createBudgetSchema = z
   .object({
     categoryId: z.string().uuid('Invalid category ID'),
+    accountId: z.string().uuid('Invalid account ID'),
     amount: z
       .number()
       .positive('Amount must be positive')
@@ -55,6 +56,7 @@ export const createBudgetSchema = z
  * Period and category cannot be changed
  */
 export const updateBudgetSchema = z.object({
+  accountId: z.string().uuid('Invalid account ID').optional(),
   amount: z
     .number()
     .positive('Amount must be positive')
@@ -71,6 +73,7 @@ export const updateBudgetSchema = z.object({
  */
 export const budgetQuerySchema = z.object({
   categoryId: z.string().uuid().optional(),
+  accountId: z.string().uuid().optional(),
   templateId: z.string().uuid().optional(),
 
   // NEW: Filter by date range (accepts YYYY-MM-DD or ISO datetime)

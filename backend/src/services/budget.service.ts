@@ -40,6 +40,18 @@ export class BudgetService {
       throw new AppError('Category not found or access denied', 404);
     }
 
+    // Verify account exists and belongs to user
+    const account = await this.prisma.account.findFirst({
+      where: {
+        id: data.accountId,
+        userId,
+      },
+    });
+
+    if (!account) {
+      throw new AppError('Account not found or access denied', 404);
+    }
+
     // Calculate end date for recurring budgets
     const startDate = new Date(data.startDate);
     const endDate = calculatePeriodEndDate(
@@ -74,6 +86,7 @@ export class BudgetService {
       data: {
         userId,
         categoryId: data.categoryId,
+        accountId: data.accountId,
         amount: data.amount,
         type: data.type || 'EXPENSE',
         periodType: data.periodType || null,
@@ -97,6 +110,7 @@ export class BudgetService {
     const where: any = {
       userId,
       ...(query?.categoryId && { categoryId: query.categoryId }),
+      ...(query?.accountId && { accountId: query.accountId }),
       ...(query?.templateId !== undefined && { templateId: query.templateId }),
     };
 
@@ -131,6 +145,12 @@ export class BudgetService {
             parentId: true,
           },
         },
+        account: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
       orderBy: [{ startDate: 'desc' }],
     });
@@ -152,6 +172,12 @@ export class BudgetService {
             name: true,
             color: true,
             parentId: true,
+          },
+        },
+        account: {
+          select: {
+            id: true,
+            name: true,
           },
         },
       },
@@ -180,9 +206,24 @@ export class BudgetService {
     // Verify budget exists and belongs to user
     await this.getBudgetById(id, userId);
 
+    // Verify account exists and belongs to user if being changed
+    if (data.accountId) {
+      const account = await this.prisma.account.findFirst({
+        where: {
+          id: data.accountId,
+          userId,
+        },
+      });
+
+      if (!account) {
+        throw new AppError('Account not found or access denied', 404);
+      }
+    }
+
     return this.prisma.budget.update({
       where: { id },
       data: {
+        ...(data.accountId !== undefined && { accountId: data.accountId }),
         ...(data.amount !== undefined && { amount: data.amount }),
         ...(data.type !== undefined && { type: data.type }),
         ...(data.includeSubcategories !== undefined && {
@@ -247,6 +288,12 @@ export class BudgetService {
             name: true,
             color: true,
             parentId: true,
+          },
+        },
+        account: {
+          select: {
+            id: true,
+            name: true,
           },
         },
       },
@@ -324,6 +371,12 @@ export class BudgetService {
             color: true,
           },
         },
+        account: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 
@@ -357,6 +410,12 @@ export class BudgetService {
             parentId: true,
           },
         },
+        account: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 
@@ -380,6 +439,12 @@ export class BudgetService {
             name: true,
             color: true,
             parentId: true,
+          },
+        },
+        account: {
+          select: {
+            id: true,
+            name: true,
           },
         },
       },
@@ -412,10 +477,11 @@ export class BudgetService {
         // Convert virtual period to Budget-like object
         const template = templates.find((t) => t.id === vp.templateId);
         if (template) {
-          const virtualBudget: Budget & { category: any } = {
+          const virtualBudget: Budget & { category: any; account?: any } = {
             id: vp.id,
             userId: vp.userId,
             categoryId: vp.categoryId,
+            accountId: template.accountId,
             amount: new Prisma.Decimal(vp.amount),
             type: vp.type,
             periodType: vp.periodType,
@@ -431,6 +497,7 @@ export class BudgetService {
             createdAt: template.createdAt,
             updatedAt: template.updatedAt,
             category: template.category,
+            account: template.account,
           };
           allBudgets.push({ budget: virtualBudget, isVirtual: true });
         }
@@ -818,7 +885,7 @@ export class BudgetService {
    * @private
    */
   private async enrichBudgetWithStatus(
-    budget: Budget & { category: any },
+    budget: Budget & { category: any; account?: any },
     userId: string
   ): Promise<BudgetWithStatus> {
     // Calculate spent amount
@@ -839,6 +906,8 @@ export class BudgetService {
       categoryId: budget.categoryId,
       categoryName: budget.category.name,
       categoryColor: budget.category.color,
+      accountId: budget.accountId,
+      accountName: budget.account?.name || null,
       amount: budget.amount.toNumber(),
       type: budget.type, // NEW - include budget type in API response
       periodType: budget.periodType,

@@ -10,6 +10,7 @@ import { budgetPeriodSchema, budgetTypeSchema } from './budget.schema';
  */
 export const createBudgetTemplateSchema = z.object({
   categoryId: z.string().uuid('Invalid category ID'),
+  accountId: z.string().uuid('Invalid account ID'),
   amount: z
     .number()
     .positive('Amount must be positive')
@@ -28,6 +29,7 @@ export const createBudgetTemplateSchema = z.object({
  * Update budget template request schema
  */
 export const updateBudgetTemplateSchema = z.object({
+  accountId: z.string().uuid('Invalid account ID').optional(),
   amount: z
     .number()
     .positive('Amount must be positive')

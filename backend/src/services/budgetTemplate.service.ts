@@ -40,6 +40,18 @@ export class BudgetTemplateService {
       throw new AppError('Category not found or access denied', 404);
     }
 
+    // Verify account exists and belongs to user
+    const account = await this.prisma.account.findFirst({
+      where: {
+        id: data.accountId,
+        userId,
+      },
+    });
+
+    if (!account) {
+      throw new AppError('Account not found or access denied', 404);
+    }
+
     // Check for duplicate template name
     const existing = await this.prisma.budgetTemplate.findFirst({
       where: {
@@ -57,6 +69,7 @@ export class BudgetTemplateService {
       data: {
         userId,
         categoryId: data.categoryId,
+        accountId: data.accountId,
         amount: data.amount,
         type: data.type || 'EXPENSE',
         periodType: data.periodType,
@@ -88,6 +101,12 @@ export class BudgetTemplateService {
             color: true,
           },
         },
+        account: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -114,6 +133,12 @@ export class BudgetTemplateService {
             id: true,
             name: true,
             color: true,
+          },
+        },
+        account: {
+          select: {
+            id: true,
+            name: true,
           },
         },
       },
@@ -164,11 +189,26 @@ export class BudgetTemplateService {
       }
     }
 
+    // Verify account exists and belongs to user if being changed
+    if (data.accountId) {
+      const account = await this.prisma.account.findFirst({
+        where: {
+          id: data.accountId,
+          userId,
+        },
+      });
+
+      if (!account) {
+        throw new AppError('Account not found or access denied', 404);
+      }
+    }
+
     // Update the template - no instance management needed
     // Virtual periods will automatically reflect the new values
     const template = await this.prisma.budgetTemplate.update({
       where: { id },
       data: {
+        ...(data.accountId !== undefined && { accountId: data.accountId }),
         ...(data.amount !== undefined && { amount: data.amount }),
         ...(data.interval !== undefined && { interval: data.interval }),
         ...(data.includeSubcategories !== undefined && {
@@ -299,6 +339,7 @@ export class BudgetTemplateService {
       data: {
         userId,
         categoryId: template.categoryId,
+        accountId: template.accountId,
         amount: data.amount ?? Number(template.amount),
         type: template.type,
         periodType: template.periodType,
@@ -415,6 +456,8 @@ export class BudgetTemplateService {
       categoryId: template.categoryId,
       categoryName: template.category.name,
       categoryColor: template.category.color,
+      accountId: template.accountId,
+      accountName: template.account?.name || null,
       amount: template.amount.toNumber(),
       type: template.type,
       periodType: template.periodType,

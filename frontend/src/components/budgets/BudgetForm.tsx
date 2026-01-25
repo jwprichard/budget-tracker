@@ -21,10 +21,16 @@ import {
   FormLabel,
   Radio,
   RadioGroup,
+  FormControl,
+  InputLabel,
+  Select,
+  SelectChangeEvent,
+  Typography,
 } from '@mui/material';
 import { CategorySelect } from '../categories/CategorySelect';
 import { useCreateBudget, useUpdateBudget } from '../../hooks/useBudgets';
 import { useCreateTemplate, useCreatePeriodOverride } from '../../hooks/useBudgetTemplates';
+import { useAccounts } from '../../hooks/useAccounts';
 import {
   BudgetWithStatus,
   CreateBudgetDto,
@@ -43,6 +49,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
  */
 export interface BudgetFormInitialValues {
   categoryId?: string;
+  accountId?: string;
   amount?: number;
   budgetType?: BudgetType;
   name?: string;
@@ -66,6 +73,7 @@ const PERIOD_TYPES: { value: BudgetPeriod; label: string; singular: string; plur
 
 export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget, initialValues }) => {
   const [categoryId, setCategoryId] = useState<string>('');
+  const [accountId, setAccountId] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
   const [budgetType, setBudgetType] = useState<BudgetType>('EXPENSE');
   const [startDate, setStartDate] = useState<Date>(new Date());
@@ -80,6 +88,7 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget, i
   const [interval, setInterval] = useState<number>(1);
   const [endDate, setEndDate] = useState<Date | null>(null);
 
+  const { data: accounts = [] } = useAccounts();
   const createMutation = useCreateBudget();
   const updateMutation = useUpdateBudget();
   const createTemplateMutation = useCreateTemplate();
@@ -93,6 +102,7 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget, i
   useEffect(() => {
     if (budget) {
       setCategoryId(budget.categoryId);
+      setAccountId(budget.accountId || '');
       setAmount(budget.amount.toString());
       setBudgetType(budget.type || 'EXPENSE');
       setStartDate(new Date(budget.startDate));
@@ -111,6 +121,7 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget, i
     } else {
       // Reset form for new budget, with optional initial values (e.g., from transaction)
       setCategoryId(initialValues?.categoryId || '');
+      setAccountId(initialValues?.accountId || accounts[0]?.id || '');
       setAmount(initialValues?.amount?.toString() || '');
       setBudgetType(initialValues?.budgetType || 'EXPENSE');
       setStartDate(initialValues?.startDate || new Date());
@@ -123,7 +134,7 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget, i
       setEndDate(null);
     }
     setError('');
-  }, [budget, open, initialValues]);
+  }, [budget, open, initialValues, accounts]);
 
   const getPeriodLabel = () => {
     const periodInfo = PERIOD_TYPES.find((p) => p.value === periodType);
@@ -135,6 +146,11 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget, i
     // Validation
     if (!categoryId) {
       setError('Please select a category');
+      return;
+    }
+
+    if (!accountId) {
+      setError('Please select an account');
       return;
     }
 
@@ -189,8 +205,9 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget, i
           data: overrideData,
         });
       } else if (isEditing) {
-        // Update existing budget (only amount, type, includeSubcategories, name, notes)
+        // Update existing budget (only amount, type, includeSubcategories, name, notes, accountId)
         const updateData: UpdateBudgetDto = {
+          accountId: accountId || undefined,
           amount: amountNum,
           type: budgetType,
           includeSubcategories,
@@ -203,6 +220,7 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget, i
         // Create recurring budget template
         const templateData: CreateBudgetTemplateDto = {
           categoryId,
+          accountId,
           amount: amountNum,
           type: budgetType,
           periodType,
@@ -219,6 +237,7 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget, i
         // Create one-time budget
         const createData: CreateBudgetDto = {
           categoryId,
+          accountId,
           amount: amountNum,
           type: budgetType,
           startDate: startDate.toISOString(),
@@ -249,13 +268,42 @@ export const BudgetForm: React.FC<BudgetFormProps> = ({ open, onClose, budget, i
 
           <Grid container spacing={2}>
             {/* Category Selection */}
-            <Grid item xs={12}>
+            <Grid item xs={12} sm={6}>
               <CategorySelect
                 value={categoryId}
                 onChange={setCategoryId}
                 label="Category"
                 disabled={isEditing} // Cannot change category when editing
               />
+            </Grid>
+
+            {/* Account Selection */}
+            <Grid item xs={12} sm={6}>
+              <FormControl fullWidth required error={isEditing && !accountId}>
+                <InputLabel id="account-select-label">Account</InputLabel>
+                <Select
+                  labelId="account-select-label"
+                  value={accountId}
+                  label="Account"
+                  onChange={(e: SelectChangeEvent) => setAccountId(e.target.value)}
+                >
+                  {accounts.map((account) => (
+                    <MenuItem key={account.id} value={account.id}>
+                      {account.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+                {isEditing && !accountId && (
+                  <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 1.5 }}>
+                    Please select an account for this budget
+                  </Typography>
+                )}
+                {!isEditing && (
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1.5 }}>
+                    Budget spending will affect this account's forecast
+                  </Typography>
+                )}
+              </FormControl>
             </Grid>
 
             {/* Budget Type Selection */}

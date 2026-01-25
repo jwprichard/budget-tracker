@@ -34,6 +34,8 @@ export interface ImplicitSpendSummary {
   budgetName: string;
   categoryId: string;
   categoryName: string;
+  accountId: string | null;
+  accountName: string | null;
   amount: number;
   mode: ImplicitSpendMode;
 }
@@ -84,6 +86,8 @@ interface DailyImplicitSpend {
   budgetName: string;
   categoryId: string;
   categoryName: string;
+  accountId: string | null;
+  accountName: string | null;
   date: Date;
   amount: number;
   mode: ImplicitSpendMode;
@@ -317,16 +321,21 @@ export class ForecastService {
     endDate: Date
   ): Promise<DailyImplicitSpend[]> {
     // Get active budget templates with DAILY or END_OF_PERIOD implicit spend mode
+    // Only budgets with an accountId will contribute to implicit spend
     const budgetTemplates = await this.prisma.budgetTemplate.findMany({
       where: {
         userId,
         isActive: true,
         type: 'EXPENSE', // Only expense budgets contribute to implicit spend
         implicitSpendMode: { not: 'NONE' },
+        accountId: { not: null }, // Only include budgets linked to an account
       },
       include: {
         category: {
           select: { id: true, name: true, color: true },
+        },
+        account: {
+          select: { id: true, name: true },
         },
       },
     });
@@ -382,6 +391,8 @@ export class ForecastService {
               budgetName: template.name,
               categoryId: template.categoryId,
               categoryName: template.category?.name || 'Unknown',
+              accountId: template.accountId,
+              accountName: template.account?.name || null,
               date: new Date(date),
               amount: -dailyAmount, // Expenses are negative
               mode: 'DAILY',
@@ -397,6 +408,8 @@ export class ForecastService {
               budgetName: template.name,
               categoryId: template.categoryId,
               categoryName: template.category?.name || 'Unknown',
+              accountId: template.accountId,
+              accountName: template.account?.name || null,
               date: new Date(spendDate),
               amount: -remainingCapacity,
               mode: 'END_OF_PERIOD',
@@ -477,13 +490,11 @@ export class ForecastService {
         }
       }
 
-      // Apply implicit spend (subtract from a "default" account - first active account)
-      // Note: In a more sophisticated implementation, you might associate budgets with specific accounts
-      const defaultAccountId = accounts[0]?.id;
-      if (defaultAccountId) {
-        for (const is of dayImplicit) {
-          const currentBalance = balances.get(defaultAccountId) || 0;
-          balances.set(defaultAccountId, currentBalance + is.amount);
+      // Apply implicit spend to each budget's associated account
+      for (const is of dayImplicit) {
+        if (is.accountId && balances.has(is.accountId)) {
+          const currentBalance = balances.get(is.accountId) || 0;
+          balances.set(is.accountId, currentBalance + is.amount);
         }
       }
 
@@ -526,6 +537,8 @@ export class ForecastService {
         budgetName: is.budgetName,
         categoryId: is.categoryId,
         categoryName: is.categoryName,
+        accountId: is.accountId,
+        accountName: is.accountName,
         amount: is.amount,
         mode: is.mode,
       }));

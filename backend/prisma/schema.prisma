@@ -119,6 +119,8 @@ model Account {
   plannedTransactionTransferTo      PlannedTransactionTemplate[] @relation("PlannedTemplateTransferTo")
   plannedTransactions               PlannedTransaction[]         @relation("PlannedTransactionAccount")
   plannedTransactionTransferToPlans PlannedTransaction[]         @relation("PlannedTransactionTransferTo")
+  budgets                           Budget[]
+  budgetTemplates                   BudgetTemplate[]
 
   @@index([userId])
   @@index([isActive])
@@ -186,9 +188,10 @@ model CategoryRule {
 
 // Budget - Category budgets with period tracking
 model Budget {
-  id         String @id @default(uuid())
+  id         String  @id @default(uuid())
   userId     String
   categoryId String
+  accountId  String? // Account this budget applies to (NULL = not linked, won't affect forecast)
 
   // Budget amount
   amount Decimal @db.Decimal(15, 2)
@@ -218,12 +221,14 @@ model Budget {
   // Relations
   user                        User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
   category                    Category                     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  account                     Account?                     @relation(fields: [accountId], references: [id], onDelete: SetNull)
   template                    BudgetTemplate?              @relation("TemplateBudgets", fields: [templateId], references: [id], onDelete: SetNull)
   plannedTransactionTemplates PlannedTransactionTemplate[]
   plannedTransactions         PlannedTransaction[]
 
   @@index([userId])
   @@index([categoryId])
+  @@index([accountId])
   @@index([startDate])
   @@index([templateId])
   @@map("budgets")
@@ -234,6 +239,7 @@ model BudgetTemplate {
   id         String @id @default(uuid())
   userId     String
   categoryId String
+  accountId  String? // Account this budget applies to (NULL = not linked, won't affect forecast)
 
   // Template configuration
   amount               Decimal           @db.Decimal(15, 2)
@@ -260,11 +266,13 @@ model BudgetTemplate {
   // Relations
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  account  Account? @relation(fields: [accountId], references: [id], onDelete: SetNull)
   budgets  Budget[] @relation("TemplateBudgets")
 
   @@unique([userId, name])
   @@index([userId])
   @@index([categoryId])
+  @@index([accountId])
   @@index([isActive])
   @@map("budget_templates")
 }

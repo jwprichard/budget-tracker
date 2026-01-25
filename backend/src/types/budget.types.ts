@@ -18,6 +18,8 @@ export interface BudgetWithStatus {
   categoryId: string;
   categoryName: string;
   categoryColor: string;
+  accountId: string | null;
+  accountName: string | null;
   amount: number;
   type: BudgetType; // Budget type: income vs expense
 
@@ -61,6 +63,7 @@ export interface BudgetSummaryResponse {
  */
 export interface BudgetQuery {
   categoryId?: string;
+  accountId?: string;
   templateId?: string;
 
   // NEW: Filter by date range
@@ -82,6 +85,8 @@ export interface BudgetTemplateWithStats {
   categoryId: string;
   categoryName: string;
   categoryColor: string;
+  accountId: string | null;
+  accountName: string | null;
   amount: number;
   type: BudgetType; // Budget type: income vs expense
   periodType: BudgetPeriod;

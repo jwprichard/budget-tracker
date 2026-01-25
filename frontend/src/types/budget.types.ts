@@ -18,6 +18,8 @@ export interface BudgetWithStatus {
   categoryId: string;
   categoryName: string;
   categoryColor: string;
+  accountId: string | null;
+  accountName: string | null;
   amount: number;
   type: BudgetType; // Budget type: income vs expense
 
@@ -59,6 +61,7 @@ export interface BudgetSummaryResponse {
  */
 export interface BudgetQuery {
   categoryId?: string;
+  accountId?: string;
   templateId?: string; // Filter budgets by template
 
   // NEW: Filter by date range
@@ -76,6 +79,7 @@ export interface BudgetQuery {
  */
 export interface CreateBudgetDto {
   categoryId: string;
+  accountId: string;
   amount: number;
   type?: BudgetType; // Defaults to EXPENSE on backend
   includeSubcategories?: boolean;
@@ -94,6 +98,7 @@ export interface CreateBudgetDto {
  * Update budget DTO
  */
 export interface UpdateBudgetDto {
+  accountId?: string;
   amount?: number;
   type?: BudgetType;
   includeSubcategories?: boolean;
@@ -108,6 +113,7 @@ export interface Budget {
   id: string;
   userId: string;
   categoryId: string;
+  accountId: string | null;
   amount: number;
   type: BudgetType; // Budget type: income vs expense
 
@@ -135,6 +141,8 @@ export interface BudgetTemplate {
   categoryId: string;
   categoryName: string;
   categoryColor: string;
+  accountId: string | null;
+  accountName: string | null;
   amount: number;
   type: BudgetType; // Budget type: income vs expense
   periodType: BudgetPeriod;
@@ -159,6 +167,7 @@ export interface BudgetTemplate {
  */
 export interface CreateBudgetTemplateDto {
   categoryId: string;
+  accountId: string;
   amount: number;
   type?: BudgetType; // Defaults to EXPENSE on backend
   periodType: BudgetPeriod;
@@ -174,6 +183,7 @@ export interface CreateBudgetTemplateDto {
  * Update budget template DTO
  */
 export interface UpdateBudgetTemplateDto {
+  accountId?: string;
   amount?: number;
   type?: BudgetType;
   interval?: number;
