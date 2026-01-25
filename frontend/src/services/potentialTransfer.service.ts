@@ -24,7 +24,7 @@ export const detectTransfers = async (
 ): Promise<DetectTransfersResult> => {
   const response = await apiClient.post<SuccessResponse<DetectTransfersResult>>(
     `${BASE_PATH}/detect`,
-    null,
+    {},
     { params: query }
   );
   return response.data.data;
@@ -56,7 +56,8 @@ export const getPendingCount = async (): Promise<number> => {
  */
 export const confirmTransfer = async (id: string): Promise<ConfirmTransferResult> => {
   const response = await apiClient.post<SuccessResponse<ConfirmTransferResult>>(
-    `${BASE_PATH}/${id}/confirm`
+    `${BASE_PATH}/${id}/confirm`,
+    {}
   );
   return response.data.data;
 };
@@ -66,7 +67,7 @@ export const confirmTransfer = async (id: string): Promise<ConfirmTransferResult
  * @param id - Potential transfer ID
  */
 export const dismissTransfer = async (id: string): Promise<void> => {
-  await apiClient.post(`${BASE_PATH}/${id}/dismiss`);
+  await apiClient.post(`${BASE_PATH}/${id}/dismiss`, {});
 };
 
 export const potentialTransferService = {

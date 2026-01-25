@@ -19,6 +19,11 @@ import {
   Tooltip,
   LinearProgress,
   IconButton,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  SelectChangeEvent,
 } from '@mui/material';
 import {
   CheckCircle as CheckIcon,
@@ -28,11 +33,13 @@ import {
   Event as EventIcon,
   AccountBalance as AccountIcon,
   ArrowForward as ArrowIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
 import {
   usePendingTransfers,
   useConfirmTransfer,
   useDismissTransfer,
+  useDetectTransfers,
 } from '../../hooks/usePotentialTransfers';
 import { PotentialTransfer } from '../../types/potentialTransfer.types';
 import { formatCurrency } from '../../utils/formatters';
@@ -217,10 +224,40 @@ export const TransferReviewDialog: React.FC<TransferReviewDialogProps> = ({
   onClose,
 }) => {
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [daysBack, setDaysBack] = useState<number>(30);
 
   const { data: pendingTransfers, isLoading, error, refetch } = usePendingTransfers(open);
   const confirmMutation = useConfirmTransfer();
   const dismissMutation = useDismissTransfer();
+  const detectMutation = useDetectTransfers();
+
+  const [isConfirmingAll, setIsConfirmingAll] = useState(false);
+
+  const handleDetect = async () => {
+    try {
+      const result = await detectMutation.mutateAsync({ daysBack });
+      if (result.detected > 0) {
+        refetch();
+      }
+    } catch (err) {
+      console.error('Failed to detect transfers:', err);
+    }
+  };
+
+  const handleConfirmAll = async () => {
+    if (!pendingTransfers || pendingTransfers.length === 0) return;
+
+    setIsConfirmingAll(true);
+    try {
+      for (const transfer of pendingTransfers) {
+        await confirmMutation.mutateAsync(transfer.id);
+      }
+    } catch (err) {
+      console.error('Failed to confirm all transfers:', err);
+    } finally {
+      setIsConfirmingAll(false);
+    }
+  };
 
   const handleConfirm = async (transfer: PotentialTransfer) => {
     setProcessingId(transfer.id);
@@ -264,6 +301,47 @@ export const TransferReviewDialog: React.FC<TransferReviewDialogProps> = ({
         </IconButton>
       </DialogTitle>
       <DialogContent dividers>
+        {/* Scan for Transfers Section */}
+        <Box sx={{ mb: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Scan for Transfers
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Scan your existing transactions to detect potential transfer pairs.
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <FormControl size="small" sx={{ minWidth: 150 }}>
+              <InputLabel>Time Period</InputLabel>
+              <Select
+                value={daysBack}
+                label="Time Period"
+                onChange={(e: SelectChangeEvent<number>) => setDaysBack(Number(e.target.value))}
+              >
+                <MenuItem value={7}>Last 7 days</MenuItem>
+                <MenuItem value={14}>Last 14 days</MenuItem>
+                <MenuItem value={30}>Last 30 days</MenuItem>
+                <MenuItem value={60}>Last 60 days</MenuItem>
+                <MenuItem value={90}>Last 90 days</MenuItem>
+                <MenuItem value={180}>Last 6 months</MenuItem>
+                <MenuItem value={365}>Last year</MenuItem>
+              </Select>
+            </FormControl>
+            <Button
+              variant="contained"
+              startIcon={detectMutation.isPending ? <CircularProgress size={16} color="inherit" /> : <SearchIcon />}
+              onClick={handleDetect}
+              disabled={detectMutation.isPending}
+            >
+              {detectMutation.isPending ? 'Scanning...' : 'Scan'}
+            </Button>
+            {detectMutation.isSuccess && (
+              <Typography variant="body2" color="success.main">
+                Found {detectMutation.data?.detected || 0} potential transfer{detectMutation.data?.detected !== 1 ? 's' : ''}
+              </Typography>
+            )}
+          </Box>
+        </Box>
+
         {isLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
             <CircularProgress />
@@ -289,9 +367,21 @@ export const TransferReviewDialog: React.FC<TransferReviewDialogProps> = ({
               <Typography variant="body2" color="text.secondary">
                 {pendingTransfers.length} potential transfer{pendingTransfers.length !== 1 ? 's' : ''} to review
               </Typography>
-              <Button size="small" onClick={() => refetch()}>
-                Refresh
-              </Button>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  variant="contained"
+                  color="success"
+                  size="small"
+                  startIcon={isConfirmingAll ? <CircularProgress size={14} color="inherit" /> : <CheckIcon />}
+                  onClick={handleConfirmAll}
+                  disabled={isConfirmingAll || processingId !== null}
+                >
+                  {isConfirmingAll ? 'Confirming...' : 'Accept All'}
+                </Button>
+                <Button size="small" onClick={() => refetch()}>
+                  Refresh
+                </Button>
+              </Box>
             </Box>
 
             <Alert severity="info" sx={{ mb: 2 }}>

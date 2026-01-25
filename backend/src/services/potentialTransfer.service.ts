@@ -270,6 +270,13 @@ export class PotentialTransferService {
 
     // Use a transaction to ensure atomicity
     const result = await this.prisma.$transaction(async (tx) => {
+      // First, mark potential transfer as confirmed (before deleting target transaction
+      // which would CASCADE delete this record)
+      await tx.potentialTransfer.update({
+        where: { id },
+        data: { status: 'CONFIRMED' },
+      });
+
       // Update the source transaction to be a TRANSFER
       const updatedSource = await tx.transaction.update({
         where: { id: potentialTransfer.sourceTransactionId },
@@ -280,15 +287,26 @@ export class PotentialTransferService {
         },
       });
 
-      // Delete the target transaction (income side) since transfer handles both
-      await tx.transaction.delete({
-        where: { id: potentialTransfer.targetTransactionId },
+      // Get the target transaction amount before deleting
+      const targetAmount = Number(potentialTransfer.targetTransaction.amount);
+
+      // Adjust the target account's initialBalance to compensate for removing the transaction
+      // This maintains the correct balance (which should match the bank-reported balance)
+      // The target transaction was an income (+), so we need to add it to initialBalance
+      await tx.account.update({
+        where: { id: potentialTransfer.targetAccountId },
+        data: {
+          initialBalance: {
+            increment: targetAmount,
+          },
+        },
       });
 
-      // Mark potential transfer as confirmed
-      await tx.potentialTransfer.update({
-        where: { id },
-        data: { status: 'CONFIRMED' },
+      // Delete the target transaction (income side) since transfer handles both
+      // Note: This will CASCADE delete the potential_transfer record, but we've already
+      // updated its status above, and the record is no longer needed
+      await tx.transaction.delete({
+        where: { id: potentialTransfer.targetTransactionId },
       });
 
       return updatedSource;
