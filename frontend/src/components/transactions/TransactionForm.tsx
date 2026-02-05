@@ -52,6 +52,7 @@ export const TransactionForm = ({
   onCreatePlannedTransaction,
 }: TransactionFormProps) => {
   const isEditing = !!transaction;
+  const isTransfer = !!transaction?.transferToAccountId;
   const { data: accounts = [] } = useAccounts();
 
   // Get today's date in YYYY-MM-DD format
@@ -121,7 +122,7 @@ export const TransactionForm = ({
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{isEditing ? 'Edit Transaction' : 'Create Transaction'}</DialogTitle>
+      <DialogTitle>{isTransfer ? 'View Transaction (Read-Only)' : isEditing ? 'Edit Transaction' : 'Create Transaction'}</DialogTitle>
       <form onSubmit={handleSubmit(handleFormSubmit)}>
         <DialogContent>
           <Grid container spacing={2}>
@@ -139,7 +140,7 @@ export const TransactionForm = ({
                     required
                     error={!!errors.accountId}
                     helperText={errors.accountId?.message}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isTransfer}
                   >
                     {accounts.filter((acc) => acc.isActive).map((account) => (
                       <MenuItem key={account.id} value={account.id}>
@@ -165,7 +166,7 @@ export const TransactionForm = ({
                     required
                     error={!!errors.type}
                     helperText={errors.type?.message}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isTransfer}
                   >
                     {transactionTypes.map((option) => (
                       <MenuItem key={option.value} value={option.value}>
@@ -189,7 +190,7 @@ export const TransactionForm = ({
                     fullWidth
                     error={!!errors.status}
                     helperText={errors.status?.message}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isTransfer}
                   >
                     {transactionStatuses.map((option) => (
                       <MenuItem key={option.value} value={option.value}>
@@ -215,7 +216,7 @@ export const TransactionForm = ({
                     required
                     error={!!errors.amount}
                     helperText={errors.amount?.message}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isTransfer}
                   />
                 )}
               />
@@ -233,7 +234,7 @@ export const TransactionForm = ({
                     required
                     error={!!errors.date}
                     helperText={errors.date?.message}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isTransfer}
                   />
                 )}
               />
@@ -252,7 +253,7 @@ export const TransactionForm = ({
                     required
                     error={!!errors.description}
                     helperText={errors.description?.message}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isTransfer}
                   />
                 )}
               />
@@ -267,7 +268,7 @@ export const TransactionForm = ({
                     value={field.value || ''}
                     onChange={field.onChange}
                     label="Category (Optional)"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isTransfer}
                   />
                 )}
               />
@@ -286,7 +287,7 @@ export const TransactionForm = ({
                     rows={3}
                     error={!!errors.notes}
                     helperText={errors.notes?.message}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isTransfer}
                   />
                 )}
               />
@@ -295,10 +296,10 @@ export const TransactionForm = ({
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose} disabled={isSubmitting}>
-            Cancel
+            {isTransfer ? 'Close' : 'Cancel'}
           </Button>
           <Box sx={{ flex: 1 }} />
-          {isEditing && transaction && onCreatePlannedTransaction && (
+          {isEditing && transaction && onCreatePlannedTransaction && !isTransfer && (
             <Button
               startIcon={<PlannedIcon />}
               onClick={() => onCreatePlannedTransaction(transaction)}
@@ -307,7 +308,7 @@ export const TransactionForm = ({
               Create Planned
             </Button>
           )}
-          {isEditing && transaction && onCreateBudget && (
+          {isEditing && transaction && onCreateBudget && !isTransfer && (
             <Button
               startIcon={<BudgetIcon />}
               onClick={() => onCreateBudget(transaction)}
@@ -316,9 +317,11 @@ export const TransactionForm = ({
               Create Budget
             </Button>
           )}
-          <Button type="submit" variant="contained" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving...' : isEditing ? 'Save' : 'Create'}
-          </Button>
+          {!isTransfer && (
+            <Button type="submit" variant="contained" disabled={isSubmitting}>
+              {isSubmitting ? 'Saving...' : isEditing ? 'Save' : 'Create'}
+            </Button>
+          )}
         </DialogActions>
       </form>
     </Dialog>

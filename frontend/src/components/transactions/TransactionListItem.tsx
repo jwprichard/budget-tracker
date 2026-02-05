@@ -18,7 +18,7 @@ export const TransactionListItem = ({ transaction, onEdit, isBudgeted }: Transac
   const category = transaction.category;
 
   const handleRowClick = () => {
-    if (onEdit && !isTransfer) {
+    if (onEdit) {
       onEdit(transaction);
     }
   };
@@ -30,9 +30,9 @@ export const TransactionListItem = ({ transaction, onEdit, isBudgeted }: Transac
       hover
       onClick={handleRowClick}
       sx={{
-        cursor: isTransfer ? 'default' : 'pointer',
+        cursor: 'pointer',
         '&:hover': {
-          backgroundColor: isTransfer ? 'inherit' : 'action.hover',
+          backgroundColor: 'action.hover',
         }
       }}
     >
