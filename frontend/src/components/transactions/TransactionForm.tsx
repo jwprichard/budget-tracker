@@ -53,6 +53,8 @@ export const TransactionForm = ({
 }: TransactionFormProps) => {
   const isEditing = !!transaction;
   const isTransfer = !!transaction?.transferToAccountId;
+  const isFromBank = !!transaction?.isFromBank;
+  const isReadOnly = isTransfer || isFromBank;
   const { data: accounts = [] } = useAccounts();
 
   // Get today's date in YYYY-MM-DD format
@@ -122,7 +124,9 @@ export const TransactionForm = ({
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{isTransfer ? 'View Transaction (Read-Only)' : isEditing ? 'Edit Transaction' : 'Create Transaction'}</DialogTitle>
+      <DialogTitle>
+        {isTransfer ? 'View Transaction (Read-Only)' : isEditing ? 'Edit Transaction' : 'Create Transaction'}
+      </DialogTitle>
       <form onSubmit={handleSubmit(handleFormSubmit)}>
         <DialogContent>
           <Grid container spacing={2}>
@@ -140,7 +144,7 @@ export const TransactionForm = ({
                     required
                     error={!!errors.accountId}
                     helperText={errors.accountId?.message}
-                    disabled={isSubmitting || isTransfer}
+                    disabled={isSubmitting || isReadOnly}
                   >
                     {accounts.filter((acc) => acc.isActive).map((account) => (
                       <MenuItem key={account.id} value={account.id}>
@@ -166,7 +170,7 @@ export const TransactionForm = ({
                     required
                     error={!!errors.type}
                     helperText={errors.type?.message}
-                    disabled={isSubmitting || isTransfer}
+                    disabled={isSubmitting || isReadOnly}
                   >
                     {transactionTypes.map((option) => (
                       <MenuItem key={option.value} value={option.value}>
@@ -190,7 +194,7 @@ export const TransactionForm = ({
                     fullWidth
                     error={!!errors.status}
                     helperText={errors.status?.message}
-                    disabled={isSubmitting || isTransfer}
+                    disabled={isSubmitting || isReadOnly}
                   >
                     {transactionStatuses.map((option) => (
                       <MenuItem key={option.value} value={option.value}>
@@ -216,7 +220,7 @@ export const TransactionForm = ({
                     required
                     error={!!errors.amount}
                     helperText={errors.amount?.message}
-                    disabled={isSubmitting || isTransfer}
+                    disabled={isSubmitting || isReadOnly}
                   />
                 )}
               />
@@ -234,7 +238,7 @@ export const TransactionForm = ({
                     required
                     error={!!errors.date}
                     helperText={errors.date?.message}
-                    disabled={isSubmitting || isTransfer}
+                    disabled={isSubmitting || isReadOnly}
                   />
                 )}
               />
