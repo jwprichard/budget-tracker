@@ -67,6 +67,15 @@ Replace the Edit button in the transaction list with click-to-edit functionality
 - Added stopPropagation to Bank chip onClick handler
 - Fixes issue where clicking on chips/badges was opening the edit dialog
 
+### Date: February 5, 2026 - Transfer View Support
+- Enabled clicking on transfer transaction rows to view details
+- All form fields disabled when viewing a transfer (read-only mode)
+- Dialog title changes to "View Transaction (Read-Only)" for transfers
+- Save button hidden for transfers
+- Create Budget and Create Planned buttons hidden for transfers
+- Cancel button text changes to "Close" for transfers
+- Removed conditional styling that blocked transfer clicks
+
 ### Breaking Changes
 None - the edit functionality works the same way, just triggered differently.
 
