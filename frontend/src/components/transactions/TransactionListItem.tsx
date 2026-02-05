@@ -54,6 +54,7 @@ export const TransactionListItem = ({ transaction, onEdit, isBudgeted }: Transac
                       variant="outlined"
                       color="primary"
                       sx={{ height: 18, fontSize: '0.65rem' }}
+                      onClick={(e) => e.stopPropagation()}
                     />
                   )}
                 </Box>
@@ -107,7 +108,7 @@ export const TransactionListItem = ({ transaction, onEdit, isBudgeted }: Transac
           </Typography>
         )}
       </TableCell>
-      <TableCell>
+      <TableCell onClick={(e) => e.stopPropagation()}>
         <Chip
           label={transaction.type}
           size="small"
@@ -118,7 +119,7 @@ export const TransactionListItem = ({ transaction, onEdit, isBudgeted }: Transac
       <TableCell align="right">
         <BalanceDisplay amount={transaction.amount} variant="body1" showSign />
       </TableCell>
-      <TableCell>
+      <TableCell onClick={(e) => e.stopPropagation()}>
         <TransactionStatusChip status={transaction.status} />
       </TableCell>
     </TableRow>
