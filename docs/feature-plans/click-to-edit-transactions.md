@@ -76,6 +76,15 @@ Replace the Edit button in the transaction list with click-to-edit functionality
 - Cancel button text changes to "Close" for transfers
 - Removed conditional styling that blocked transfer clicks
 
+### Date: February 5, 2026 - Partial Edit for Bank Transactions
+- Bank-synced transactions now support partial editing
+- **Read-only fields** (for bank transactions): Account, Type, Status, Amount, Date
+- **Editable fields** (for bank transactions): Description, Category, Notes
+- Transfer transactions remain fully read-only
+- Save button visible for bank transactions (allows saving Description, Category, Notes changes)
+- Create Budget and Create Planned buttons visible for bank transactions
+- Dialog title shows "Edit Transaction" for bank transactions (not "Read-Only")
+
 ### Breaking Changes
 None - the edit functionality works the same way, just triggered differently.
 
