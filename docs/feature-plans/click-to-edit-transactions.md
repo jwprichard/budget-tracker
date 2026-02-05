@@ -54,13 +54,18 @@ Replace the Edit button in the transaction list with click-to-edit functionality
 
 ## Implementation Notes
 
-### Date: February 5, 2026
+### Date: February 5, 2026 - Initial Implementation
 - Removed Edit and Delete icon buttons from TransactionListItem
 - Added onClick handler to TableRow to trigger edit
 - Applied conditional styling based on whether transaction is a transfer
 - Transfer transactions cannot be edited (existing behavior preserved)
 - Removed Actions column from table header
 - Added TODO comment for onDelete prop (will be removed once delete is re-implemented)
+
+### Date: February 5, 2026 - Event Propagation Fix
+- Added stopPropagation to Type and Status table cells to prevent clicks from triggering edit
+- Added stopPropagation to Bank chip onClick handler
+- Fixes issue where clicking on chips/badges was opening the edit dialog
 
 ### Breaking Changes
 None - the edit functionality works the same way, just triggered differently.
