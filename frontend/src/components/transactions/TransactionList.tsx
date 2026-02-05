@@ -68,7 +68,6 @@ export const TransactionList = ({
               <TableCell>Type</TableCell>
               <TableCell align="right">Amount</TableCell>
               <TableCell>Status</TableCell>
-              <TableCell align="right">Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>

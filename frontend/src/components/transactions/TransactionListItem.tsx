@@ -1,5 +1,5 @@
-import { TableRow, TableCell, IconButton, Chip, Box, Typography, Tooltip } from '@mui/material';
-import { Delete as DeleteIcon, Edit as EditIcon, SwapHoriz as TransferIcon, AccountBalance as BudgetIcon } from '@mui/icons-material';
+import { TableRow, TableCell, Chip, Box, Typography, Tooltip } from '@mui/material';
+import { SwapHoriz as TransferIcon, AccountBalance as BudgetIcon } from '@mui/icons-material';
 import { Transaction } from '../../types';
 import { BalanceDisplay } from '../common/BalanceDisplay';
 import { TransactionStatusChip } from './TransactionStatusChip';
@@ -9,30 +9,33 @@ import { format } from 'date-fns';
 interface TransactionListItemProps {
   transaction: Transaction;
   onEdit?: (transaction: Transaction) => void;
-  onDelete?: (transaction: Transaction) => void;
+  onDelete?: (transaction: Transaction) => void; // TODO: Remove once delete functionality is re-implemented
   isBudgeted?: boolean;
 }
 
-export const TransactionListItem = ({ transaction, onEdit, onDelete, isBudgeted }: TransactionListItemProps) => {
+export const TransactionListItem = ({ transaction, onEdit, isBudgeted }: TransactionListItemProps) => {
   const isTransfer = !!transaction.transferToAccountId;
   const category = transaction.category;
 
-  const handleEdit = () => {
+  const handleRowClick = () => {
     if (onEdit && !isTransfer) {
       onEdit(transaction);
-    }
-  };
-
-  const handleDelete = () => {
-    if (onDelete) {
-      onDelete(transaction);
     }
   };
 
   const formattedDate = format(new Date(transaction.date), 'MMM dd, yyyy');
 
   return (
-    <TableRow hover>
+    <TableRow
+      hover
+      onClick={handleRowClick}
+      sx={{
+        cursor: isTransfer ? 'default' : 'pointer',
+        '&:hover': {
+          backgroundColor: isTransfer ? 'inherit' : 'action.hover',
+        }
+      }}
+    >
       <TableCell>{formattedDate}</TableCell>
       <TableCell>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -117,20 +120,6 @@ export const TransactionListItem = ({ transaction, onEdit, onDelete, isBudgeted 
       </TableCell>
       <TableCell>
         <TransactionStatusChip status={transaction.status} />
-      </TableCell>
-      <TableCell align="right">
-        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
-          {!isTransfer && onEdit && (
-            <IconButton size="small" onClick={handleEdit} title="Edit">
-              <EditIcon fontSize="small" />
-            </IconButton>
-          )}
-          {onDelete && (
-            <IconButton size="small" onClick={handleDelete} color="error" title="Delete">
-              <DeleteIcon fontSize="small" />
-            </IconButton>
-          )}
-        </Box>
       </TableCell>
     </TableRow>
   );
