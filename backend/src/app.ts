@@ -28,8 +28,18 @@ app.use(helmet());
 // CORS configuration
 // In production, allow requests from the same host on port 80
 // In development, allow localhost:5173 (Vite dev server)
-const corsOrigin = process.env['CORS_ORIGIN'] ||
-  (process.env['NODE_ENV'] === 'production' ? true : 'http://localhost:5173');
+// CORS_ORIGIN can be a comma-separated list of origins
+const corsOriginEnv = process.env['CORS_ORIGIN'];
+let corsOrigin: string | string[] | boolean;
+
+if (corsOriginEnv) {
+  // Support comma-separated list of origins
+  corsOrigin = corsOriginEnv.includes(',')
+    ? corsOriginEnv.split(',').map(origin => origin.trim())
+    : corsOriginEnv;
+} else {
+  corsOrigin = process.env['NODE_ENV'] === 'production' ? true : 'http://localhost:5173';
+}
 
 app.use(
   cors({
