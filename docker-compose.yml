@@ -49,9 +49,9 @@ services:
       - budget-tracker-network
     restart: unless-stopped
     volumes:
-      # Mount source code for hot reload
-      - ./backend/src:/app/src
-      - ./backend/prisma:/app/prisma
+      # Mount source code for hot reload (with :z for SELinux)
+      - ./backend/src:/app/src:z
+      - ./backend/prisma:/app/prisma:z
       # Use named volumes for node_modules to improve performance
       - backend_node_modules:/app/node_modules
     healthcheck:
@@ -79,10 +79,10 @@ services:
       - budget-tracker-network
     restart: unless-stopped
     volumes:
-      # Mount source code for hot reload
-      - ./frontend/src:/app/src
-      - ./frontend/public:/app/public
-      - ./frontend/index.html:/app/index.html
+      # Mount source code for hot reload (with :z for SELinux)
+      - ./frontend/src:/app/src:z
+      - ./frontend/public:/app/public:z
+      - ./frontend/index.html:/app/index.html:z
       # Use named volumes for node_modules to improve performance
       - frontend_node_modules:/app/node_modules
     healthcheck:

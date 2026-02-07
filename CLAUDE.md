@@ -67,12 +67,12 @@ Full-Stack Web Application (Self-Hosted)
 
 ## Development Environment
 
-- **OS**: Linux (WSL2 - Windows Subsystem for Linux)
-- **Kernel**: 6.6.87.2-microsoft-standard-WSL2
+- **OS**: Fedora Linux 43 (KDE Plasma Desktop Edition)
+- **Kernel**: 6.18.8-200.fc43.x86_64
 - **IDE**: [To be determined - VS Code recommended]
-- **Path Conventions**: WSL paths (e.g., `/mnt/c/vso/Other/budget-tracker`)
-- **Repository Location**: `/mnt/c/vso/Other/budget-tracker`
+- **Repository Location**: `/home/joshua/Documents/repos/budget-tracker`
 - **Special Setup**: Requires Docker and Docker Compose
+- **SELinux**: Enabled (requires `:z` volume mount flags in docker-compose.yml)
 
 ## Project Structure
 
@@ -539,7 +539,8 @@ Color-coded balance status (green/yellow/red thresholds).
 - Nginx Alpine for production frontend serving
 - Winston for backend logging with file and console transports
 - React Query for server state management
-- Vite polling enabled for Docker/WSL hot reload compatibility
+- Vite polling enabled for Docker hot reload compatibility
+- SELinux volume mount flags (`:z`) added to docker-compose.yml for Fedora/RHEL compatibility
 - **Added tslib as runtime dependency** - Required by TypeScript's `importHelpers` feature
 - **Added OpenSSL to Alpine base image** - Prisma requires OpenSSL for database connections
 - **Configured Prisma binary targets** - Set `linux-musl-openssl-3.0.x` for Alpine Linux compatibility
@@ -985,10 +986,11 @@ docker system prune -a --volumes  # Removes all stopped containers, unused image
 - **Zod**: https://zod.dev/
 
 ### Project Repository
-- **Location**: `/mnt/c/vso/Other/budget-tracker`
+- **Location**: `/home/joshua/Documents/repos/budget-tracker`
 - **Git Remote**: [To be added when repository is created]
 
 ### Design Files
+
 - Solution Design Document: `/docs/budget-tracker-solution-design.md`
 - Architecture diagrams included in solution design
 
